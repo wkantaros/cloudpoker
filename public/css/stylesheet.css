@@ -8,9 +8,15 @@ h2 {
     color: #575ed8;
 }
 
-#mario-chat {
-    max-width: 600px;
-    margin: 30px auto;
+main {
+    width: 800px;
+    margin: 0 auto;
+}
+#poker-game {
+    float: left;
+    width: 60%;
+    /* height: 10%; */
+    margin: 3% 4.3%;
     border: 1px solid #ddd;
     box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
     border-radius: 2px;
@@ -29,14 +35,67 @@ h2 {
     color: #555;
 }
 
+#poker-output strong {
+    color: #575ed8;
+}
+
+/* #side-col {
+    float: right;
+    width: 25%;
+    margin: 3%;
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+} */
+
+#side-col {
+    float: right;
+    width: 25%;
+    margin: 3%;
+}
+
+#chat-room{
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    margin-bottom: 110px;
+}
+
+#login-room{
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+#chat-window {
+    height: 220px;
+    overflow: auto;
+    width: 100%;
+    bottom: 0;
+    background: #f9f9f9;
+}
+
+#chat-output p {
+    padding: 14px 0px;
+    margin: 0 20px;
+    border-bottom: 1px solid #e9e9e9;
+    color: #555;
+}
+
+#chat-output strong {
+    color: #575ed8;
+}
+
 #feedback p {
     color: #aaa;
     padding: 14px 0px;
     margin: 0 20px;
 }
 
-#poker-output strong {
-    color: #575ed8;
+#poker-feedback p {
+    color: #aaa;
+    padding: 14px 0px;
+    margin: 0 20px;
 }
 
 label {
@@ -62,35 +121,20 @@ button {
     background: #575ed8;
     color: #fff;
     font-size: 18px;
-    border: 1;
+    border: 10px;
     padding: 12px 0;
     width: 100%;
-    border-radius: 0 0 2px 2px;
+    /* border-radius: 0px 0px 5px 5px; */
 }
 
-
-#chat-room {
-    position: absolute;
-    max-width: 400px;
-    margin: -400px 100px 10px 20px;
-    border: 1px solid #ddd;
-    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
+#wrap {
+    margin: 20%;
+    /* border-style: dotted; */
+    /* border-color: #555; */
+    border: 1px solid #555;
+    border-radius: 5px 5px 5px 5px;
 }
-
-#chat-window {
-    height: 150px;
-    overflow: auto;
-    background: #f9f9f9;
-}
-
-#chat-output p {
-    padding: 14px 0px;
-    margin: 0 20px;
-    border-bottom: 1px solid #e9e9e9;
-    color: #555;
-}
-
-#chat-output strong {
-    color: #575ed8;
+#wrap h1 {
+    color: #333;
+    text-align: center;
 }
