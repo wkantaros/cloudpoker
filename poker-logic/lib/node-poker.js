@@ -1,5 +1,7 @@
 var events = require('events');
 
+//Note: methods I've changed/created have been commented: EDITED
+
 function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn) {
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
@@ -122,16 +124,34 @@ function checkForEndOfRound(table) {
     endOfRound = true;
     maxBet = getMaxBet(table.game.bets);
     //For each player, check
-    for (i = 0; i < table.players.length; i += 1) {
-        if (table.players[i].folded === false) {
-            if (table.players[i].talked === false || table.game.bets[i] !== maxBet) {
-                if (table.players[i].allIn === false) {
-                  table.currentPlayer = i;
-                  endOfRound = false;
+    // EDITED
+    let counter = 1;
+    let j = table.currentPlayer;
+    while (counter <= table.players.length){
+        // console.log(`Current player: ${j}`);
+        if (table.players[j].folded === false) {
+            if (table.players[j].talked === false || table.game.bets[j] !== maxBet) {
+                if (table.players[j].allIn === false) {
+                    table.currentPlayer = j;
+                    endOfRound = false;
+                    break;
                 }
             }
         }
+        j++;
+        if (j >= table.players.length) j = 0;
+        counter++;
     }
+    // for (i = 0; i < table.players.length; i += 1) {
+    //     if (table.players[i].folded === false) {
+    //         if (table.players[i].talked === false || table.game.bets[i] !== maxBet) {
+    //             if (table.players[i].allIn === false) {
+    //               table.currentPlayer = i;
+    //               endOfRound = false;
+    //             }
+    //         }
+    //     }
+    // }
     return endOfRound;
 }
 
@@ -682,7 +702,9 @@ function progress(table) {
     var i, j, cards, hand;
     if (table.game) {
         if (checkForEndOfRound(table) === true) {
-          table.currentPlayer = (table.currentPlayer >= table.players.length-1) ? (table.currentPlayer-table.players.length+1) : (table.currentPlayer + 1 );
+            // EDITED
+        //   table.currentPlayer = (table.currentPlayer >= table.players.length-1) ? (table.currentPlayer-table.players.length+1) : (table.currentPlayer + 1 );
+          table.currentPlayer = (table.dealer + 1 >= table.players.length) ? 0 : table.dealer + 1;
             //Move all bets to the pot
             for (i = 0; i < table.game.bets.length; i += 1) {
                 table.game.pot += parseInt(table.game.bets[i], 10);
@@ -770,6 +792,16 @@ Table.prototype.getHandForPlayerName = function( playerName ){
   }
   return [];
 };
+
+// EDITED (I made it)
+Table.prototype.getPlayer = function( playerName ){
+  for( var i in this.players ){
+    if( this.players[i].playerName === playerName ){
+      return this.players[i];
+    }
+  }
+  return [];
+};
 Table.prototype.getDeal = function(){
   return this.game.board;
 };
@@ -785,10 +817,33 @@ Table.prototype.getPreviousPlayerAction = function(){
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
 Table.prototype.check = function( playerName ){
   var currentPlayer = this.currentPlayer;
-  if( playerName === this.players[ currentPlayer ].playerName ){
-    this.players[ currentPlayer ].Check();
-    return true;
-  }else{
+    //   EDITED (primarily to deal with 'checking' to close action as bb)
+  let cancheck = true;
+  for (let v = 0; v < this.game.bets.length; v++) {
+      //essentially wrapping this check as a call
+      if (this.game.roundName === 'Deal' && this.game.bets[v] === this.bigBlind && currentPlayer === v){
+          if (playerName === this.players[currentPlayer].playerName) {
+              this.players[currentPlayer].Call();
+              console.log(`${playerName} checks`);
+              return true;
+          } else {
+              console.log("wrong user has made a move");
+              return false;
+          }
+      } else if (this.game.bets[v] !== 0) {
+          cancheck = false;
+      }
+  }
+  if( playerName === this.players[ currentPlayer ].playerName){
+      if (cancheck){
+        this.players[currentPlayer].Check();
+        console.log(`${playerName} checks`);
+        return true;
+      } else {
+        console.log(`${playerName} unable to check`);
+        return false;
+      }
+    } else{
     // todo: check if something went wrong ( not enough money or things )
     console.log("wrong user has made a move");
     return false;
@@ -798,6 +853,7 @@ Table.prototype.fold = function( playerName ){
   var currentPlayer = this.currentPlayer;
   if( playerName === this.players[ currentPlayer ].playerName ){
     this.players[ currentPlayer ].Fold();
+    console.log(`${playerName} folds`);
     return true;
   }else{
     console.log("wrong user has made a move");
@@ -808,6 +864,7 @@ Table.prototype.call = function( playerName ){
   var currentPlayer = this.currentPlayer;
   if( playerName === this.players[ currentPlayer ].playerName ){
     this.players[ currentPlayer ].Call();
+    console.log(`${playerName} calls`);
     return true;
   }else{
     console.log("wrong user has made a move");
@@ -818,6 +875,7 @@ Table.prototype.bet = function( playerName, amt ){
   var currentPlayer = this.currentPlayer;
   if( playerName === this.players[ currentPlayer ].playerName ){
     this.players[ currentPlayer ].Bet( amt );
+    console.log(`${playerName} bet ${amt}`);
     return true;
   }else{
     console.log("wrong user has made a move");
@@ -874,14 +932,17 @@ Table.prototype.StartGame = function () {
 };
 
 Table.prototype.AddPlayer = function (playerName, chips) {
+    console.log(`adding player ${playerName}`);
   if ( chips >= this.minBuyIn && chips <= this.maxBuyIn) {
     var player = new Player(playerName, chips, this);
     this.playersToAdd.push( player );
   }
-  if ( this.players.length === 0 && this.playersToAdd.length >= this.minPlayers ){
-    this.StartGame();
-  }
+//   EDITED
+//   if ( this.players.length === 0 && this.playersToAdd.length >= this.minPlayers ){
+//     this.StartGame();
+//   }
 };
+
 Table.prototype.removePlayer = function (playerName){
   for( var i in this.players ){
     if( this.players[i].playerName === playerName ){
@@ -940,6 +1001,10 @@ Table.prototype.NewRound = function() {
   this.currentPlayer = this.dealer + 3;
   if( this.currentPlayer >= this.players.length ) {
     this.currentPlayer -= this.players.length;
+    // EDITED
+    if (this.currentPlayer === this.players.length){
+        this.currentPlayer = 0;
+    }
   }
 
   this.eventEmitter.emit( "newRound" );
@@ -1067,5 +1132,30 @@ function rankHands(hands) {
 
     return hands;
 }
+
+// EDITED (i made it)
+Table.prototype.checkwin = function() {
+    let numPlayers = 0;
+    let pwinner;
+    for (let i = 0; i < this.players.length; i++){
+        if (!this.players[i].folded) {
+            numPlayers++;
+            pwinner = this.players[i];
+        }
+    }
+    if (numPlayers === 1) {
+        console.log("everyone's folded!");
+        return {
+            everyoneFolded: true, 
+            pot: this.game.pot, 
+            winner: pwinner
+        };
+    }
+    return {
+        everyoneFolded: false, 
+        pot: null, 
+        winner: null
+    };
+};
 
 exports.Table = Table;
