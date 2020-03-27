@@ -1,0 +1,18 @@
+BACKEND EDITS:
+    handle all-in's to work accordingly
+    handle players leaving game
+    handle players joining game
+    make login to adjust blinds (for host)
+    make login so users can join on different page (stylistically i think it's cleaner)
+    make sessions (so concurrent tables can be running and server doesnt crash)
+    
+FRONTEND EDITS:
+    actually make a frontend lol
+    move away from vanilla html/js
+
+GENERAL CODE:
+    restructure so its more organized
+    simplify bet/check/call/fold to one button
+    implement bomb pots
+    implement straddle
+    implement tokyo

@@ -1,6 +1,9 @@
 // Make connection
 // this is running on the frontend 
-let socket = io.connect('http://localhost:5000');
+// let socket = io();
+// let socket = io.connect('https://50b7f33e.ngrok.io/game');
+let socket = io.connect('https://51fe5dd4.ngrok.io');
+// let socket = io.connect('http://localhost:6912');
 
 // Query DOM
 let name = document.getElementById('name'),
@@ -111,6 +114,7 @@ message.addEventListener("keyup", (event) => {
     // Number 13 is the "Enter" key on the keyboard
     if (event.keyCode === 13) {
         event.preventDefault();
+        // if ()
         send_btn.click();
     }
 });
@@ -118,10 +122,10 @@ message.addEventListener("keyup", (event) => {
 //allow user to start writing message with m key
 document.addEventListener("keyup", (event) => {
     if (event.keyCode === 77) {
-        event.preventDefault();
-        message.select();
+        // event.preventDefault();
+        // message.select();
     }
-})
+});
 
 //let the server know somebody is typing a message
 message.addEventListener('keypress', () => {
@@ -189,7 +193,7 @@ socket.on('fold', function (data) {
 
 //show new card
 socket.on('display-board', function (data) {
-    poker_feedback.innerHTML = '';
+    // poker_feedback.innerHTML = '';
     poker_output.innerHTML += `<p><strong> ${data.street}</strong>: ${data.board}</p>`;
 });
 
@@ -206,10 +210,16 @@ socket.on('showdown', function (data) {
     poker_feedback.innerHTML = '';
 });
 
-//showdown
+//folds-through
 socket.on('folds-through', function (data) {
-    poker_output.innerHTML += `<p>${data.username} wins a pot of ___</p>`;
     poker_feedback.innerHTML = '';
+    poker_output.innerHTML += `<p>${data.username} wins a pot of ${data.amount}</p>`;
+});
+
+//start-hand
+socket.on('new-hand', function (data) {
+    poker_feedback.innerHTML = '';
+    poker_output.innerHTML += `<p><strong>New Hand!</strong></p>`;
 });
 
 

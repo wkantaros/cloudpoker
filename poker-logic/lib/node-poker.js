@@ -923,6 +923,13 @@ Table.prototype.initNewRound = function () {
     this.NewRound();
 };
 
+Table.prototype.canStartGame = () => {
+    // return this.playersToAdd && this.playersToAdd.length >= 2 && this.playersToAdd.length <= 10;
+    // console.log(this.playersToAdd);
+    // return (!this.game && this.players.length >= 2 && this.players.length <= 10);
+    return true;
+}
+
 Table.prototype.StartGame = function () {
     //If there is no current game and we have enough players, start a new game.
     if (!this.game) {
@@ -960,19 +967,32 @@ Table.prototype.NewRound = function() {
   // Add players in waiting list
   var removeIndex = 0;
   for( var i in this.playersToAdd ){
-    if( removeIndex < this.playersToRemove.length ){
-      var index = this.playersToRemove[ removeIndex ];
-      this.players[ index ] = this.playersToAdd[ i ];
-      removeIndex += 1;
-    }else{
-      this.players.push( this.playersToAdd[i] );
+      if( removeIndex < this.playersToRemove.length ){
+          var index = this.playersToRemove[ removeIndex ];
+          this.players[ index ] = this.playersToAdd[ i ];
+          removeIndex += 1;
+        }else{
+            this.players.push( this.playersToAdd[i] );
+        }
     }
+  // Remove players if nobody is there
+  // PROBABLY BUG HERE
+  // EDITED
+  for (removeIndex; removeIndex < this.playersToRemove.length; removeIndex++){
+      this.players.splice(this.playersToRemove[removeIndex], 1);
   }
+  //done editing
   this.playersToRemove = [];
   this.playersToAdd = [];
   this.gameWinners = [];
   this.gameLosers = [];
 
+  // EDITED
+  if (this.players.length < 2){
+      console.log('not enough players :(');
+      this.game = null;
+      return;
+  }
 
   var i, smallBlind, bigBlind;
   //Deal 2 cards to each player
