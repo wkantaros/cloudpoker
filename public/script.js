@@ -1,8 +1,8 @@
 // Make connection
 // this is running on the frontend 
-// let socket = io();
+let socket = io();
 // let socket = io.connect('https://50b7f33e.ngrok.io/game');
-let socket = io.connect('https://51fe5dd4.ngrok.io');
+// let socket = io.connect('https://51fe5dd4.ngrok.io');
 // let socket = io.connect('http://localhost:6912');
 
 // Query DOM

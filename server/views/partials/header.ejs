@@ -1,0 +1,29 @@
+<!-- views/partials/header.ejs -->
+
+<div class="header u-full-width">
+    <div class="row">
+        <div class="button button-primary">Get Sharable Link</div>
+        <% if (!joinedGame) { %>
+            <div class="button popup" onclick="myFunction()">
+                Join Game
+                <form class="popuptext" id="buyin">
+                    <div class="row">
+                        <!-- <div class="u-full-width"> -->
+                        <!-- <label for="exampleEmailInput">Name</label> -->
+                        <input type="text" placeholder="name" id="username">
+                        <!-- </div> -->
+                    </div>
+                    <div class="row">
+                        <!-- <div class="u-full-width"> -->
+                        <!-- <label for="exampleEmailInput">Name</label> -->
+                        <input type="text" placeholder="stack size" id="stack">
+                        <!-- </div> -->
+                    </div>
+                    <input class="button-primary" id="buyin-btn" type="submit" value="Submit">
+                    <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
+                </form>
+            </div>
+        <% }; %>
+        <div class="button disabled" id="blinds"> Blinds: <%= smallBlind %> / <%= bigBlind %></div>
+    </div>
+</div>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head'); %>
+</head>
+<body class="container">
+    <header>
+        <%- include('../partials/header', { joinedGame: false, bigBlind, smallBlind}); %>
+    </header>
+
+    <main>
+        <div class="table">
+            <div class="hand">
+                <%# basically you have to put your variable in session.js (i guess but can edit it/redefine it here) %>
+                <%- include('../partials/card', { rank: 'A', suit, color}); %>
+                <%- include('../partials/card', { rank:'K', suit, color}); %>
+                <div class="name u-full-width">
+                    <div id="me">
+                        <%= name %>
+                    </div>
+                </div>
+            </div>
+            <div class="hand">
+                <%# basically you have to put your variable in session.js (i guess but can edit it/redefine it here) %>
+                <%- include('../partials/card', { rank: 'Q', suit: '♥︎', color: 'red'}); %>
+                <%- include('../partials/card', { rank:'Q', suit: '♦︎', color: 'red'}); %>
+                <div class="name">
+                    <%= name='ethan' %>
+                </div>
+            </div>
+        </div>
+        <!-- <div class="below-table"> -->
+            <%- include('../partials/chatroom'); %>
+            <%- include('../partials/actions'); %>
+        <!-- </div> -->
+        <!-- <input id="name" value="<%= name %>"/> -->
+    </main> 
+    <script src="../public2/main.js"></script>
+</body>
+</html>

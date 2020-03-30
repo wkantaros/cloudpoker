@@ -16,14 +16,23 @@ app.use(express.static(__dirname + '/login'));
 
 // Routing
 app.get('/', function (request, response) {
+    console.log('made it here!');
     response.sendFile(path.join(__dirname, '/login/index.html'));
+    // console.log(request);
 });
 
-app.get('/login', function (request, response) {
-    response.sendFile(path.join(__dirname, '/public/login.html'));
-});
+// app.post('/', function (request, response) {
+//     console.log('here!');
+//     console.log(request);
+//     // response.sendFile(path.join(__dirname, '/login/index.html'));
+// });
+
+// app.get('/login', function (request, response) {
+//     response.sendFile(path.join(__dirname, '/public/login.html'));
+// });
 
 app.get('/game', function (request, response) {
+    // console.log('going to game function');
     response.sendFile(path.join(__dirname, 'public/game.html'));
 });
 

@@ -1,18 +1,45 @@
-BACKEND EDITS:
-    handle all-in's to work accordingly
-    handle players leaving game
-    handle players joining game
-    make login to adjust blinds (for host)
-    make login so users can join on different page (stylistically i think it's cleaner)
-    make sessions (so concurrent tables can be running and server doesnt crash)
+LOGIC EDITS:
+    [ ] handle all-in's to work accordingly
+    [ ] handle players leaving game
+    [ ] handle players joining game
+    [ ] make login so users can join on different page (stylistically i think it's cleaner)
     
 FRONTEND EDITS:
-    actually make a frontend lol
-    move away from vanilla html/js
+    [*] ejs syntax
+    [*] begin making a frontend
+    [*] chatroom
+    [ ] make a card template
+    [ ] usernames for player
+    [ ] table
+    [ ] flop/river/turn
+    [ ] bet/check/fold/call/raise buttons
+    [ ] show bets being made
+    [ ] join table button
+
+BACKEND:
+    [*] make diff tables (so concurrent tables can be running on same server)
+    [*] if login is approved:
+    [*] need to generate a new id
+    [*] create table associated with that id
+    [*] send user to table (localhost:5000/game/id)
+    [*] chatroom
+    [ ] add players
+    [ ] have user with cookies to table (so if he refreshes he isnt fucked, name stays, etc)
+    [ ] remove players
+    [ ] whos action
+    [ ] call
+    [ ] check
+    [ ] bet
 
 GENERAL CODE:
-    restructure so its more organized
-    simplify bet/check/call/fold to one button
-    implement bomb pots
-    implement straddle
-    implement tokyo
+    [*] make login to adjust blinds (for host)
+    [ ] restructure so its more organized
+    [ ] simplify bet/check/call/fold to one button
+    [ ] implement bomb pots
+    [ ] implement straddle
+    [ ] implement tokyo
+    [ ] implement the game of games
+
+
+
+    a=0,b=1+\frac{1}{8}b+\frac{1}{4}c+\frac{1}{16}d+\frac{1}{8}f+\frac{1}{18}g+\frac{1}{16}h,c=1+\frac{1}{4}b+\frac{1}{4}c+\frac{1}{8}f+\frac{1}{8}h,d=1+\frac{1}{16}b+\frac{1}{16}c+\frac{1}{8}d+\frac{1}{16}f+\frac{1}{4}g+\frac{1}{8}h,e=0,f=1+\frac{1}{8}b+\frac{1}{8}c+\frac{1}{8}f+\frac{1}{4}h,g=1+\frac{1}{4}d+\frac{1}{8}f+\frac{1}{4}g+\frac{1}{8}h,h=1+\frac{1}{8}d+\frac{1}{4}f+\frac{1}{8}g+\frac{1}{8}h,i=0

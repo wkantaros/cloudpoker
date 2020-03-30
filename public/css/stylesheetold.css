@@ -1,0 +1,140 @@
+/* body {
+    font-family: 'Nunito';
+} */
+
+/* h2 {
+    font-size: 18px;
+    padding: 10px 20px;
+    color: #575ed8;
+} */
+/* 
+main {
+    width: 800px;
+    margin: 0 auto;
+} */
+#poker-game {
+    float: left;
+    width: 60%;
+    /* height: 10%; */
+    margin: 3% 4.3%;
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+#bet-window {
+    height: 400px;
+    overflow: auto;
+    background: #f9f9f9;
+}
+
+#poker-output p {
+    padding: 14px 0px;
+    margin: 0 20px;
+    border-bottom: 1px solid #e9e9e9;
+    color: #555;
+}
+
+#poker-output strong {
+    color: #575ed8;
+}
+
+/* #side-col {
+    float: right;
+    width: 25%;
+    margin: 3%;
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+} */
+
+#side-col {
+    float: right;
+    width: 25%;
+    margin: 3%;
+}
+
+#chat-room{
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    margin-bottom: 110px;
+}
+
+#login-room{
+    border: 1px solid #ddd;
+    box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+#chat-window {
+    height: 220px;
+    overflow: auto;
+    width: 100%;
+    bottom: 0;
+    background: #f9f9f9;
+}
+
+#chat-output p {
+    padding: 14px 0px;
+    margin: 0 20px;
+    border-bottom: 1px solid #e9e9e9;
+    color: #555;
+}
+
+#chat-output strong {
+    color: #575ed8;
+}
+
+#feedback p {
+    color: #aaa;
+    padding: 14px 0px;
+    margin: 0 20px;
+}
+
+#poker-feedback p {
+    color: #aaa;
+    padding: 14px 0px;
+    margin: 0 20px;
+}
+
+label {
+    box-sizing: border-box;
+    display: block;
+    padding: 10px 20px;
+}
+
+input {
+    padding: 10px 20px;
+    box-sizing: border-box;
+    background: #eee;
+    border: 0;
+    display: block;
+    width: 100%;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    font-family: Nunito;
+    font-size: 16px;
+}
+
+button {
+    background: #575ed8;
+    color: #fff;
+    font-size: 18px;
+    border: 10px;
+    padding: 12px 0;
+    width: 100%;
+    /* border-radius: 0px 0px 5px 5px; */
+}
+
+#wrap {
+    margin: 20%;
+    /* border-style: dotted; */
+    /* border-color: #555; */
+    border: 1px solid #555;
+    border-radius: 5px 5px 5px 5px;
+}
+#wrap h1 {
+    color: #333;
+    text-align: center;
+}
