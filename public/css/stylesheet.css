@@ -1,11 +1,26 @@
 body {
     /* dark slate grey */
     background-color: #424C55;
-    background-color: #59656F;
+    background-color: rgb(41, 47, 53);
+    background-color: #272932;
+    background-color: #293132;
+    /* background-color: #59656F; */
     /* background-color: #E8F1F2; */
     /* background-color: #404E4D; */
     /* background-color: #2f4f4f; */
     font-family: sans-serif;
+    margin: 0 2rem;
+}
+
+.container {
+    max-width: 1200px;
+    /* margin: 0 20px; */
+    margin: 0 auto;
+    /* max-width: 960px; */
+}
+
+#getLink {
+    width: 20rem;
 }
 
 h3 {
@@ -21,12 +36,18 @@ h3 {
 }
 
 #chat-window {
+    /* margin-top: 2rem; */
+    /* height: 10rem; */
     height: 5rem;
     overflow-y: auto;
     width: 100%;
     bottom: 0;
     /* background: #f9f9f9; */
     border-top: 1px solid #999;
+}
+
+#chat-output {
+    margin-top: 1rem;
 }
 
 #chat-output p {
@@ -63,20 +84,47 @@ h3 {
 
 .c {
     display: inline-block;
-    width: 50%;
+    width: 33%;
     background-color: #59656F;
     background-color: #424C55;
+    /* background-color: #424C55; */
 }
 
-.table {
+.oval-parent {
     margin: 2rem auto;
+    margin-bottom: 3.5rem;
     height: 50rem;
-    background-color: #034748;
+    overflow:show;
+    /* width: 100%; */
+    /* width: 90%; */
+    height: 50rem;
+    /* background-color: #034748;
     background-color: darkgreen;
-    background-color: #1B998B;
-    background-color: #1B3022;
+    background-color: #1B998B; */
+    /* background-color: #1B3022; */
 
-    border: 1px solid #555;
+    /* border: 1px solid #555; */
+
+}
+#table {
+    /* margin: 2rem auto; */
+    /* height: 50rem; */
+    /* background-color: #034748; */
+    /* background-color: darkgreen; */
+    width: 90%;
+    height: 50rem;
+    margin: 10px auto;
+    background-color: #1B3022;
+    background-color: rgb(52, 165, 127);
+    -moz-border-radius: 50% / 40rem;
+    -webkit-border-radius: 50% / 40rem;
+    border-radius: 50% / 40rem;
+
+        /* -moz-border-radius: 60% / 30rem;
+        -webkit-border-radius: 60% / 30rem;
+        border-radius: 60% / 30rem; */
+
+    border: 10px solid #555;
 
 }
 
@@ -85,16 +133,16 @@ h3 {
 }
 
 .hand {
-    padding: 2rem;
     display: inline-block;
 }
 
 .name {
-    color: #fff;
+    color: #303036;
     text-align: center;
     border: 1px;
     border-radius: 4px;
     border: 1px solid #bbb;
+    background-color: #F0EDEE;
     
 }
 
@@ -147,4 +195,137 @@ h3 {
     visibility: visible;
     /* -webkit-animation: fadeIn 1s;
     animation: fadeIn 1s */
+}
+
+.hidden {
+    visibility: hidden;
+    /* -webkit-animation: fadeIn 1s;
+    animation: fadeIn 1s */
+}
+
+.glow {
+    -webkit-box-shadow: 0px 0px 15px 10px rgba(255, 255, 190, .75);
+    -moz-box-shadow: 0px 0px 15px 10px rgba(255, 255, 190, .75);
+    box-shadow: 0px 0px 15px 10px rgba(255, 255, 190, .75);
+}
+
+.centering {
+    display: table;
+    margin: 0 auto;
+}
+
+.top-two {
+    height: 6.65em;
+    width: 50%;
+    background: red;
+    margin: -60px auto -15px;
+}
+
+.top-middle-two{
+    height: 6.65em;
+    background: red;
+    margin: 2px 0 40px;
+}
+
+.space {
+    display: inline-block;
+    width: 55rem;
+}
+
+.space1 {
+    display: inline-block;
+    width: 80rem;
+}
+
+.middle-two{
+   height: 6.65em;
+   background: red;
+   width: 125%;
+   margin: 2px -130px 40px;
+}
+
+.bottom-middle-two{
+    height: 6.65em;
+    background: red;
+    margin: 2px 0 15px;
+}
+.bottom-two {
+    height: 6.65em;
+    width: 50%;
+    background: red;
+    margin: 2px auto;
+}
+
+.row-2-through-4{
+    width: 100%;
+    background: green;
+}
+
+.group-actions {
+    width: 70%;
+    margin: 10rem auto;
+    /* background: #fff; */
+}
+
+#pot {
+    /* width: 20rem; */
+    width: 18rem;
+    /* height: 8rem; */
+    height: 6rem;
+    /* background-color: rgb(52, 165, 127); */
+    background-color: rgb(38, 121, 93);
+    color: rgba(255, 255, 255, 0.863);
+    text-align: center;
+    font-size: 3rem;
+    /* border-radius: 8rem / 6rem; */
+    border-radius: 6rem / 6rem;
+    margin: 0 auto;
+}
+
+#pot-amount {
+    padding-top: .8rem;
+}
+
+#board {
+    /* display: inline-block; */
+    margin: 2.5em auto 0;
+    height: 8em;
+    width: 25em;
+    /* background: red; */
+}
+
+#cards {
+    float: left;
+    transform: scale(1.20);
+    margin: 0 auto;
+}
+
+#flop {
+    float: left;
+    margin-right: 5px;
+}
+
+#turn {
+    float: left;
+    margin-right: 5px;
+}
+
+#river {
+    float: left;
+}
+
+.field {
+    width: 15rem;
+    height: 15rem;
+    position: absolute;
+    /* display: inline; */
+    /* background: #f00; */
+}
+
+#degen-poker {
+    margin: 0 auto;
+    /* z-index: -1; */
+    font-size: 3em;
+    text-align: center;
+    color: rgba(85, 85, 85, 0.2);
 }

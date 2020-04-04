@@ -1,20 +1,33 @@
 LOGIC EDITS:
+    [*] make host login
+    [*] make login so users can join
     [ ] handle all-in's to work accordingly
     [ ] handle players leaving game
     [ ] handle players joining game
-    [ ] make login so users can join on different page (stylistically i think it's cleaner)
     
 FRONTEND EDITS:
     [*] ejs syntax
     [*] begin making a frontend
     [*] chatroom
-    [ ] make a card template
-    [ ] usernames for player
-    [ ] table
+    [*] copy link (get sharable link)
+    [*] make a card template
+    [*] usernames for player
+    [*] table
+    [*] players in positions
+    [ ] start game
+    [ ] highlight player whos action
     [ ] flop/river/turn
-    [ ] bet/check/fold/call/raise buttons
+    [*] pot
     [ ] show bets being made
-    [ ] join table button
+    [ ] bet/check/fold/call/raise buttons
+    [*] join table button
+    [*] add players
+    [*] render players
+    [ ] remove players
+    [ ] call
+    [ ] check
+    [ ] bet
+    [ ] fold
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -23,18 +36,20 @@ BACKEND:
     [*] create table associated with that id
     [*] send user to table (localhost:5000/game/id)
     [*] chatroom
-    [ ] add players
     [ ] have user with cookies to table (so if he refreshes he isnt fucked, name stays, etc)
+    [ ] deal with users with the same name
+    [*] add players
     [ ] remove players
     [ ] whos action
     [ ] call
     [ ] check
     [ ] bet
+    [ ] fold
 
 GENERAL CODE:
     [*] make login to adjust blinds (for host)
     [ ] restructure so its more organized
-    [ ] simplify bet/check/call/fold to one button
+    [ ] simplify bet/check/call/fold to one button (on code side)
     [ ] implement bomb pots
     [ ] implement straddle
     [ ] implement tokyo

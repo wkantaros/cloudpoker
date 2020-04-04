@@ -1,20 +1,55 @@
 <!-- based off https://medium.com/@pakastin/javascript-playing-cards-part-2-graphics-cd65d331ad00 -->
-
-<div class="card <%= color %>">
+<% if (showCards) { %>
+    <% if (action) { %> 
+    <div class="card <%= color %> glow">
+    <% } else { %>
+    <div class="card <%= color %>">
+    <% } %>
     <div class="card-topleft">
         <div class="card-corner-rank">
             <%= rank %>
         </div>
-        <div class="card-corner-suit">
-            <%= suit %>
-        </div>
     </div>
     <div class="card-bottomright">
-        <div class="card-corner-rank">
-            <%= rank %>
-        </div>
         <div class="card-corner-suit">
             <%= suit %>
         </div>
     </div>
-</div>
+        <!-- <div class="card-topleft">
+            <div class="card-corner-rank">
+                <%= rank %>
+            </div>
+            <div class="card-corner-suit">
+                <%= suit %>
+            </div>
+        </div>
+        <div class="card-bottomright">
+            <div class="card-corner-rank">
+                <%= rank %>
+            </div>
+            <div class="card-corner-suit">
+                <%= suit %>
+            </div>
+        </div> -->
+    </div>
+<% } else if (waiting) { %>
+    <% if (action) { %> 
+    <div class="card <%= color %> glow">
+    <% } else { %>
+    <div class="card <%= color %>">
+    <% } %>
+        <div class="back-card waiting">
+            <div class="back-card-ring"></div>
+        </div>
+    </div>
+<% } else { %>
+    <% if (action) { %>
+    <div class="card <%= color %> glow">
+    <% } else { %>
+    <div class="card <%= color %>">
+        <% } %>
+        <div class="back-card">
+            <div class="back-card-ring"></div>
+        </div>
+    </div>  
+<% } %>

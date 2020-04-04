@@ -2,28 +2,31 @@
 
 <div class="header u-full-width">
     <div class="row">
-        <div class="button button-primary">Get Sharable Link</div>
+        <div class="button button-primary" id="getLink" onclick="copyLink()">Get Sharable
+            Link</div>
         <% if (!joinedGame) { %>
-            <div class="button popup" onclick="myFunction()">
-                Join Game
-                <form class="popuptext" id="buyin">
+            <div class="button popup" id = "buyin">
+                <span id="txt">Join Game</span>
+                <div class="popuptext" id="buyin-info">
                     <div class="row">
                         <!-- <div class="u-full-width"> -->
                         <!-- <label for="exampleEmailInput">Name</label> -->
-                        <input type="text" placeholder="name" id="username">
+                        <input type="text" placeholder="name" id="new-playerName">
                         <!-- </div> -->
                     </div>
                     <div class="row">
                         <!-- <div class="u-full-width"> -->
                         <!-- <label for="exampleEmailInput">Name</label> -->
-                        <input type="text" placeholder="stack size" id="stack">
+                        <input type="text" placeholder="stack size" id="new-stack">
                         <!-- </div> -->
                     </div>
-                    <input class="button-primary" id="buyin-btn" type="submit" value="Submit">
+                    <div class="button-primary" id="buyin-btn">Submit</div>
                     <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
-                </form>
+                </div>
             </div>
         <% }; %>
-        <div class="button disabled" id="blinds"> Blinds: <%= smallBlind %> / <%= bigBlind %></div>
+        <anchor class="button popup hidden" id="quit-btn">Quit</anchor>
+        <!-- <anchor class="button popup hidden" id="standup-btn">Standup</anchor> -->
+        <div class="button disabled" id="blinds"> Blind: <%= smallBlind %> / <%= bigBlind %></div>
     </div>
 </div>

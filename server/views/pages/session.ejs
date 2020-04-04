@@ -3,38 +3,117 @@
 <head>
     <%- include('../partials/head'); %>
 </head>
-<body class="container">
+<body>
     <header>
         <%- include('../partials/header', { joinedGame: false, bigBlind, smallBlind}); %>
     </header>
 
-    <main>
-        <div class="table">
-            <div class="hand">
-                <%# basically you have to put your variable in session.js (i guess but can edit it/redefine it here) %>
-                <%- include('../partials/card', { rank: 'A', suit, color}); %>
-                <%- include('../partials/card', { rank:'K', suit, color}); %>
-                <div class="name u-full-width">
-                    <div id="me">
-                        <%= name %>
+    <main class="container">
+        <div class="ovalparent">
+            <div class="table">
+                <div class="top-two">
+                    <div class="centering">
+                        <div class="hand">
+                            <%- include('../partials/card', { rank: 'Q', suit: '♥︎', color: 'red', action: true}); %>
+                            <%- include('../partials/card', { rank:'Q', suit: '♦︎', color: 'red', action: true}); %>
+                            <div class="name" id="me">
+                                <span class="username"><%= name %></span>:<span class="stack"><%= stack %></span>
+                            </div>
+                        </div>
+                        <div class="hand">
+                            <%- include('../partials/card', { showCards: true, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                            <%- include('../partials/card', { showCards: true, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                            <div class="name">
+                                <%= name='tom' %>: <%= stack %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row-2-through-4">
+
+                    <div class="top-middle-two">
+                        <div class="centering">
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards: false, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards: false, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                            <div class="space"></div>
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="middle-two">
+                        <div class="centering">
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                            <div class="space1"></div>
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bottom-middle-two">
+                        <div class="centering">
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                            <div class="space"></div>
+                            <div class="hand">
+                                <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                                <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                                <div class="name">
+                                    <%= name='tom' %>: <%= stack %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-two">
+                    <div class="centering">
+                        <div class="hand">
+                            <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                            <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                            <div class="name">
+                                <%= name='tom' %>: <%= stack %>
+                            </div>
+                        </div>
+                        <div class="hand">
+                            <%- include('../partials/card', { showCards, rank: 'Q', suit: '♥︎', color: 'red', action: false}); %>
+                            <%- include('../partials/card', { showCards, rank:'Q', suit: '♦︎', color: 'red', action: false}); %>
+                            <div class="name">
+                                <%= name='tom' %>: <%= stack %>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="hand">
-                <%# basically you have to put your variable in session.js (i guess but can edit it/redefine it here) %>
-                <%- include('../partials/card', { rank: 'Q', suit: '♥︎', color: 'red'}); %>
-                <%- include('../partials/card', { rank:'Q', suit: '♦︎', color: 'red'}); %>
-                <div class="name">
-                    <%= name='ethan' %>
-                </div>
-            </div>
         </div>
-        <!-- <div class="below-table"> -->
-            <%- include('../partials/chatroom'); %>
-            <%- include('../partials/actions'); %>
-        <!-- </div> -->
-        <!-- <input id="name" value="<%= name %>"/> -->
     </main> 
+    <div class="below-table">
+        <%- include('../partials/chatroom'); %>
+        <%- include('../partials/actions'); %>
+    </div>
     <script src="../public2/main.js"></script>
 </body>
 </html>

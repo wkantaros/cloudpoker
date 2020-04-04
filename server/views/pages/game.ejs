@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('../partials/head'); %>
+</head>
+
+<body>
+    <header>
+        <%- include('../partials/header', { joinedGame: false, bigBlind, smallBlind}); %>
+    </header>
+
+    <main class="container">
+        <div class="ovalparent">
+            <div id="table">
+                <div class="group-actions u-full-width">
+                    <div id="pot">
+                        <div id="pot-amount">
+                            1300
+                        </div>
+                    </div>
+                    <div id="board">
+                        <div id="degen-poker">
+                            DEGEN POKER
+                        </div>
+                        <div id="cards" class="hidden">
+                            <div id="flop">
+                                <%- include('../partials/card'); %>
+                                <%- include('../partials/card'); %>
+                                <%- include('../partials/card'); %>
+                            </div>
+                            <div id="turn">
+                                <%- include('../partials/card'); %>
+                            </div>
+                            <div id="river">
+                                <%- include('../partials/card'); %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="below-table">
+        <%- include('../partials/chatroom'); %>
+        <%- include('../partials/actions'); %>
+    </div>
+    <% for (let i = 0; i < 10; i++) { %>
+    <div class="hand <%= i %>">
+        <div id="left-card">
+            <%- include('../partials/card'); %>
+        </div>
+        <div id="right-card">
+            <%- include('../partials/card'); %>
+        </div>
+
+        <div class="name">
+            <span class="username">guest</span>: <span class="stack">stack</span>
+        </div>
+    </div>
+    <% } %>
+    <script src="../public2/main.js"></script>
+</body>
+
+</html>

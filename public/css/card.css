@@ -1,37 +1,109 @@
 .card {
     display: inline-block;
     position: relative;
-    width: 5em;
-    height: 7em;
+    /* width: 5em;
+    height: 7em; */
+    /* width: 4.375em;
+    height: 6.125em; */
+    width: 4.75em;
+    /* height: 6.65em; */
+    height: 5.8em;
     background-color: #ffffff;
-    box-shadow: 0 0.0625em 0.125em rgba(0, 0, 0, 0.15);
+    /* box-shadow: 0 0.0625em 0.125em rgba(0, 0, 0, 0.15); */
+    box-shadow: 0 0.0625em 0.125em rgba(0, 0, 0, 0.5);
     border-radius: 0.25em;
+    /* border: .5px solid #555;   */
+}
+
+#left-card {
+    transform: rotate(-5deg);
+    display: inline-block;
+    margin-right: -10px;
+}
+#right-card {
+    transform: rotate(5deg);
+    display: inline-block;
+    margin-left: -10px;
 }
 
 .card.red {
-    color: red;
+    /* color: red; */
+    color: #DB504A;
+}
+
+.card.black {
+    color: #293132;
 }
 
 .card-topleft {
+    font-family: 'Muli', sans-serif;
     position: absolute;
     /* top: 0.5em; */
-    top: 0.25em;
+    top: .1em;
     /* left: 0.75em; */
+    left: .8em;
+    font-size: 2em;
+}
+
+
+.card-bottomright {
+    font-family: 'Muli', sans-serif;
+    position: absolute;
+    /* bottom: 0.5em; */
+    bottom: 0em;
+    /* right: 0.75em; */
+    left: 1.5em;
+    /* transform: rotate(180deg); */
+    /* font-size: x-large; */
+    font-size: 2em;
+}
+
+/* .card-topleft {
+    position: absolute;
+    top: 0.25em;
     left: 1em;
 }
 
 
 .card-bottomright {
     position: absolute;
-    /* bottom: 0.5em; */
     bottom: 0.25em;
-    /* right: 0.75em; */
     right: 1em;
     transform: rotate(180deg);
-}
+} */
 
 .card-corner-rank,
 .card-corner-suit {
     text-align: center;
     transform: translate(-50%, 0);
+}
+
+.back-card {
+    height: 98%;
+    width: 98%;
+    /* background: rgba(255, 89, 89); */
+    background: #DB504A;
+    border-radius: 0.25em;
+    border: 1.5px solid #fff;
+}
+
+.back-card.waiting {
+    height: 98%;
+    width: 98%;
+    /* background: rgba(255, 89, 89); */
+    background: #666;
+    border-radius: 0.25em;
+    border: 1.5px solid #fff;
+}
+
+.back-card-ring {
+    height: 80%;
+    width: 70%;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 0.25em;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
 }
