@@ -15,12 +15,12 @@
     /* border: .5px solid #555;   */
 }
 
-#left-card {
+.left-card {
     transform: rotate(-5deg);
     display: inline-block;
     margin-right: -10px;
 }
-#right-card {
+.right-card {
     transform: rotate(5deg);
     display: inline-block;
     margin-left: -10px;

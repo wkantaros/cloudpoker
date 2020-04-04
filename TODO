@@ -14,12 +14,12 @@ FRONTEND EDITS:
     [*] usernames for player
     [*] table
     [*] players in positions
-    [ ] start game
-    [ ] highlight player whos action
-    [ ] flop/river/turn
+    [*] start game
+    [*] make a dealer button
+    [*] highlight player whos action
+    [*] flop/river/turn
     [*] pot
     [ ] show bets being made
-    [ ] bet/check/fold/call/raise buttons
     [*] join table button
     [*] add players
     [*] render players
@@ -28,6 +28,7 @@ FRONTEND EDITS:
     [ ] check
     [ ] bet
     [ ] fold
+    [ ] update bet/check/fold/call/raise buttons / abilities depending on action
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -39,10 +40,11 @@ BACKEND:
     [ ] have user with cookies to table (so if he refreshes he isnt fucked, name stays, etc)
     [ ] deal with users with the same name
     [*] add players
+    [*] start game
     [ ] remove players
-    [ ] whos action
-    [ ] call
-    [ ] check
+    [*] whos action
+    [*] call
+    [*] check
     [ ] bet
     [ ] fold
 
@@ -54,7 +56,3 @@ GENERAL CODE:
     [ ] implement straddle
     [ ] implement tokyo
     [ ] implement the game of games
-
-
-
-    a=0,b=1+\frac{1}{8}b+\frac{1}{4}c+\frac{1}{16}d+\frac{1}{8}f+\frac{1}{18}g+\frac{1}{16}h,c=1+\frac{1}{4}b+\frac{1}{4}c+\frac{1}{8}f+\frac{1}{8}h,d=1+\frac{1}{16}b+\frac{1}{16}c+\frac{1}{8}d+\frac{1}{16}f+\frac{1}{4}g+\frac{1}{8}h,e=0,f=1+\frac{1}{8}b+\frac{1}{8}c+\frac{1}{8}f+\frac{1}{4}h,g=1+\frac{1}{4}d+\frac{1}{8}f+\frac{1}{4}g+\frac{1}{8}h,h=1+\frac{1}{8}d+\frac{1}{4}f+\frac{1}{8}g+\frac{1}{8}h,i=0

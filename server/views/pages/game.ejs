@@ -16,23 +16,38 @@
                 <div class="group-actions u-full-width">
                     <div id="pot">
                         <div id="pot-amount">
-                            1300
+                            <% if (pot) { %>
+                                <%= pot %>
+                            <% } %>
                         </div>
                     </div>
                     <div id="board">
                         <div id="degen-poker">
                             DEGEN POKER
                         </div>
-                        <div id="cards" class="hidden">
+                        <div id="cards">
+                            <% let show = true %>
+                            <% if (roundName == 'deal') { %>
+                            <div id="flop" class="hidden">
+                            <% } else { %>
                             <div id="flop">
+                            <% } %>
                                 <%- include('../partials/card'); %>
                                 <%- include('../partials/card'); %>
                                 <%- include('../partials/card'); %>
                             </div>
+                            <% if (roundName == 'deal' || roundName == 'flop') { %>
+                            <div id="turn" class="hidden">
+                            <% } else { %>
                             <div id="turn">
+                            <% } %>
                                 <%- include('../partials/card'); %>
                             </div>
+                            <% if (roundName == 'river' || roundName == 'showdown') { %>
                             <div id="river">
+                            <% } else { %>
+                            <div id="river" class="hidden">
+                            <% } %>
                                 <%- include('../partials/card'); %>
                             </div>
                         </div>
@@ -47,14 +62,21 @@
     </div>
     <% for (let i = 0; i < 10; i++) { %>
     <div class="hand <%= i %>">
-        <div id="left-card">
+        <div class="left-card">
             <%- include('../partials/card'); %>
         </div>
-        <div id="right-card">
+        <div class="right-card">
             <%- include('../partials/card'); %>
         </div>
 
+        <% if (i == actionSeat) { %>
+        <div class="name action">
+        <% } else { %>
         <div class="name">
+        <% } %>
+            <% if (i == dealer) { %>
+            <span class="dealer">D</span>
+            <% } %>
             <span class="username">guest</span>: <span class="stack">stack</span>
         </div>
     </div>
