@@ -5,7 +5,7 @@
 let poker = require('../poker-logic/lib/node-poker');
 
 // could probably make this a proper db at some point
-// maps sessionid -> {table, hostname, hoststack, seats}
+// maps sessionid -> {table, hostname, hoststack, seatsTaken, gameInProgress}
 let tables = {};
 
 // maps sessionid -> playerName -> { playerid, seat }
@@ -147,7 +147,7 @@ let getDealer = (sid) => {
 
 let gameInProgress = (sid) => tables[sid].gameInProgress;
 
-let getPot = (sid) => gameInProgress(sid) ? tables[sid].table.pot : 0;
+let getPot = (sid) => gameInProgress(sid) ? tables[sid].table.game.pot : 0;
 
 let checkwin = (sid) => tables[sid].table.checkwin();
 
@@ -163,20 +163,24 @@ let getDeal = (sid) => {
     return tables[sid].table.getDeal();
 }
 
-let call = (sid) => {
-    tables[sid].table.call(tables[sid].table.getCurrentPlayer());
+let call = (sid, playerName) => {
+    // tables[sid].table.call(tables[sid].table.getCurrentPlayer());
+    tables[sid].table.call(playerName);
 }
 
-let check = (sid) => {
-    return tables[sid].table.check(tables[sid].table.getCurrentPlayer());
+let check = (sid, playerName) => {
+    // return tables[sid].table.check(tables[sid].table.getCurrentPlayer());
+    return tables[sid].table.check(playerName);
 }
 
-let fold = (sid) => {
-    return tables[sid].table.fold(tables[sid].table.getCurrentPlayer());
+let fold = (sid, playerName) => {
+    // return tables[sid].table.fold(tables[sid].table.getCurrentPlayer());
+    return tables[sid].table.fold(playerName);
 }
 
-let bet = (sid, betAmount) => {
-    return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
+let bet = (sid, playerName, betAmount) => {
+    // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
+    return tables[sid].table.bet(playerName, betAmount);
 }
 
 let getWinnings = (sid, prev_round) => {
@@ -194,6 +198,57 @@ let getWinnings = (sid, prev_round) => {
 
 let updateStack = (sid, playerName, winnings) => {
     tables[sid].table.getPlayer(playerName).GetChips(winnings);
+}
+
+let getMaxBet = (sid) => {
+    let maxBet = 0;
+    let bets = tables[sid].table.game.bets;
+    for (let i = 0; i < bets.length; i ++) {
+        if (bets[i] > maxBet) {
+            maxBet = bets[i];
+        }
+    }
+    return maxBet;
+}
+
+let getNameByActionSeat = (sid) => {
+    let seat = getActionSeat(sid);
+    for (name in playerids[sid]) {
+        if (playerids[sid][name].seat == seat) {
+            return name;
+        }
+    }
+    return 'guest';
+}
+
+// return an array of seat, bet objects
+// may lead to a bug down the line still unsure
+let getInitialBets = (sid) => {
+    let bets = tables[sid].table.game.bets;
+    let toReturn = [];
+    for (let i = 0; i < bets.length; i++){
+        let obj = {
+            seat: 'guest',
+            bet: 0
+        }
+        if (bets[i]){
+            obj.bet = bets[i];
+            let seatsTaken = getTableById(sid).seatsTaken;
+            let counter = 0;
+            for (let j = 0; j < seatsTaken.length; j++){
+                if (seatsTaken[j]){
+                    if (counter === i){
+                        obj.seat = j;
+                        break;
+                    } else {
+                        counter++;
+                    }
+                }
+            }
+            toReturn.push(obj);
+        }
+    }
+    return toReturn;
 }
 
 module.exports.createNewTable = createNewTable;
@@ -222,3 +277,6 @@ module.exports.bet = bet;
 module.exports.checkwin = checkwin;
 module.exports.getWinnings = getWinnings;
 module.exports.updateStack = updateStack;
+module.exports.getMaxBet = getMaxBet;
+module.exports.getNameByActionSeat = getNameByActionSeat;
+module.exports.getInitialBets = getInitialBets;

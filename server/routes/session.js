@@ -75,7 +75,6 @@ router.route('/:id').get((req, res) => {
 
         // send a message in the chatroom
         socket.on('chat', (data) => {
-            console.log(data);
             io.to(sid).emit('chat', {
                 handle: s.getPlayerById(sid, data.id),
                 message: data.message
@@ -117,13 +116,14 @@ router.route('/:id').get((req, res) => {
                 prev_round = s.getRoundName(sid);
                 let canPerformAction = true;
                 if (data.action === 'bet') {
-                    s.bet(sid, data.amount);
+                    s.bet(sid, playerName, data.amount);
                 } else if (data.action === 'call') {
-                    s.call(sid);
+                    s.call(sid, playerName);
+                    data.amount = s.getMaxBet(sid);
                 } else if (data.action === 'fold') {
-                    s.fold(sid);
+                    s.fold(sid, playerName);
                 } else if (data.action === 'check') {
-                    canPerformAction = s.check(sid);
+                    canPerformAction = s.check(sid, playerName);
                 }
                 if (canPerformAction) {
                     io.sockets.to(sid).emit(`${data.action}`, {
@@ -138,10 +138,12 @@ router.route('/:id').get((req, res) => {
                         seat: s.getPlayerSeat(sid, playerName),
                         stack: s.getStack(sid, playerName)
                     });
-                    // let next client know it's his action
+                    // shift action to next player in hand
                     io.sockets.to(sid).emit('action', {
                         seat: s.getActionSeat(sid)
                     });
+                    // notify player its their action with sound
+                    io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
                     check_round(prev_round);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -155,9 +157,9 @@ router.route('/:id').get((req, res) => {
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
         let table = s.getTableById(sid).table;
-        console.log(table);
         let data = s.checkwin(sid);
         if (s.getRoundName(sid) === 'showdown') {
+            io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             winners = table.getWinners();
             console.log('winners');
             console.log(winners[0].hand.cards);
@@ -195,6 +197,7 @@ router.route('/:id').get((req, res) => {
                 console.log('waiting for more players to rejoin!');
             }
         } else if (prev_round !== s.getRoundName(sid)) {
+            io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             io.sockets.to(sid).emit('render-board', {
                 street: s.getRoundName(sid),
                 board: s.getDeal(sid)
@@ -205,8 +208,11 @@ router.route('/:id').get((req, res) => {
     let begin_round = () => {
         io.sockets.to(sid).emit('render-board', {street: 'deal'});
         io.sockets.to(sid).emit('new-dealer', {seat: s.getDealer(sid)});
+        io.sockets.to(sid).emit('nobody-waiting', {});
+        io.sockets.to(sid).emit('update-pot', {amount: 0});
+        io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
-        console.log(data);
+        // console.log(data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
             io.to(`${data[i].playerid}`).emit('render-hand', {
@@ -220,6 +226,8 @@ router.route('/:id').get((req, res) => {
 
         }
         io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
+        // abstracting this to be able to work with bomb pots/straddles down the line
+        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
     }
 });
 

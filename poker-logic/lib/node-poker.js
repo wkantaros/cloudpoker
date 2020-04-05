@@ -705,6 +705,16 @@ function progress(table) {
             // EDITED
         //   table.currentPlayer = (table.currentPlayer >= table.players.length-1) ? (table.currentPlayer-table.players.length+1) : (table.currentPlayer + 1 );
           table.currentPlayer = (table.dealer + 1 >= table.players.length) ? 0 : table.dealer + 1;
+          let ctr = 0;
+          while(table.players[table.currentPlayer].folded && ctr < table.players.length){
+              // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
+              table.currentPlayer = (table.currentPlayer + 1 >= table.players.length) ? 0 : table.currentPlayer + 1;
+              ctr++;
+          }
+          if (ctr >= table.players.length){
+              console.log('giant massive error here please come back and check on logic this is a mess');
+          }
+          // ^^done with edits
             //Move all bets to the pot
             for (i = 0; i < table.game.bets.length; i += 1) {
                 table.game.pot += parseInt(table.game.bets[i], 10);
@@ -824,10 +834,10 @@ Table.prototype.check = function( playerName ){
       if (this.game.roundName === 'Deal' && this.game.bets[v] === this.bigBlind && currentPlayer === v){
           if (playerName === this.players[currentPlayer].playerName) {
               this.players[currentPlayer].Call();
-              console.log(`${playerName} checks`);
+              console.log(`${playerName} calls`);
               return true;
           } else {
-              console.log("wrong user has made a move");
+              console.log("wrong user has made a move 1234");
               return false;
           }
       } else if (this.game.bets[v] !== 0) {
@@ -835,6 +845,7 @@ Table.prototype.check = function( playerName ){
       }
   }
   if( playerName === this.players[ currentPlayer ].playerName){
+      console.log('here!');
       if (cancheck){
         this.players[currentPlayer].Check();
         console.log(`${playerName} checks`);
@@ -845,7 +856,7 @@ Table.prototype.check = function( playerName ){
       }
     } else{
     // todo: check if something went wrong ( not enough money or things )
-    console.log("wrong user has made a move");
+    console.log("wrong user has made a move abcd");
     return false;
   }
 };

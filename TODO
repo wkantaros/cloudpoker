@@ -2,12 +2,14 @@ LOGIC EDITS:
     [*] make host login
     [*] make login so users can join
     [ ] handle all-in's to work accordingly
-    [ ] handle players leaving game
-    [ ] handle players joining game
+    [ ] handle players leaving game (think it works but need to error check)
+    [ ] handle players joining game (think it works but need to error check)
+    [ ] delays (for frontend, sounds, winner page, etc)
     
 FRONTEND EDITS:
     [*] ejs syntax
     [*] begin making a frontend
+    [*] favicon
     [*] chatroom
     [*] copy link (get sharable link)
     [*] make a card template
@@ -19,17 +21,23 @@ FRONTEND EDITS:
     [*] highlight player whos action
     [*] flop/river/turn
     [*] pot
-    [ ] show bets being made
+    [*] have pot being updated with each street
+    [*] make players hand gray if folded
+    [*] show bets being made
+    [*] show forced action (for bb/sb, bomb pots, etc)
     [*] join table button
     [*] add players
     [*] render players
     [ ] remove players
-    [ ] call
+    [*] call
     [*] check
     [ ] bet
-    [ ] fold
-    [ ] update bet/check/fold/call/raise buttons / abilities depending on action
+    [*] min bet
+    [*] fold
+    [*] sounds
+    [*] have sound button in header user can toggle
     [ ] have 'winner page' where winners cards are shown, etc
+    [ ] keyboard shortcuts
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -49,10 +57,25 @@ BACKEND:
     [*] bet
     [*] fold
 
-GENERAL CODE:
+DOWN THE LINE CODE:
     [*] make login to adjust blinds (for host)
     [*] restructure so its more organized
-    [ ] simplify bet/check/call/fold to one button (on code side)
+    [*] simplify bet/check/call/fold to one button (on backend)
+    [ ] update bet/check/fold/call/raise buttons / abilities depending on action
+    [ ] improve bet button to have increased functionality w/slider (1/4 pot, 1/2 pot, 3/4, all in, etc)
+    [ ] have player's hand turn gray when folded (so they can still see what they had)
+    [ ] show hand feature
+    [ ] have total buyin logged as badge
+    [ ] have num hands won logged as bagde
+    [ ] build log outside of chatroom for hands
+    [ ] update your stack on your own (rebuy/etc)
+    [ ] give a mod ability to kick players
+    [ ] timer function (to act)
+    [ ] premove function
+    [ ] update message board to look better
+    [ ] probably should have a proper database at some point (not essential but a good idea)
+
+GAME FEATURES TO ADD:
     [ ] implement bomb pots
     [ ] implement straddle
     [ ] implement tokyo

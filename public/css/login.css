@@ -19,3 +19,9 @@ input:invalid {
 main p {
     text-align: center;
 }
+
+.bottom {
+    font-size: .5em;
+    position: absolute;
+    bottom: 10px;
+}

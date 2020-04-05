@@ -151,6 +151,16 @@ minBet.addEventListener('click', () => {
     });
 });
 
+$(".volume").click( function (e) {
+    if ($('.volume').hasClass('on')){
+        $('#volume-icon').attr('src', "../public/img/mute.svg");
+        $('.volume').removeClass('on');
+    } else {
+        $('#volume-icon').attr('src', "../public/img/volume.svg");
+        $('.volume').addClass('on');
+    }
+} );
+
 //chat room functions-----------------------------------------------------------------------------
 //send the contents of the message to the server
 send_btn.addEventListener('click', () => {
@@ -211,6 +221,8 @@ socket.on('render-players', (data) => {
 
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
+    $('.player-bet').html(0);
+    $('.player-bet').addClass('hidden');
     if (data.street == 'deal'){
         $('#flop').addClass('hidden');
         $('#turn').addClass('hidden');
@@ -218,7 +230,9 @@ socket.on('render-board', (data) => {
         $('#cards').find('.back-card').removeClass('hidden');
         $('#cards').find('.card-topleft').addClass('hidden');
         $('#cards').find('.card-bottomright').addClass('hidden');
-        // createjs.Sound.play('deal');
+        // if ($('.volume').hasClass('on')){
+        //     createjs.Sound.play('deal');
+        // }
     }
     else if (data.street == 'flop'){
         $('#flop').removeClass('hidden');
@@ -230,7 +244,9 @@ socket.on('render-board', (data) => {
             $(`#flop .card:nth-child(${i+1})`).find('.card-corner-rank').html(cardRank);
             $(`#flop .card:nth-child(${i+1})`).find('.card-corner-suit').html(cardSuit);
         }
-        // createjs.Sound.play('flop');
+        // if ($('.volume').hasClass('on')){
+        //     createjs.Sound.play('flop');
+        // }
         flipCard('flop');
     }
     else if (data.street == 'turn'){
@@ -241,7 +257,9 @@ socket.on('render-board', (data) => {
         $(`#turn .card`).removeClass('black').addClass(cardColor);
         $(`#turn .card`).find('.card-corner-rank').html(cardRank);
         $(`#turn .card`).find('.card-corner-suit').html(cardSuit);
-        // createjs.Sound.play('turn');
+        // if ($('.volume').hasClass('on')){
+        //     createjs.Sound.play('turn');
+        // }
         flipCard('turn');
     }
     else if (data.street == 'river'){
@@ -252,7 +270,9 @@ socket.on('render-board', (data) => {
         $(`#river .card`).removeClass('black').addClass(cardColor);
         $(`#river .card`).find('.card-corner-rank').html(cardRank);
         $(`#river .card`).find('.card-corner-suit').html(cardSuit);
-        // createjs.Sound.play('river');
+        // if ($('.volume').hasClass('on')){
+        //     createjs.Sound.play('river');
+        // }
         flipCard('river');
     }
 });
@@ -263,7 +283,7 @@ socket.on('render-hand', (data) => {
     renderHand(data.seat, data.cards);
 });
 
-// updates stack when a bet is placed, for example
+// removes the waiting tag from player
 socket.on('game-in-progress', (data) => {
     console.log(data.waiting);
     if (!data.waiting) $('.back-card').removeClass('waiting');
@@ -273,6 +293,15 @@ socket.on('game-in-progress', (data) => {
 socket.on('update-stack', (data) => {
     let hand = document.getElementById(data.seat);
     hand.querySelector('.stack').innerHTML = data.stack;
+});
+
+// updates pot at beginning of each new street
+socket.on('update-pot', (data) => {
+    if (data.amount) {
+        $('#pot-amount').html(data.amount);
+    } else {
+        $('#pot-amount').empty();
+    }
 });
 
 // start game (change all cards to red)
@@ -293,12 +322,21 @@ socket.on('new-dealer', (data) => {
     $(`#${data.seat} > .name`).append('<span class="dealer">D</span>');
 });
 
+// changes color of players not in last hand to red (folded, buying in, etc)
+socket.on('nobody-waiting', (data) => {
+    inHand();
+});
+
 // calls
 socket.on('call', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' calls</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    createjs.Sound.play('bet');
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('bet');
+    }
+    $('.player-bet').eq(data.seat).html(data.amount);
+    $('.player-bet').eq(data.seat).removeClass('hidden');
 });
 
 // check
@@ -306,7 +344,9 @@ socket.on('check', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' checks</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    createjs.Sound.play('check');
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('check');
+    }
 });
 
 // fold
@@ -314,7 +354,10 @@ socket.on('fold', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' folds</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    createjs.Sound.play('fold');
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('fold');
+    }
+    outHand(data.seat);
 });
 
 // bet
@@ -322,17 +365,11 @@ socket.on('bet', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    createjs.Sound.play('bet');
-});
-
-//updates pot
-socket.on('update-pot', (data) => {
-    if (data.pot) {
-        $('#pot-amount').html(data.pot);
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('bet');
     }
-    else {
-        $('#pot-amount').empty();
-    }
+    $('.player-bet').eq(data.seat).html(data.amount);
+    $('.player-bet').eq(data.seat).removeClass('hidden');
 });
 
 //showdown
@@ -355,6 +392,23 @@ socket.on('folds-through', function (data) {
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
+// user's action (alert with sound)
+socket.on('players-action', function(data){
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('action');
+    }
+});
+
+// user's action (alert with sound)
+socket.on('initial-bets', function(data){
+    console.log(data);
+    let seats = data.seats;
+    for (let i = 0; i < seats.length; i++){
+        $('.player-bet').eq(seats[i].seat).html(seats[i].bet);
+        $('.player-bet').eq(seats[i].seat).removeClass('hidden');
+    }
+});
+
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
@@ -364,6 +418,7 @@ const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/flop.wav", 'flop');
     createjs.Sound.registerSound("../public/audio/turn.wav", 'turn');
     createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
+    createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
     createjs.Sound.volume = 0.25;
 }
 
@@ -388,6 +443,30 @@ const flipCard = (name) => {
         $(`#${name}`).find('.card-topleft').removeClass('hidden');
         $(`#${name}`).find('.card-bottomright').removeClass('hidden');
     }, 250);
+}
+
+const outHand = (seat) => {
+    $(`#${seat}`).find('.back-card').removeClass('hidden').addClass('waiting');
+    $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
+    $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
+    $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
+    $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
+    $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
+    $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
+    $(`#${seat}`).find('.card-topleft').addClass('hidden');
+    $(`#${seat}`).find('.card-bottomright').addClass('hidden');
+}
+
+const inHand = () => {
+    $('.hand').find('.back-card').removeClass('waiting');
+    // $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
+    // $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
+    // $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
+    // $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
+    // $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
+    // $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
+    // $(`#${seat}`).find('.card-topleft').addClass('hidden');
+    // $(`#${seat}`).find('.card-bottomright').addClass('hidden');
 }
 
 const renderHand = (seat, cards) => {
@@ -466,10 +545,48 @@ function distributeHands(firstRender) {
     }
 }
 
+function createBets() {
+    $('.player-bet').remove();
+    var table = $('#table');
+    for (var i = 0; i < 10; i++) {
+        $('<div/>', {
+            'class': 'player-bet hidden',
+            'text': 69
+        }).appendTo(table);
+    }
+}
+
+function distributeBets() {
+    var radius = 175;
+    let betFields = $('.player-bet'),
+        table = $('.ovalparent'),
+        width = table.width(),
+        height = table.height(),
+        angle = 0,
+        step = (2 * Math.PI) / betFields.length;
+    console.log(width);
+    betFields.each(function () {
+        // note consider changing width/455 to 2.5
+        var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
+        var y = Math.round(height / 2 + radius * (1 * Math.sin(angle)) - $(this).height() / 2) - 10;
+        // if (window.console) {
+        //     console.log($(this).text(), x, y);
+        // }
+        $(this).css({
+            left: x + 'px',
+            top: y + 'px'
+        }); angle += step;
+        // this.append(document.getElementsByName('1')[0]);
+    });
+}
+
 createHands();
 distributeHands(true);
+createBets();
+distributeBets();
 
 $(window).resize(function () {
     // createHands();
     distributeHands(false);
+    distributeBets();
 });
