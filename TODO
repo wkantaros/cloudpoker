@@ -38,7 +38,7 @@ BACKEND:
     [*] create table associated with that id
     [*] send user to table (localhost:5000/game/id)
     [*] chatroom
-    [ ] have user with cookies to table (so if he refreshes he isnt fucked, name stays, etc)
+    [ ] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
     [ ] deal with users with the same name (at same table)
     [*] add players
     [*] start game

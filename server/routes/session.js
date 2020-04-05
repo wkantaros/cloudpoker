@@ -109,19 +109,29 @@ router.route('/:id').get((req, res) => {
             }
         });
 
-        socket.on('check', (data) => {
+        socket.on('action', (data) => {
             let playerName = s.getPlayerById(sid, data.id);
             if (!s.gameInProgress(sid)) {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
                 prev_round = s.getRoundName(sid);
-                let able_to_check = s.check(sid);
-                if (able_to_check) {
-                    io.sockets.to(sid).emit('check', {
+                let canPerformAction = true;
+                if (data.action === 'bet') {
+                    s.bet(sid, data.amount);
+                } else if (data.action === 'call') {
+                    s.call(sid);
+                } else if (data.action === 'fold') {
+                    s.fold(sid);
+                } else if (data.action === 'check') {
+                    canPerformAction = s.check(sid);
+                }
+                if (canPerformAction) {
+                    io.sockets.to(sid).emit(`${data.action}`, {
                         username: playerName,
                         stack: s.getStack(sid, playerName),
                         pot: s.getPot(sid),
-                        seat: s.getPlayerSeat(sid, playerName)
+                        seat: s.getPlayerSeat(sid, playerName),
+                        amount: data.amount
                     });
                     // update client's stack size
                     io.sockets.to(sid).emit('update-stack', {
@@ -129,93 +139,13 @@ router.route('/:id').get((req, res) => {
                         stack: s.getStack(sid, playerName)
                     });
                     // let next client know it's his action
-                    io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
+                    io.sockets.to(sid).emit('action', {
+                        seat: s.getActionSeat(sid)
+                    });
                     check_round(prev_round);
                 } else {
-                    console.log(`${playerName} cannot check in this situation!`);
+                    console.log(`${playerName} cannot perform action in this situation!`);
                 }
-            } else {
-                console.log(`not ${playerName}'s action`);
-            }
-        });
-
-        socket.on('call', (data) => {
-            let playerName = s.getPlayerById(sid, data.id);
-            if (!s.gameInProgress(sid)) {
-                console.log('game hasn\'t started yet');
-            } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
-                prev_round = s.getRoundName(sid);
-                s.call(sid);
-                // send call back to every client
-                io.sockets.to(sid).emit('call', {
-                    username: playerName,
-                    stack: s.getStack(sid, playerName),
-                    pot: s.getPot(sid),
-                    seat: s.getPlayerSeat(sid, playerName)
-                });
-                // update client's stack size
-                io.sockets.to(sid).emit('update-stack', {
-                    seat: s.getPlayerSeat(sid, playerName),
-                    stack: s.getStack(sid, playerName)
-                });
-                // let next client know it's his action
-                io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
-                check_round(prev_round);
-            } else {
-                console.log(`not ${playerName}'s action`);
-            }
-        });
-
-        socket.on('fold', (data) => {
-            let playerName = s.getPlayerById(sid, data.id);
-            if (!s.gameInProgress(sid)) {
-                console.log('game hasn\'t started yet');
-            } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
-                prev_round = s.getRoundName(sid);
-                s.fold(sid);
-                io.sockets.to(sid).emit('fold', {
-                    username: playerName,
-                    stack: s.getStack(sid, playerName),
-                    pot: s.getPot(sid),
-                    seat: s.getPlayerSeat(sid, playerName)
-                });
-                // update client's stack size
-                io.sockets.to(sid).emit('update-stack', {
-                    seat: s.getPlayerSeat(sid, playerName),
-                    stack: s.getStack(sid, playerName)
-                });
-                // let next client know it's his action
-                io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
-                check_round(prev_round);
-            } else {
-                console.log(`not ${playerName}'s action`);
-            }
-        });
-
-        socket.on('bet', (data) => {
-            let playerName = s.getPlayerById(sid, data.id);
-            if (!s.gameInProgress(sid)) {
-                console.log('game hasn\'t started yet');
-            } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
-                prev_round = s.getRoundName(sid);
-                s.bet(sid, data.amount);
-                io.sockets.to(sid).emit('bet', {
-                    username: playerName,
-                    stack: s.getStack(sid, playerName),
-                    pot: s.getPot(sid),
-                    seat: s.getPlayerSeat(sid, playerName),
-                    amount: data.amount
-                });
-                // update client's stack size
-                io.sockets.to(sid).emit('update-stack', {
-                    seat: s.getPlayerSeat(sid, playerName),
-                    stack: s.getStack(sid, playerName)
-                });
-                // let next client know it's his action
-                io.sockets.to(sid).emit('action', {
-                    seat: s.getActionSeat(sid)
-                });
-                check_round(prev_round);
             } else {
                 console.log(`not ${playerName}'s action`);
             }
