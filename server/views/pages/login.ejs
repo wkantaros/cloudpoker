@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+    <link rel="stylesheet" type="text/css" href="public/css/login.css">
+    <title>Create a game</title>
+</head>
+
+<body>
+    <section class="header">
+        <h2>welcome to degen poker</h2>
+    </section>
+
+
+    <main>
+        <p>set up your private game</p>
+        <form id="login-form">
+            <input class="u-full-width" type="text" id="name" name="name" placeholder="Name">
+            <input class="u-full-width" type="text" id="stack" name="stack" placeholder="Starting Stack">
+            <div class="row">
+                <div class="six columns">
+                    <input class="u-full-width" type="text" id="small-blind" name="small-blind"
+                        placeholder="Small Blind">
+                </div>
+                <div class="six columns">
+                    <input class="u-full-width" type="text" id="big-blind" name="big-blind" placeholder="Big Blind">
+                </div>
+            </div>
+            <button class="u-full-width button-primary">Start Game</button>
+        </form>
+    </main>
+    <script src="public/login.js"></script>
+</body>
+
+</html>

@@ -37,8 +37,8 @@ router.route('/:id').get((req, res) => {
     res.render('pages/game', {
         bigBlind: table.bigBlind,
         smallBlind: table.smallBlind,
-        rank: ranks[0],
-        suit: suits[0],
+        rank: 'A',
+        suit: 'S',
         action: false,
         actionSeat: s.getActionSeat(sid),
         dealer: s.getDealer(sid),
@@ -191,43 +191,77 @@ router.route('/:id').get((req, res) => {
                 console.log(`not ${playerName}'s action`);
             }
         });
+
+        socket.on('bet', (data) => {
+            let playerName = s.getPlayerById(sid, data.id);
+            if (!s.gameInProgress(sid)) {
+                console.log('game hasn\'t started yet');
+            } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
+                prev_round = s.getRoundName(sid);
+                s.bet(sid, data.amount);
+                io.sockets.to(sid).emit('bet', {
+                    username: playerName,
+                    stack: s.getStack(sid, playerName),
+                    pot: s.getPot(sid),
+                    seat: s.getPlayerSeat(sid, playerName),
+                    amount: data.amount
+                });
+                // update client's stack size
+                io.sockets.to(sid).emit('update-stack', {
+                    seat: s.getPlayerSeat(sid, playerName),
+                    stack: s.getStack(sid, playerName)
+                });
+                // let next client know it's his action
+                io.sockets.to(sid).emit('action', {
+                    seat: s.getActionSeat(sid)
+                });
+                check_round(prev_round);
+            } else {
+                console.log(`not ${playerName}'s action`);
+            }
+        });
     });
 
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
         let table = s.getTableById(sid).table;
         console.log(table);
-        let data = table.checkwin();
+        let data = s.checkwin(sid);
         if (s.getRoundName(sid) === 'showdown') {
             winners = table.getWinners();
+            console.log('winners');
+            console.log(winners[0].hand.cards);
             io.sockets.to(sid).emit('showdown', winners);
             s.startRound(sid);
             begin_round();
         } else if (data.everyoneFolded) {
             console.log(prev_round);
-            let winnings = data.pot;
-            if (prev_round === 'Deal') {
-                if (table.game.bets[table.currentPlayer] === table.bigBlind) {
-                    //add big blind to pot
-                    winnings += table.bigBlind;
-                }
-            }
+            // POTENTIALLY SEE IF prev_round can be replaced with s.getRoundName
+            let winnings = s.getWinnings(sid, prev_round);
             // console.log(data.winner);
             console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-            io.to(`${player_ids[data.winner.playerName]}`).emit('update-stack', {
+            // update client's stack size
+            io.sockets.to(sid).emit('update-stack', {
+                seat: s.getPlayerSeat(sid, data.winner.playerName),
                 stack: data.winner.chips + winnings
             });
-            data.winner.GetChips(winnings);
-            console.log(data.winner.chips);
+
+            console.log(`Player has ${s.getStack(sid, data.winner.playerName)}`);
+            console.log('Updating player\'s stack on the server...');
+            s.updateStack(sid, data.winner.playerName, winnings);
+            console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`)
+
+            // tell clients who won the pot
             io.sockets.to(sid).emit('folds-through', {
                 username: data.winner.playerName,
                 amount: winnings
             });
-            table.initNewRound();
-            if (table.game) {
+
+            // start new round
+            s.startRound(sid);
+            if (s.gameInProgress(sid)) {
                 begin_round();
             } else {
-                // console.log(table);
                 console.log('waiting for more players to rejoin!');
             }
         } else if (prev_round !== s.getRoundName(sid)) {
@@ -245,7 +279,6 @@ router.route('/:id').get((req, res) => {
         console.log(data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
-            let chips = data[i].chips;
             io.to(`${data[i].playerid}`).emit('render-hand', {
                 cards: s.getCardsByPlayerName(sid, name),
                 seat: data[i].seat
@@ -259,10 +292,5 @@ router.route('/:id').get((req, res) => {
         io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
     }
 });
-
-let playerids = {}
-
-const ranks = 'A 2 3 4 5 6 7 8 9 10 J Q K'.split(' ');
-const suits = '♠︎ ♥︎ ♣︎ ♦︎'.split(' ');
 
 module.exports = router;

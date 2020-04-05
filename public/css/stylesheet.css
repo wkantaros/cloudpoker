@@ -83,10 +83,11 @@ h3 {
 }
 
 .c {
-    display: inline-block;
-    width: 33%;
+    float: left;
+    width: 35em;
     background-color: #59656F;
     background-color: #424C55;
+    /* margin-left: 0; */
     /* background-color: #424C55; */
 }
 
@@ -148,11 +149,6 @@ h3 {
 
 .disabled {
     pointer-events: none;
-}
-
-.actions {
-    padding-left: 4rem;
-    display: inline-block;
 }
 
 /* Popup container */
@@ -343,4 +339,41 @@ h3 {
     border-radius: 50%;
     background: #52489C;
     color: white;
+}
+
+.actions button {
+    float: right;
+    margin: 8% 2px 0;
+    height: 50px;
+    width: 120px;
+}
+
+
+.below-table {
+    float: left;
+    width: 90em;
+}
+
+
+/* login css */
+#login-form {
+    width: 40%;
+    margin: 0 auto
+}
+
+main {
+    padding-top: 10rem;
+}
+
+input:invalid {
+    border: 2px solid red;
+}
+
+.login-header {
+    margin-top: 6rem;
+    text-align: center;
+}
+
+main p {
+    text-align: center;
 }

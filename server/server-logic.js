@@ -134,9 +134,9 @@ let getActionSeat = (sid) => {
 }
 
 let getDealer = (sid) => {
-    console.log('GET DEALER');
-    console.log(tables[sid].table);
-    console.log('----------');
+    // console.log('GET DEALER');
+    // console.log(tables[sid].table);
+    // console.log('----------');
     if (gameInProgress(sid)) {
         // console.log(tables[sid].table.bets);
         return tables[sid].table.dealer;
@@ -149,10 +149,7 @@ let gameInProgress = (sid) => tables[sid].gameInProgress;
 
 let getPot = (sid) => gameInProgress(sid) ? tables[sid].table.pot : 0;
 
-let checkRound = (sid, prevRound) => {
-    let t = tables[sid]
-    let data = t.table.checkwin();
-}
+let checkwin = (sid) => tables[sid].table.checkwin();
 
 let getRoundName = (sid) => {
     if (gameInProgress(sid)){
@@ -178,6 +175,27 @@ let fold = (sid) => {
     return tables[sid].table.fold(tables[sid].table.getCurrentPlayer());
 }
 
+let bet = (sid, betAmount) => {
+    return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
+}
+
+let getWinnings = (sid, prev_round) => {
+    console.log('calculating winnings');
+    let winnings = tables[sid].table.game.pot;
+    if (prev_round === 'deal') {
+        //basically check if any bets are still on the table and add them to the pot (for big blind, etc)
+        for (let i = 0; i < tables[sid].table.game.bets.length; i++) {
+            let bet = tables[sid].table.game.bets[i];
+            winnings += bet;
+        }
+    }
+    return winnings;
+}
+
+let updateStack = (sid, playerName, winnings) => {
+    tables[sid].table.getPlayer(playerName).GetChips(winnings);
+}
+
 module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
@@ -200,3 +218,7 @@ module.exports.getDeal = getDeal;
 module.exports.call = call;
 module.exports.check = check;
 module.exports.fold = fold;
+module.exports.bet = bet;
+module.exports.checkwin = checkwin;
+module.exports.getWinnings = getWinnings;
+module.exports.updateStack = updateStack;

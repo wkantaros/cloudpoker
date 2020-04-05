@@ -1,0 +1,21 @@
+#login-form {
+    width: 40%;
+    margin: 0 auto
+}
+
+main {
+    padding-top: 10rem;
+}
+
+input:invalid {
+    border: 2px solid red;
+}
+
+.header {
+    margin-top: 6rem;
+    text-align: center;
+}
+
+main p {
+    text-align: center;
+}

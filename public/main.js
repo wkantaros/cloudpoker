@@ -13,7 +13,8 @@ let host = document.getElementById('host'),
     start_btn = document.getElementById('start'),
     call = document.getElementById('call'),
     check = document.getElementById('check'),
-    fold = document.getElementById('fold');
+    fold = document.getElementById('fold'),
+    minBet = document.getElementById('min-bet');
     // standup = document.getElementById('standup-btn');
 
 
@@ -133,6 +134,15 @@ fold.addEventListener('click', () => {
     });
 });
 
+minBet.addEventListener('click', () => {
+    console.log('min bet');
+    console.log(parseInt($('#bb').html()))
+    socket.emit('bet', {
+        id: socket.id,
+        amount: parseInt($('#bb').html())
+    });
+});
+
 //chat room functions-----------------------------------------------------------------------------
 //send the contents of the message to the server
 send_btn.addEventListener('click', () => {
@@ -238,21 +248,7 @@ socket.on('render-board', (data) => {
 // renders a players hand
 socket.on('render-hand', (data) => {
     console.log(data.cards);
-    let leftCardRank = data.cards[0].charAt(0);
-    let leftCardSuit = getSuitSymbol(data.cards[0].charAt(1));
-    let leftCardColor = getColor(data.cards[0].charAt(1));
-    let rightCardRank = data.cards[1].charAt(0);
-    let rightCardSuit = getSuitSymbol(data.cards[1].charAt(1));
-    let rightCardColor = getColor(data.cards[1].charAt(1));
-    $(`#${data.seat}`).find('.back-card').addClass('hidden');
-    $(`#${data.seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
-    $(`#${data.seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
-    $(`#${data.seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
-    $(`#${data.seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
-    $(`#${data.seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
-    $(`#${data.seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
-    $(`#${data.seat}`).find('.card-topleft').removeClass('hidden');
-    $(`#${data.seat}`).find('.card-bottomright').removeClass('hidden');
+    renderHand(data.seat, data.cards);
 });
 
 // updates stack when a bet is placed, for example
@@ -305,6 +301,13 @@ socket.on('fold', (data) => {
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
+// bet
+socket.on('bet', (data) => {
+    feedback.innerHTML = '';
+    message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+});
+
 //updates pot
 socket.on('update-pot', (data) => {
     if (data.pot) {
@@ -313,6 +316,26 @@ socket.on('update-pot', (data) => {
     else {
         $('#pot-amount').empty();
     }
+});
+
+//showdown
+socket.on('showdown', function (data) {
+    for (let i = 0; i < data.length; i++) {
+        // setTimeout(() => {
+        //     renderHand(0, data[i].hand.cards)
+        // }, 500);
+        // hideHand(0);
+        feedback.innerHTML = '';
+        message_output.innerHTML += `<p>${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} </p>`;
+        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    }
+});
+
+//folds-through
+socket.on('folds-through', function (data) {
+    feedback.innerHTML = '';
+    message_output.innerHTML += `<p>${data.username} wins a pot of ${data.amount}</p>`;
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
 //helper functions--------------------------------------------------------------------------------
@@ -337,6 +360,36 @@ const flipCard = (name) => {
         $(`#${name}`).find('.card-topleft').removeClass('hidden');
         $(`#${name}`).find('.card-bottomright').removeClass('hidden');
     }, 500);
+}
+
+const renderHand = (seat, cards) => {
+        let leftCardRank = cards[0].charAt(0);
+        let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
+        let leftCardColor = getColor(cards[0].charAt(1));
+        let rightCardRank = cards[1].charAt(0);
+        let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
+        let rightCardColor = getColor(cards[1].charAt(1));
+        $(`#${seat}`).find('.back-card').addClass('hidden');
+        $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
+        $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
+        $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
+        $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
+        $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
+        $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
+        $(`#${seat}`).find('.card-topleft').removeClass('hidden');
+        $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
+}
+
+const hideHand = (seat) => {
+    $(`#${seat}`).find('.back-card').removeClass('hidden');
+    $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
+    $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
+    $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
+    $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
+    $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
+    $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
+    $(`#${seat}`).find('.card-topleft').addClass('hidden');
+    $(`#${seat}`).find('.card-bottomright').addClass('hidden');
 }
 
 //add hands (for sure a cleaner way to do but will work for now) ---------------------------------
