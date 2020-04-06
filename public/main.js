@@ -168,8 +168,12 @@ minBet.addEventListener('click', () => {
     });
 });
 
+function isVolumeOn() {
+    return $('.volume').hasClass('on');
+}
+
 $(".volume").click( function (e) {
-    if ($('.volume').hasClass('on')){
+    if (isVolumeOn()){
         $('#volume-icon').attr('src', "../public/img/mute.svg");
         $('.volume').removeClass('on');
     } else {
@@ -177,6 +181,13 @@ $(".volume").click( function (e) {
         $('.volume').addClass('on');
     }
 } );
+
+
+function playSoundIfVolumeOn(soundName) {
+    if (isVolumeOn()){
+        createjs.Sound.play(soundName);
+    }
+}
 
 //chat room functions-----------------------------------------------------------------------------
 //send the contents of the message to the server
@@ -247,9 +258,7 @@ socket.on('render-board', (data) => {
         $('#cards').find('.back-card').removeClass('hidden');
         $('#cards').find('.card-topleft').addClass('hidden');
         $('#cards').find('.card-bottomright').addClass('hidden');
-        if ($('.volume').hasClass('on')){
-            createjs.Sound.play('deal');
-        }
+        playSoundIfVolumeOn('deal');
     }
     else if (data.street == 'flop'){
         $('#flop').removeClass('hidden');
@@ -261,9 +270,7 @@ socket.on('render-board', (data) => {
             $(`#flop .card:nth-child(${i+1})`).find('.card-corner-rank').html(cardRank);
             $(`#flop .card:nth-child(${i+1})`).find('.card-corner-suit').html(cardSuit);
         }
-        if ($('.volume').hasClass('on')){
-            createjs.Sound.play('flop');
-        }
+        playSoundIfVolumeOn('flop');
         flipCard('flop');
     }
     else if (data.street == 'turn'){
@@ -274,9 +281,7 @@ socket.on('render-board', (data) => {
         $(`#turn .card`).removeClass('black').addClass(cardColor);
         $(`#turn .card`).find('.card-corner-rank').html(cardRank);
         $(`#turn .card`).find('.card-corner-suit').html(cardSuit);
-        if ($('.volume').hasClass('on')){
-            createjs.Sound.play('turn');
-        }
+        playSoundIfVolumeOn('turn');
         flipCard('turn');
     }
     else if (data.street == 'river'){
@@ -287,9 +292,7 @@ socket.on('render-board', (data) => {
         $(`#river .card`).removeClass('black').addClass(cardColor);
         $(`#river .card`).find('.card-corner-rank').html(cardRank);
         $(`#river .card`).find('.card-corner-suit').html(cardSuit);
-        // if ($('.volume').hasClass('on')){
-        //     createjs.Sound.play('river');
-        // }
+        // playSoundIfVolumeOn('river');
         flipCard('river');
     }
 });
@@ -350,9 +353,7 @@ socket.on('call', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' calls</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
-    }
+    playSoundIfVolumeOn('bet');
     $('.player-bet').eq(data.seat).html(data.amount);
     $('.player-bet').eq(data.seat).removeClass('hidden');
 });
@@ -362,9 +363,7 @@ socket.on('check', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' checks</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('check');
-    }
+    playSoundIfVolumeOn('check');
 });
 
 // fold
@@ -372,9 +371,7 @@ socket.on('fold', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' folds</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('fold');
-    }
+    playSoundIfVolumeOn('fold');
     outHand(data.seat);
 });
 
@@ -383,9 +380,7 @@ socket.on('bet', (data) => {
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
-    }
+    playSoundIfVolumeOn('bet');
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
     $('.player-bet').eq(data.seat).removeClass('hidden');
@@ -418,9 +413,7 @@ socket.on('clear-earnings', function (data) {
 
 // user's action (alert with sound)
 socket.on('players-action', function(data){
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('action');
-    }
+    playSoundIfVolumeOn('action');
 });
 
 // user's action (alert with sound)
