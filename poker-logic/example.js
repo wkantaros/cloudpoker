@@ -4,7 +4,7 @@ var table = new poker.Table(50,100,2,10,100,1000);
 
 table.AddPlayer('bob',1000) //dealer
 table.AddPlayer('jane',1000) //small blind
-table.AddPlayer('dylan',1000) //big blind
+// table.AddPlayer('dylan',1000) //big blind
 // table.AddPlayer('john',400) //first to act preflop
 // table.AddPlayer('eve',1000) //second to act preflop
 
@@ -15,15 +15,32 @@ table.StartGame()
 
 //preflop
 whosAction();
-table.call('bob');
-whosAction();
 table.call('jane');
 whosAction();
-table.call('dylan');
-
+table.removePlayer('bob');
+// table.AddPlayer('dylan', 1000)
+whosAction();
+console.log(table);
 //flop
 whosAction();
 table.check('jane');
+whosAction();
+table.check('bob');
+// turn
+whosAction();
+table.check('jane');
+whosAction();
+table.check('bob');
+//river
+whosAction();
+table.check('jane');
+whosAction();
+table.check('bob');
+console.log(table);
+
+table.initNewRound();
+console.log(table);
+
 // whosAction();
 // table.call('dylan');
 // whosAction();

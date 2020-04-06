@@ -46,6 +46,7 @@ buyinSubmit.addEventListener('click', () => {
             popup.classList.remove("show");
             loggedIn = true;
             quit.classList.remove("hidden");
+            $('#start').hide();
             // standup.classList.remove("hidden");
             // buyin.classList.add("hidden");
         }
@@ -62,10 +63,15 @@ buyin.addEventListener('click', () => {
 })
 
 quit.addEventListener('click', () => {
-    let popup = document.getElementById("buyin-info");
-    if (!loggedIn) {
-        popup.classList.add("show");
-    } 
+    // let popup = document.getElementById("buyin-info");
+    // if (!loggedIn) {
+    //     popup.classList.add("show");
+    // } 
+    socket.emit('leave-game', {
+        id: socket.id,
+        amount: 0
+    });
+
 })
 // let myFunction = () => {
 //     let popup = document.getElementById("buyin-info");
@@ -207,10 +213,21 @@ message.addEventListener('keypress', () => {
 });
 
 //Listen for events--------------------------------------------------------------------------------
+
+// have start game button for mod
+socket.on('mod-abilities', (data) => {
+    $('#quit-btn').removeClass('hidden');
+    $('#start').removeClass('hidden');
+    $('#buyin').hide();
+})
+
 //incoming chat
 socket.on('chat', (data) => {
+    let date = new Date;
+    let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+    let time = `${date.getHours()}:${minutes} ~ `
     feedback.innerHTML = '';
-    message_output.innerHTML += '<p><strong>' + data.handle + ': </strong>' + data.message + '</p>';
+    message_output.innerHTML += '<p>' + time + '<strong>' + data.handle + ': </strong>' + data.message + '</p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
@@ -226,6 +243,19 @@ socket.on('buy-in', (data) => {
     message_output.innerHTML += '<p><em>' + data.playerName + ' buys in for ' + data.stack +'</em></p>';
 });
 
+//somebody left the game
+socket.on('buy-out', (data) => {
+    feedback.innerHTML = '';
+    message_output.innerHTML += `<p><em> ${data.playerName} has left the game (finishing stack: ${data.stack})</p>`;
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    // if ($('.volume').hasClass('on')) {
+    //     createjs.Sound.play('fold');
+    // }
+    // outHand(data.seat);
+    $(`#${data.seat}`).addClass('out');
+});
+
+
 // render players at a table
 socket.on('render-players', (data) => {
     for (let i = 0; i < data.length; i++){
@@ -233,7 +263,24 @@ socket.on('render-players', (data) => {
         hand.classList.remove('hidden');
         hand.querySelector('.username').innerHTML = data[i].playerName;
         hand.querySelector('.stack').innerHTML = data[i].stack;
+        if (data[i].waiting){
+            $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
+        }
     }
+});
+
+// makes all the cards gray
+socket.on('waiting', (data) => {
+    for (let i = 0; i < 10; i++){
+        outHand(i);
+    }
+});
+
+// removes old players (that have busted or quit)
+socket.on('remove-out-players', (data) => {
+    console.log('has out class!!');
+    $('.out').addClass('hidden').removeClass('out');
+    // $(`#${data[i].seat}`).removeClass('hidden');
 });
 
 // renders the board (flop, turn, river)
@@ -247,7 +294,7 @@ socket.on('render-board', (data) => {
         $('#cards').find('.back-card').removeClass('hidden');
         $('#cards').find('.card-topleft').addClass('hidden');
         $('#cards').find('.card-bottomright').addClass('hidden');
-        if ($('.volume').hasClass('on')){
+        if ($('.volume').hasClass('on') && data.sound){
             createjs.Sound.play('deal');
         }
     }
@@ -325,6 +372,7 @@ socket.on('update-pot', (data) => {
 socket.on('start-game', (data) => {
     $('.back-card').removeClass('waiting');
     loadSounds();
+    $('#start').hide();
 });
 
 // changes that person to the person who has the action
@@ -336,7 +384,9 @@ socket.on('action', (data) => {
 // adds dealer chip to seat of dealer
 socket.on('new-dealer', (data) => {
     $('.dealer').remove();
-    $(`#${data.seat} > .name`).append('<span class="dealer">D</span>');
+    if (data.seat != -1){
+        $(`#${data.seat} > .name`).append('<span class="dealer">D</span>');
+    }
 });
 
 // changes color of players not in last hand to red (folded, buying in, etc)
