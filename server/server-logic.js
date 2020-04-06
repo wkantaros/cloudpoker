@@ -49,9 +49,22 @@ let buyin = (sessionid, playerName, playerid, stack) => {
     }
 }
 
+let removePlayer = (sessionid, playerName) => {
+    tables[sessionid].table.removePlayer(playerName);
+    console.log(tables[sessionid])
+    tables[sessionid].seatsTaken[playerids[sessionid][playerName].seat] = false;
+    console.log(tables[sessionid])
+    console.log(playerids);
+    delete playerids[sessionid][playerName];
+    console.log(playerids);
+}
+
 let getTableById = (id) => tables[id];
 
 let getPlayerId = (sid, playerName) => playerids[sid][playerName].playerid;
+
+let getModId = (sid) => getPlayerId(sid, tables[sid].hostName);
+
 let getPlayerById = (sid, pid) => {
     // let t = tables[sid].table;
     for (name in playerids[sid]){
@@ -82,18 +95,29 @@ let getAvailableSeat = (sid) => {
 // returns a list of {playerName, seat, stack}
 let playersInfo = (sid) => {
     let info = [];
+    console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
     for (name in playerids[sid]){
         // console.log(name);
         // console.log(playerids[sid][name].seat);
         // console.log(getStack(sid, name));
+        let isWaiting = false;
+        for (let i = 0; i < getTableById(sid).table.playersToAdd.length; i++){
+            console.log('here!');
+            if (name === getTableById(sid).table.playersToAdd[i].playerName){
+                isWaiting = true;
+                break;
+            }
+        }
         info.push({
             playerName: name,
             seat: playerids[sid][name].seat,
             stack: getStack(sid, name),
-            playerid: playerids[sid][name].playerid
+            playerid: playerids[sid][name].playerid,
+            waiting: isWaiting
         })
     }
+    console.log(info);
     return info;
 }
 
@@ -118,8 +142,9 @@ let startGame = (sid) => {
 }
 
 let startRound = (sid) => {
-    // tables[sid].gameInProgress = true;
     tables[sid].table.initNewRound();
+    if (!tables[sid].table.game)
+        tables[sid].gameInProgress = false;
 }
 
 let getCardsByPlayerName = (sid, playerName) => tables[sid].table.getHandForPlayerName(playerName);
@@ -262,6 +287,7 @@ let getWinners = (sid) => {
 module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
+module.exports.removePlayer = removePlayer;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
 module.exports.getPlayerSeat = getPlayerSeat;
@@ -289,3 +315,4 @@ module.exports.getMaxBet = getMaxBet;
 module.exports.getNameByActionSeat = getNameByActionSeat;
 module.exports.getInitialBets = getInitialBets;
 module.exports.getWinners = getWinners;
+module.exports.getModId = getModId;

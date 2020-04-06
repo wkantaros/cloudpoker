@@ -48,7 +48,7 @@ router.route('/:id').get((req, res) => {
         name: t.hostName,
         stack: t.hostStack,
         showCards: false,
-        joinedGame: true,
+        joinedGame: false,
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid)
@@ -75,11 +75,12 @@ router.route('/:id').get((req, res) => {
             }
             console.log('a user connected at', socket.id);
             
+            // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
             socket_ids[socket_id[0]] = true;
             // --------------------------------------------------------------------
             //adds socket to room (actually a sick feature)
             socket.join(sid);
-            // io.sockets.to(sid).emit('game-in-progress', {waiting: !s.gameInProgress(sid)});
+            io.sockets.to(s.getModId(sid)).emit('mod-abilities');
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
             
             // send a message in the chatroom
@@ -101,6 +102,46 @@ router.route('/:id').get((req, res) => {
             s.buyin(sid, data.playerName, data.id, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+        });
+
+        socket.on('leave-game', (data) => {
+            let playerName = s.getPlayerById(sid, data.id);
+            let stack = s.getStack(sid, playerName);
+            let seat = s.getPlayerSeat(sid, playerName);
+            prev_round = s.getRoundName(sid);
+            console.log(`${playerName} leaves game for ${stack}`);
+            // fold player
+            s.fold(sid, playerName);
+            io.sockets.to(sid).emit('fold', {
+                username: playerName,
+                stack: s.getStack(sid, playerName),
+                pot: s.getPot(sid),
+                seat: s.getPlayerSeat(sid, playerName),
+                amount: data.amount
+            });
+            // update client's stack size
+            io.sockets.to(sid).emit('update-stack', {
+                seat: s.getPlayerSeat(sid, playerName),
+                stack: s.getStack(sid, playerName)
+            });
+            // shift action to next player in hand
+            io.sockets.to(sid).emit('action', {
+                seat: s.getActionSeat(sid)
+            });
+            s.removePlayer(sid, playerName);
+            io.sockets.emit('buy-out', {
+                playerName: playerName,
+                stack: stack,
+                seat: seat
+            });
+            setTimeout(() => {
+                // check if round has ended
+                check_round(prev_round);
+            }, 250);
+            setTimeout(() => {
+                // notify player its their action with sound
+                io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+            }, 500);
         });
 
         socket.on('start-game', (data) => {
@@ -227,6 +268,12 @@ router.route('/:id').get((req, res) => {
                 if (s.gameInProgress(sid)) {
                     begin_round();
                 } else {
+                    io.sockets.to(sid).emit('waiting', {});
+                    io.sockets.to(sid).emit('remove-out-players', {});
+                    io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
+                    io.sockets.to(sid).emit('new-dealer', {seat: -1});
+                    io.sockets.to(sid).emit('update-pot', {amount: 0});
+                    io.sockets.to(sid).emit('clear-earnings', {});
                     console.log('waiting for more players to rejoin!');
                 }
             }, (3000));
@@ -234,13 +281,14 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             io.sockets.to(sid).emit('render-board', {
                 street: s.getRoundName(sid),
-                board: s.getDeal(sid)
+                board: s.getDeal(sid),
+                sound: true
             });
         }
     }
 
     let begin_round = () => {
-        io.sockets.to(sid).emit('render-board', {street: 'deal'});
+        io.sockets.to(sid).emit('render-board', {street: 'deal', sound: true});
         io.sockets.to(sid).emit('new-dealer', {seat: s.getDealer(sid)});
         io.sockets.to(sid).emit('nobody-waiting', {});
         io.sockets.to(sid).emit('update-pot', {amount: 0});

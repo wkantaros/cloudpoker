@@ -2,8 +2,8 @@
 
 <div class="header u-full-width">
     <div class="row">
-        <div class="button button-primary" id="getLink" onclick="copyLink()">Get Sharable
-            Link</div>
+        <button class="button button-primary" id="getLink" onclick="copyLink()">Get Sharable
+            Link</button>
         <% if (!joinedGame) { %>
             <div class="button popup" id = "buyin">
                 <span id="txt">Join Game</span>
@@ -22,7 +22,8 @@
                     <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
                 </div>
             </div>
-        <% }; %>
+        <% } %>
+        <button class="button-primary hidden" id="start">Start Game</button>
         <anchor class="button popup hidden" id="quit-btn">Quit</anchor>
         <!-- <anchor class="button popup hidden" id="standup-btn">Standup</anchor> -->
         <div class="button disabled" id="blinds"> Blind: <span id="sb"><%= smallBlind %></span> / <span id="bb"><%= bigBlind %></span></div>

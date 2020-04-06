@@ -2,9 +2,11 @@ LOGIC EDITS:
     [*] make host login
     [*] make login so users can join
     [ ] handle all-in's to work accordingly
-    [ ] handle players leaving game (think it works but need to error check)
-    [ ] handle players joining game (think it works but need to error check)
+    [*] handle players leaving game
+    [*] handle players joining game
     [*] delays (for frontend, sounds, winner page, etc)
+    [ ] handle host leaving game (transfer host rights to new player)
+    [ ] see what the deal is if a player busts / quits and new player buys in at that spot (with order)
     
 FRONTEND EDITS:
     [*] ejs syntax
@@ -28,7 +30,7 @@ FRONTEND EDITS:
     [*] join table button
     [*] add players
     [*] render players
-    [ ] remove players
+    [*] remove players
     [*] call
     [*] check
     [*] bet
@@ -40,7 +42,7 @@ FRONTEND EDITS:
     [*] have 'winner page' where winners cards are shown for showdown
     [*] have 'winner page' for when action folds through
     [ ] keyboard shortcuts
-    [ ] fix join game button to work when it should work and not when it shouldnt
+    [*] fix join game button to work when it should work and not when it shouldnt
     [ ] fix sounds to work when they sould
 
 BACKEND:
@@ -54,7 +56,7 @@ BACKEND:
     [ ] deal with users with the same name (at same table)
     [*] add players
     [*] start game
-    [ ] remove players
+    [*] remove players
     [*] whos action
     [*] call
     [*] check
@@ -88,3 +90,11 @@ GAME FEATURES TO ADD:
 
 Error checks:
     [ ] on create game bb/sb and stacks cant be decimals (need to be numbers)
+
+
+//-------------------------------------------------------------------------------------------------
+Handling all in's
+    if a player goes all in and loses
+        kick him from table
+            have the remove the quit button from page
+            add the buyin button again
