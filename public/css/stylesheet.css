@@ -361,7 +361,16 @@ h3 {
     color: white;
 }
 
-.actions button {
+.actions > .row > button {
+    float: right;
+    position: relative;
+    margin: 8% 2px 0;
+    height: 50px;
+    width: 120px;
+}
+
+.actions > .row > div {
+    position: relative;
     float: right;
     margin: 8% 2px 0;
     height: 50px;
@@ -396,4 +405,72 @@ input:invalid {
 
 main p {
     text-align: center;
+}
+
+/* The actual popup (appears on top) */
+/* .popup1 {
+    margin-top: 
+    position: relative;
+    float: right;
+    cursor: pointer;
+} */
+
+#bet {
+    margin-bottom: 0;
+    height: 50px;
+}
+
+#betting-abilities .popuptext1 {
+    visibility: hidden;
+    width: 160px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0 0 0;
+    /* padding: 8px 0 0; */
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -80px;
+}
+
+/* Popup arrow */
+#betting-abilities .popuptext1::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* Toggle this class when clicking on the popup container (hide and show the popup) */
+#betting-abilities .show {
+    visibility: visible;
+}
+
+#bet-amount {
+    padding: 0 10px;
+    margin: 0;
+    /* background-color: #BCE7FD; */
+    background-color: #555555;
+    text-align: center;
+    color: #fff;
+    /* font-weight: bold; */
+    font-size: 2rem;
+}
+
+.earnings {
+    -webkit-box-shadow: 0px 0px 10px 5px rgba(255, 255, 190, .75);
+    -moz-box-shadow: 0px 0px 10px 5px rgba(255, 255, 190, .75);
+    box-shadow: 0px 0px 10px 5px rgba(255, 255, 190, .75);
+    color: greenyellow;
+    color: #85bb65;
+    font: bolder;
+    background-color: #fff;
+    position: absolute;
 }

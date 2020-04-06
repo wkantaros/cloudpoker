@@ -3,7 +3,13 @@
         <button class="button-primary" id="check">Check</button>
         <button class="button-primary" id="fold">Fold</button>
         <button class="button-primary" id="call">Call</button>
-        <button class="button-primary" id="bet">Bet</button>
+        <div id="betting-abilities">
+            <button class="button-primary u-full-width" id="bet">Bet
+            </button>
+            <span class="popuptext1" id="myPopup1">
+                <input class="u-full-width" type="text" value="<%= bigBlind %>" id="bet-amount">
+            </span>
+        </div>
         <button class="button-primary" id="min-bet">Min Bet</button>
         <button class="button-primary" id="start">Start</button>
     </div>

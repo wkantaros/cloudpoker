@@ -251,6 +251,14 @@ let getInitialBets = (sid) => {
     return toReturn;
 }
 
+let getWinners = (sid) => {
+    let winners = getTableById(sid).table.getWinners();
+    for (let i = 0; i < winners.length; i++){
+        winners[i].seat = getPlayerSeat(sid, winners[i].playerName);
+    }
+    return winners;
+}
+
 module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
@@ -280,3 +288,4 @@ module.exports.updateStack = updateStack;
 module.exports.getMaxBet = getMaxBet;
 module.exports.getNameByActionSeat = getNameByActionSeat;
 module.exports.getInitialBets = getInitialBets;
+module.exports.getWinners = getWinners;

@@ -27,6 +27,8 @@ router.route('/').post((req, res) => {
     }
 });
 
+let socket_ids = {};
+
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
@@ -56,38 +58,45 @@ router.route('/:id').get((req, res) => {
     let socket_id = [];
     const io = req.app.get('socketio');
     io.on('connection', function (socket) {
-        // make sure host has a socketid associate with name
-        if (s.getPlayerId(sid, t.hostName) == 6969) {
-            s.updatePlayerId(sid, t.hostName, socket.id);
-            console.log(s.getPlayerId(sid, t.hostName));
-        }
+        console.log('id!:', socket.id);
+        // added bc duplicate sockets (idk why, need to fix this later)
+        if (!socket_ids[socket.id]){
+            // make sure host has a socketid associate with name
+            if (s.getPlayerId(sid, t.hostName) == 6969) {
+                s.updatePlayerId(sid, t.hostName, socket.id);
+                console.log(s.getPlayerId(sid, t.hostName));
+            }
+        
 
-        socket_id.push(socket.id);
-        // rm connection listener for any subsequent connections with the same ID
-        if (socket_id[0] === socket.id) 
-            io.removeAllListeners('connection');
-        console.log('a user connected at', socket.id);
-        // --------------------------------------------------------------------
-        //adds socket to room (actually a sick feature)
-        socket.join(sid);
-        // io.sockets.to(sid).emit('game-in-progress', {waiting: !s.gameInProgress(sid)});
-        io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
-
-        // send a message in the chatroom
-        socket.on('chat', (data) => {
-            io.to(sid).emit('chat', {
-                handle: s.getPlayerById(sid, data.id),
-                message: data.message
+            socket_id.push(socket.id);
+            // rm connection listener for any subsequent connections with the same ID
+            if (socket_id[0] === socket.id) {
+                io.removeAllListeners('connection');
+            }
+            console.log('a user connected at', socket.id);
+            
+            socket_ids[socket_id[0]] = true;
+            // --------------------------------------------------------------------
+            //adds socket to room (actually a sick feature)
+            socket.join(sid);
+            // io.sockets.to(sid).emit('game-in-progress', {waiting: !s.gameInProgress(sid)});
+            io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+            
+            // send a message in the chatroom
+            socket.on('chat', (data) => {
+                io.to(sid).emit('chat', {
+                    handle: s.getPlayerById(sid, data.id),
+                    message: data.message
+                });
+                // io.sockets.to(sid).emit('chat', data);
             });
-            // io.sockets.to(sid).emit('chat', data);
-        });
+            
+            // typing
+            socket.on('typing', (handle) => {
+                socket.broadcast.to(sid).emit('typing', handle);
+            });
 
-        // typing
-        socket.on('typing', (handle) => {
-            socket.broadcast.to(sid).emit('typing', handle);
-        });
-
-        socket.on('buy-in', (data) => {
+            socket.on('buy-in', (data) => {
             // console.log(data);
             s.buyin(sid, data.playerName, data.id, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
@@ -107,7 +116,7 @@ router.route('/:id').get((req, res) => {
                 console.log("waiting on players");
             }
         });
-
+        
         socket.on('action', (data) => {
             let playerName = s.getPlayerById(sid, data.id);
             if (!s.gameInProgress(sid)) {
@@ -118,8 +127,8 @@ router.route('/:id').get((req, res) => {
                 if (data.action === 'bet') {
                     s.bet(sid, playerName, data.amount);
                 } else if (data.action === 'call') {
-                    s.call(sid, playerName);
                     data.amount = s.getMaxBet(sid);
+                    s.call(sid, playerName);
                 } else if (data.action === 'fold') {
                     s.fold(sid, playerName);
                 } else if (data.action === 'check') {
@@ -142,9 +151,14 @@ router.route('/:id').get((req, res) => {
                     io.sockets.to(sid).emit('action', {
                         seat: s.getActionSeat(sid)
                     });
-                    // notify player its their action with sound
-                    io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
-                    check_round(prev_round);
+                    setTimeout(()=>{
+                        // check if round has ended
+                        check_round(prev_round);
+                    }, 250);
+                    setTimeout(()=>{
+                        // notify player its their action with sound
+                        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                    }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
                 }
@@ -152,50 +166,70 @@ router.route('/:id').get((req, res) => {
                 console.log(`not ${playerName}'s action`);
             }
         });
+        
+        // this if else statement is a nonsense fix need to find a better one
+        } else {
+            console.log('fuck already connected');
+        }
     });
-
+    
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
         let table = s.getTableById(sid).table;
+        // console.log(table);
         let data = s.checkwin(sid);
         if (s.getRoundName(sid) === 'showdown') {
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
-            winners = table.getWinners();
+            winners = s.getWinners(sid);
             console.log('winners');
-            console.log(winners[0].hand.cards);
+            console.log(winners);
             io.sockets.to(sid).emit('showdown', winners);
-            s.startRound(sid);
-            begin_round();
+            // start new round
+            setTimeout(() => {
+                // start new round
+                s.startRound(sid);
+                if (s.gameInProgress(sid)) {
+                    begin_round();
+                } else {
+                    console.log('waiting for more players to rejoin!');
+                }
+            }, (3000));
         } else if (data.everyoneFolded) {
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with s.getRoundName
             let winnings = s.getWinnings(sid, prev_round);
             // console.log(data.winner);
             console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-            // update client's stack size
-            io.sockets.to(sid).emit('update-stack', {
-                seat: s.getPlayerSeat(sid, data.winner.playerName),
-                stack: data.winner.chips + winnings
-            });
-
-            console.log(`Player has ${s.getStack(sid, data.winner.playerName)}`);
-            console.log('Updating player\'s stack on the server...');
-            s.updateStack(sid, data.winner.playerName, winnings);
-            console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`)
 
             // tell clients who won the pot
             io.sockets.to(sid).emit('folds-through', {
                 username: data.winner.playerName,
-                amount: winnings
+                amount: winnings,
+                seat: s.getPlayerSeat(sid, data.winner.playerName)
             });
 
             // start new round
-            s.startRound(sid);
-            if (s.gameInProgress(sid)) {
-                begin_round();
-            } else {
-                console.log('waiting for more players to rejoin!');
-            }
+            setTimeout(() => {
+                // update client's stack size
+                io.sockets.to(sid).emit('update-stack', {
+                    seat: s.getPlayerSeat(sid, data.winner.playerName),
+                    stack: data.winner.chips + winnings
+                });
+
+                // update stack on the server
+                console.log(`Player has ${s.getStack(sid, data.winner.playerName)}`);
+                console.log('Updating player\'s stack on the server...');
+                s.updateStack(sid, data.winner.playerName, winnings);
+                console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`)
+
+                // start new round
+                s.startRound(sid);
+                if (s.gameInProgress(sid)) {
+                    begin_round();
+                } else {
+                    console.log('waiting for more players to rejoin!');
+                }
+            }, (3000));
         } else if (prev_round !== s.getRoundName(sid)) {
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             io.sockets.to(sid).emit('render-board', {
@@ -210,6 +244,8 @@ router.route('/:id').get((req, res) => {
         io.sockets.to(sid).emit('new-dealer', {seat: s.getDealer(sid)});
         io.sockets.to(sid).emit('nobody-waiting', {});
         io.sockets.to(sid).emit('update-pot', {amount: 0});
+        io.sockets.to(sid).emit('clear-earnings', {});
+        // io.sockets.to(sid).emit('hide-hands', {});
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
         // console.log(data);

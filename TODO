@@ -4,7 +4,7 @@ LOGIC EDITS:
     [ ] handle all-in's to work accordingly
     [ ] handle players leaving game (think it works but need to error check)
     [ ] handle players joining game (think it works but need to error check)
-    [ ] delays (for frontend, sounds, winner page, etc)
+    [*] delays (for frontend, sounds, winner page, etc)
     
 FRONTEND EDITS:
     [*] ejs syntax
@@ -31,13 +31,17 @@ FRONTEND EDITS:
     [ ] remove players
     [*] call
     [*] check
-    [ ] bet
+    [*] bet
+    [*] raise (same button as bet but needs to be accounted for differently)
     [*] min bet
     [*] fold
     [*] sounds
     [*] have sound button in header user can toggle
-    [ ] have 'winner page' where winners cards are shown, etc
+    [*] have 'winner page' where winners cards are shown for showdown
+    [*] have 'winner page' for when action folds through
     [ ] keyboard shortcuts
+    [ ] fix join game button to work when it should work and not when it shouldnt
+    [ ] fix sounds to work when they sould
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -62,6 +66,7 @@ DOWN THE LINE CODE:
     [*] restructure so its more organized
     [*] simplify bet/check/call/fold to one button (on backend)
     [ ] update bet/check/fold/call/raise buttons / abilities depending on action
+    [ ] your action (have a physical notification as well)
     [ ] improve bet button to have increased functionality w/slider (1/4 pot, 1/2 pot, 3/4, all in, etc)
     [ ] have player's hand turn gray when folded (so they can still see what they had)
     [ ] show hand feature
@@ -80,3 +85,6 @@ GAME FEATURES TO ADD:
     [ ] implement straddle
     [ ] implement tokyo
     [ ] implement the game of games
+
+Error checks:
+    [ ] on create game bb/sb and stacks cant be decimals (need to be numbers)
