@@ -1023,20 +1023,15 @@ Table.prototype.NewRound = function() {
       bigBlind -= this.players.length;
   }
   //Force Blind Bets
+  // TODO: the next two lines can give players negative stacks. must check that this doesn't happen.
+  //  force them all-in if their balance <= their bland.
   this.players[smallBlind].chips -= this.smallBlind;
   this.players[bigBlind].chips -= this.bigBlind;
   this.game.bets[smallBlind] = this.smallBlind;
   this.game.bets[bigBlind] = this.bigBlind;
 
   // get currentPlayer
-  this.currentPlayer = this.dealer + 3;
-  if( this.currentPlayer >= this.players.length ) {
-    this.currentPlayer -= this.players.length;
-    // EDITED
-    if (this.currentPlayer === this.players.length){
-        this.currentPlayer = 0;
-    }
-  }
+  this.currentPlayer = (this.dealer + 3) % this.players.length;
 
   this.eventEmitter.emit( "newRound" );
 };
