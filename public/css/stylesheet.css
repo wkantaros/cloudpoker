@@ -38,12 +38,13 @@ h3 {
 #chat-window {
     /* margin-top: 2rem; */
     /* height: 10rem; */
-    height: 5rem;
+    height: 10.55rem;
     overflow-y: auto;
     width: 100%;
     bottom: 0;
     /* background: #f9f9f9; */
     border-top: 1px solid #999;
+    overflow-wrap: break-word;
 }
 
 #chat-output {
@@ -56,6 +57,8 @@ h3 {
     /* border-bottom: 1px solid #e9e9e9; */
     color: #fff;
 }
+
+
 
 /* #chat-output strong {
     color: #fff;
@@ -84,12 +87,32 @@ h3 {
 }
 
 .pad {
-    padding: 10px 20px 0px;
+    /* padding: 10px 20px 0px; */
+    padding: 10px 0px 0px;
+    margin-bottom: 0;
+}
+
+#send {
+    margin: 0;
+    width: 25%;
+}
+
+#message {
+    margin: 0;
+    width: 75%;
+    background-color: rgb(104, 118, 130);
+    color: white;
+}
+#message::placeholder {
+    /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: #fff;
+    opacity: 1;
+    /* Firefox */
 }
 
 .c {
     float: left;
-    width: 35em;
+    width: 30em;
     background-color: #59656F;
     background-color: #424C55;
     /* margin-left: 0; */
