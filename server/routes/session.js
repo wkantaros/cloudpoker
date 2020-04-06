@@ -289,6 +289,7 @@ router.route('/:id').get((req, res) => {
 
     let begin_round = () => {
         io.sockets.to(sid).emit('render-board', {street: 'deal', sound: true});
+        io.sockets.to(sid).emit('remove-out-players', {});
         io.sockets.to(sid).emit('new-dealer', {seat: s.getDealer(sid)});
         io.sockets.to(sid).emit('nobody-waiting', {});
         io.sockets.to(sid).emit('update-pot', {amount: 0});
