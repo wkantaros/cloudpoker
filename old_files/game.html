@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html> 
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- <base href="/"> -->
+        <link href="/css/stylesheet.css" rel="stylesheet">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <div id="poker-game">
+                <h2>Poker with my bois</h2>
+                <div id="bet-window">
+                    <div id="poker-output"></div>
+                    <div id="poker-feedback"></div>
+                </div>
+                <input id="bet-size" type="text" placeholder="Bet amount" />
+                <button id="bet">Bet</button>
+                <button id="check">Check</button>
+                <button id="call">Call</button>
+                <button id="fold">Fold</button>
+                <button id="start-game">Start game</button>
+            </div>
+
+            <div id="side-col">
+                <div id="chat-room">
+                    <h2>Chat shit</h2>
+                    <div id="chat-window">
+                        <div id="chat-output"></div>
+                        <div id="feedback"></div>
+                    </div>
+                    <!-- <input id="handle" type="text" placeholder="Handle" readonly/> -->
+                    <input id="message" type="text" placeholder="Message (m)" />
+                    <button id="send">Send Message</button>
+                </div>
+                <div id="login-room">
+                    <h2>Grab a seat</h2>
+                    <input id="name" type="text" placeholder="Name" />
+                    <input id="stack" type="text" placeholder="Stack" />
+                    <button id="update">Join</button>
+                </div>
+            </div>
+        </div>
+        <script src="/script.js"></script>
+    </body>
+</html>

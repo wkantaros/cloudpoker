@@ -10,36 +10,7 @@ table.AddPlayer('jane',1000) //small blind
 
 let whosAction = () => console.log(`We are on the ${table.game.roundName}, it is ${table.getCurrentPlayer()}\'s action`);
 
-table.StartGame()
 // console.log(table);
-
-//preflop
-whosAction();
-table.call('jane');
-whosAction();
-table.removePlayer('bob');
-// table.AddPlayer('dylan', 1000)
-whosAction();
-console.log(table);
-//flop
-whosAction();
-table.check('jane');
-whosAction();
-table.check('bob');
-// turn
-whosAction();
-table.check('jane');
-whosAction();
-table.check('bob');
-//river
-whosAction();
-table.check('jane');
-whosAction();
-table.check('bob');
-console.log(table);
-
-table.initNewRound();
-console.log(table);
 
 // whosAction();
 // table.call('dylan');
