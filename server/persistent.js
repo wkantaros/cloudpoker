@@ -1,7 +1,7 @@
 const shortid = require('shortid');
 const cookie = require('cookie');
 
-const PLAYER_UUID_COOKIE_NAME = "player_uuid";
+const PLAYER_UUID_COOKIE_NAME = "plar_uuid";
 module.exports.PLAYER_UUID_COOKIE_NAME = PLAYER_UUID_COOKIE_NAME;
 // Player UUIDs expire after 48 hours
 const PLAYER_UUID_EXPIRY = 48 * 60 * 60 * 1000;

@@ -49,7 +49,7 @@ router.route('/').post((req, res) => {
     }
 });
 
-let socket_ids = {};
+// let socket_ids = {};
 
 // maps player ID (from cookie) -> socket ID (from socket.io session) and vice versa
 let playerIdSocketMap = new TwoWayMap();
@@ -58,8 +58,10 @@ let playerIdSocketMap = new TwoWayMap();
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
     let playerId = playerIdFromRequest(req);
+    console.log('playerIdFromRequest', playerId);
     const isNewPlayer = playerId === undefined;
-    if (!isNewPlayer) {
+    console.log('inp', isNewPlayer);
+    if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
         setPlayerId(playerId, req, res);
@@ -88,20 +90,19 @@ router.route('/:id').get((req, res) => {
     });
 
     //consider uncommenting if it becomes an issue
-    let socket_id = [];
+    // let socket_id = [];
     const io = req.app.get('socketio');
     io.on('connection', function (socket) {
         // console.log(JSON.stringify(socket.handshake.headers));
         console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
-        if (!socket_ids[playerId]){
-            if (isNewPlayer) {
-                playerIdSocketMap.set(playerId, socket.id);
-            } else {
-                // const oldSocketId = playerIdSocketMap.Key(playerId);
-                // playerIdSocketMap.deleteKey(playerId);
-                playerIdSocketMap.set(playerId, socket.id)
-            }
+        if (!playerIdSocketMap.hasValue(socket.id)){
+            playerIdSocketMap.set(playerId, socket.id)
+
+            // socket.on('disconnect', (reason) => {
+            //     console.log('pid', playerId, 'disconnect reason', reason);
+            //     io.removeAllListeners('connection');
+            // });
 
             // make sure host has a socketid associate with name
             if (s.getPlayerId(sid, t.hostName) == 6969) {
@@ -109,15 +110,16 @@ router.route('/:id').get((req, res) => {
                 console.log(s.getPlayerId(sid, t.hostName));
             }
 
-            socket_id.push(playerId);
+            // socket_id.push(socket.id);
             // rm connection listener for any subsequent connections with the same ID
-            if (socket_id[0] === playerId) {
-                io.removeAllListeners('connection');
-            }
+            // if (socket_id[0] === socket.id) {
+            //     console.log('removing all listeners');
+            //     io.removeAllListeners('connection');
+            // }
             console.log('a user connected at', socket.id, 'with player ID', playerId);
             
             // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
-            socket_ids[socket_id[0]] = true;
+            // socket_ids[socket_id[0]] = true;
             // --------------------------------------------------------------------
             //adds socket to room (actually a sick feature)
             socket.join(sid);
@@ -128,8 +130,13 @@ router.route('/:id').get((req, res) => {
             
             // send a message in the chatroom
             socket.on('chat', (data) => {
+                console.log('data', JSON.stringify(data));
+                console.log('socketd', JSON.stringify(socket.request.cookies));
+                console.log('socketd', JSON.stringify(socket.request.headers));
+                console.log('socketd', JSON.stringify(socket.request.headers.cookies));
+                console.log('socketd', JSON.stringify(socket.request.extraHeaders));
                 io.to(sid).emit('chat', {
-                    handle: s.getPlayerById(sid, data.id),
+                    handle: s.getPlayerById(sid, playerId),
                     message: data.message
                 });
                 // io.sockets.to(sid).emit('chat', data);
@@ -137,26 +144,27 @@ router.route('/:id').get((req, res) => {
             
             // typing
             socket.on('typing', (handle) => {
+
                 socket.broadcast.to(sid).emit('typing', handle);
             });
 
             socket.on('buy-in', (data) => {
             // console.log(data);
-            s.buyin(sid, data.playerName, data.id, data.stack);
+            s.buyin(sid, data.playerName, playerId, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
         });
 
         socket.on('leave-game', (data) => {
             // check if mod is leaving the game
-            let oldModId = data.id;
+            let oldModId = playerId;
             let modLeavingGame = false;
-            if (data.id == s.getModId(sid)) {
+            if (playerId == s.getModId(sid)) {
                 modLeavingGame = true;
             }
 
             if (!s.gameInProgress(sid)){
-                let playerName = s.getPlayerById(sid, data.id);
+                let playerName = s.getPlayerById(sid, playerId);
                 let seat = s.getPlayerSeat(sid, playerName);
                 s.removePlayer(sid, playerName);
                 console.log(`${playerName} leaves game`);
@@ -171,7 +179,7 @@ router.route('/:id').get((req, res) => {
                 s.makeEmptySeats(sid);
                 console.log('waiting for more players to rejoin');
             } else {
-                let playerName = s.getPlayerById(sid, data.id);
+                let playerName = s.getPlayerById(sid, playerId);
                 let stack = s.getStack(sid, playerName);
                 let seat = s.getPlayerSeat(sid, playerName);
                 prev_round = s.getRoundName(sid);
@@ -235,7 +243,7 @@ router.route('/:id').get((req, res) => {
         
         socket.on('action', (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
-            let playerName = s.getPlayerById(sid, data.id);
+            let playerName = s.getPlayerById(sid, playerId);
             if (!s.gameInProgress(sid)) {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
