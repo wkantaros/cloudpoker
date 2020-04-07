@@ -59,6 +59,10 @@ const tableSocketMap = new Map();
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
+    let sid = req.params.id;
+    let t = s.getTableById(sid);
+    let table = t.table;
+
     let playerId = playerIdFromRequest(req);
     console.log('playerIdFromRequest', playerId);
     const isNewPlayer = playerId === undefined;
@@ -67,13 +71,9 @@ router.route('/:id').get((req, res) => {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
         setPlayerId(playerId, req, res);
-    } else if (s.gameInProgress(sid){
+    } else if (s.gameInProgress(sid)) {
 
     }
-
-    let sid = req.params.id;
-    let t = s.getTableById(sid);
-    let table = t.table;
 
     // gets a players socket ID from playerId
     const getSocketId = (playerId) => {
