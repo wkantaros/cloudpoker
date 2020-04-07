@@ -67,6 +67,8 @@ router.route('/:id').get((req, res) => {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
         setPlayerId(playerId, req, res);
+    } else if (s.gameInProgress(sid){
+
     }
 
     let sid = req.params.id;
@@ -100,64 +102,43 @@ router.route('/:id').get((req, res) => {
     // let socket_id = [];
     const io = req.app.get('socketio');
     io.once('connection', function (socket) {
-        // console.log(JSON.stringify(socket.handshake.headers));
         console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
-        let playerIdSocketMap = tableSocketMap.get(sid);
-        if (!playerIdSocketMap.hasValue(socket.id)){
-        // if (isNewPlayer || playerIdSocketMap.val(socket.id) !== playerId){
-            playerIdSocketMap.set(playerId, socket.id);
+        tableSocketMap.get(sid).set(playerId, socket.id);
 
-            // socket.on('disconnect', (reason) => {
-            //     console.log('pid', playerId, 'disconnect reason', reason);
-            //     io.removeAllListeners('connection');
-            // });
+        // socket.on('disconnect', (reason) => {
+        //     console.log('pid', playerId, 'disconnect reason', reason);
+        //     io.removeAllListeners('connection');
+        // });
 
-            // make sure host has a socketid associate with name
-            if (s.getPlayerId(sid, t.hostName) == 6969) {
-                s.updatePlayerId(sid, t.hostName, playerId);
-                console.log(s.getPlayerId(sid, t.hostName));
-            }
+        // make sure host has a socketid associate with name
+        if (s.getPlayerId(sid, t.hostName) == 6969) {
+            s.updatePlayerId(sid, t.hostName, playerId);
+            console.log(s.getPlayerId(sid, t.hostName));
+        }
+        console.log('a user connected at', socket.id, 'with player ID', playerId);
 
-            // socket_id.push(socket.id);
-            // rm connection listener for any subsequent connections with the same ID
-            // if (socket_id[0] === socket.id) {
-            //     console.log('removing all listeners');
-            //     io.removeAllListeners('connection');
-            // }
-            console.log('a user connected at', socket.id, 'with player ID', playerId);
-            
-            // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
-            // socket_ids[socket_id[0]] = true;
-            // --------------------------------------------------------------------
-            //adds socket to room (actually a sick feature)
-            socket.join(sid);
-            if (s.getModId(sid) != null){
-                io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
-            }
-            io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
-            
-            // send a message in the chatroom
-            socket.on('chat', (data) => {
-                console.log('data', JSON.stringify(data));
-                console.log('socketd', JSON.stringify(socket.request.cookies));
-                console.log('socketd', JSON.stringify(socket.request.headers));
-                console.log('socketd', JSON.stringify(socket.request.headers.cookies));
-                console.log('socketd', JSON.stringify(socket.request.extraHeaders));
-                io.to(sid).emit('chat', {
-                    handle: s.getPlayerById(sid, playerId),
-                    message: data.message
-                });
-                // io.sockets.to(sid).emit('chat', data);
+        //adds socket to room (actually a sick feature)
+        socket.join(sid);
+        if (s.getModId(sid) != null){
+            io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+        }
+        io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+
+        // send a message in the chatroom
+        socket.on('chat', (data) => {
+            io.to(sid).emit('chat', {
+                handle: s.getPlayerById(sid, playerId),
+                message: data.message
             });
-            
-            // typing
-            socket.on('typing', (handle) => {
+        });
 
-                socket.broadcast.to(sid).emit('typing', handle);
-            });
+        // typing
+        socket.on('typing', (handle) => {
+            socket.broadcast.to(sid).emit('typing', handle);
+        });
 
-            socket.on('buy-in', (data) => {
+        socket.on('buy-in', (data) => {
             // console.log(data);
             s.buyin(sid, data.playerName, playerId, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
@@ -301,11 +282,6 @@ router.route('/:id').get((req, res) => {
                 console.log(`not ${playerName}'s action`);
             }
         });
-        
-        // this if else statement is a nonsense fix need to find a better one
-        } else {
-            console.log('fuck already connected');
-        }
     });
     
     //checks if round has ended (reveals next card)
