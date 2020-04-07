@@ -2,6 +2,7 @@ LOGIC/NODE-POKER EDITS:
     [*] make host login
     [*] make login so users can join
     [ ] handle all-in's to work accordingly
+    [ ] all-in's where has < or = bb
     [*] handle players leaving game (really works, tested extensively)
     [*] handle players joining game (works well, more tests to be certain, currently dealer stays in same spot on occaision)
     [*] delays (for frontend, sounds, winner page, etc)
@@ -35,6 +36,7 @@ FRONTEND EDITS:
     [*] check
     [*] bet
     [*] raise (same button as bet but needs to be accounted for differently)
+    [*] get min raise and min bet amounts (handle all in as well)
     [*] min bet
     [*] fold
     [*] sounds
@@ -54,7 +56,7 @@ BACKEND:
     [*] send user to table (localhost:5000/game/id)
     [*] chatroom
     [ ] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
-    [ ] deal with users with the same name (at same table)
+    [*] deal with users with the same name (at same table)
     [*] add players
     [*] start game
     [*] remove players
