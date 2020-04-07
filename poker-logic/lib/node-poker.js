@@ -240,7 +240,9 @@ function checkForBankrupt(table) {
         if (table.players[i].chips === 0) {
           table.gameLosers.push( table.players[i] );
             console.log('player ' + table.players[i].playerName + ' is going bankrupt');
-            table.players.splice(i, 1);
+            // EDIT
+            // rather than removing players here i thin it makes sense to call remove player on it
+            // table.players.splice(i, 1);
         }
     }
 }
@@ -949,10 +951,22 @@ Table.prototype.StartGame = function () {
     }
 };
 
-Table.prototype.AddPlayer = function (playerName, chips) {
+// Table.prototype.AddPlayer = function (playerName, chips) {
+//     console.log(`adding player ${playerName}`);
+//   if ( chips >= this.minBuyIn && chips <= this.maxBuyIn) {
+//     var player = new Player(playerName, chips, this);
+//     this.playersToAdd.push( player );
+//   }
+//  if (this.players.length === 0 && this.playersToAdd.length >= this.minPlayers) {
+//     this.StartGame();
+//  }
+// }
+// EDITED
+Table.prototype.AddPlayer = function (playerName, chips, seat) {
     console.log(`adding player ${playerName}`);
   if ( chips >= this.minBuyIn && chips <= this.maxBuyIn) {
     var player = new Player(playerName, chips, this);
+    player.seat = seat;
     this.playersToAdd.push( player );
   }
 //   EDITED
@@ -976,21 +990,74 @@ Table.prototype.removePlayer = function (playerName){
 }
 Table.prototype.NewRound = function() {
   // Add players in waiting list
+//   console.log('table!!!!!!');
+//   console.log(this);
   var removeIndex = 0;
-  for( var i in this.playersToAdd ){
-      if( removeIndex < this.playersToRemove.length ){
-          var index = this.playersToRemove[ removeIndex ];
-          this.players[ index ] = this.playersToAdd[ i ];
-          removeIndex += 1;
-        }else{
-            this.players.push( this.playersToAdd[i] );
+    // EDITED
+    // make sure its all in order (note this works bc numbers can only be between 0 and 9)
+    if (this.playersToRemove.length > 0) {
+        this.playersToRemove.sort();
+    }
+    console.log('sorted toRemove:');
+    console.log(this.playersToRemove);
+    // done editing
+  for(let i = 0; i < this.playersToAdd.length; i++){
+//   for( var i in this.playersToAdd ){
+      // old
+    //   if( removeIndex < this.playersToRemove.length ){
+    //       var index = this.playersToRemove[ removeIndex ];
+    //       this.players[ index ] = this.playersToAdd[ i ];
+    //       removeIndex += 1;
+    //     }else{
+    //         this.players.push( this.playersToAdd[i] );
+    //     }
+    // end old
+    // new
+        let seat = this.playersToAdd[i].seat;
+        if (seat < this.players.length){
+            this.players.splice(seat, 0, this.playersToAdd[i]);
+            for (let p = 0; p < this.playersToRemove.length; p++){
+                let oldIndex = parseInt(this.playersToRemove[p]);
+                if (oldIndex >= seat){
+                    let newIndex = oldIndex + 1;
+                    this.playersToRemove[p] = `${newIndex}`;
+                }
+            }
+            for (let p = 0; p < this.playersToAdd.length; p++){
+                let oldIndex = this.playersToAdd[p].seat;
+                if (oldIndex >= seat){
+                    let newIndex = oldIndex + 1;
+                    this.playersToAdd[p].seat = newIndex;
+                }
+            }
+        } else {
+            this.players.push(this.playersToAdd[i]);
         }
     }
-  // Remove players if nobody is there
-  // PROBABLY BUG HERE
+  // Remove players
   // EDITED
   for (removeIndex; removeIndex < this.playersToRemove.length; removeIndex++){
+      let indexval = parseInt(this.playersToRemove[removeIndex]);
       this.players.splice(this.playersToRemove[removeIndex], 1);
+      // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
+      for (let q = removeIndex + 1; q < this.playersToRemove.length; q++){
+          let oldIndex = parseInt(this.playersToRemove[q]);
+          let newIndex = oldIndex - 1;
+          this.playersToRemove[q] = `${newIndex}`;
+      }
+      console.log('index val:' + indexval);
+      console.log(`OLD DEALER SPOT: ${this.dealer}`);
+      if (indexval < this.dealer){
+          this.dealer--;
+          console.log('696969')
+      }
+      else if (indexval == this.dealer){
+            let playersLength = this.players.length;
+            if (indexval = playersLength){
+                this.dealer--;
+            } 
+      } 
+      console.log(`NEW DEALER SPOT: ${this.dealer}`);
   }
   //done editing
   this.playersToRemove = [];

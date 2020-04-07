@@ -1,15 +1,27 @@
 <div class="actions">    
     <div class="row">
-        <button class="button-primary" id="check">Check</button>
-        <button class="button-primary" id="fold">Fold</button>
-        <button class="button-primary" id="call">Call</button>
+        <button class="button-primary collapse" id="fold">Fold</button>
+        <button class="button-primary collapse" id="check">Check</button>
+        <button class="button-primary collapse" id="call">Call</button>
+        <button class="button-primary collapse" id="min-bet">Min Bet</button>
         <div id="betting-abilities">
-            <button class="button-primary u-full-width" id="bet">Bet
+            <button class="button-primary collapse" id="bet">Bet
             </button>
             <span class="popuptext1" id="myPopup1">
                 <input class="u-full-width" type="text" value="<%= bigBlind %>" id="bet-amount">
             </span>
-        </div>
-        <button class="button-primary" id="min-bet">Min Bet</button>
+        </div> 
+        <div id="raising-abilities">
+            <button class="button-primary collapse" id="raise">Raise
+            </button>
+            <span class="popuptext1" id="myPopup2">
+                <input class="u-full-width" type="text" value="<%= bigBlind %>" id="raise-amount">
+            </span>
+        </div> 
+        <% if (waiting) { %>
+            <button class="button-primary" id="start">Start Game</button>
+        <% } else { %>
+            <button class="button-primary collapse" id="start">Start Game</button>
+        <% } %>
     </div>
 </div>

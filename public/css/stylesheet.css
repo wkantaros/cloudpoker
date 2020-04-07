@@ -10,6 +10,7 @@ body {
     /* background-color: #2f4f4f; */
     font-family: sans-serif;
     margin: 0 2rem;
+    overflow-x: hidden;
 }
 
 .container {
@@ -118,6 +119,12 @@ h3 {
     /* margin-left: 0; */
     /* background-color: #424C55; */
 }
+
+/* .actions {
+    float: left;
+    margin: 0;
+    padding: 0;
+} */
 
 .oval-parent {
     margin: 2rem auto;
@@ -397,13 +404,104 @@ h3 {
     float: right;
     margin: 8% 2px 0;
     height: 50px;
-    width: 120px;
+    /* width: 120px; */
 }
 
 
+#bet {
+    margin-bottom: 0;
+    height: 50px;
+    width: 120px;
+    background-color: transparent;
+    border: 1px solid #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#bet:hover {
+    background-color: #5BBA6F;
+}
+
+#call {
+    background-color: transparent;
+    border: 1px solid #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#call:hover {
+    background-color: #5BBA6F;
+}
+
+#raise {
+    margin-bottom: 0;
+    height: 50px;
+    width: 120px;
+    background-color: transparent;
+    border: 1px solid #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#raise:hover {
+    background-color: #5BBA6F;
+}
+
+#min-bet {
+    background-color: transparent;
+    border: 1px solid #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#min-bet:hover {
+    background-color: #5BBA6F;
+}
+
+#fold {
+    background-color: transparent;
+    border: 1px solid #E71D36;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#fold:hover {
+    background-color: #E71D36;
+}
+
+#check {
+    background-color: transparent;
+    border: 1px solid #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#check:hover {
+    background-color: #FBF2C0;
+}
+
+#start {
+    width: 200px;
+}
+
+.collapse {
+    display: none;
+}
+
 .below-table {
     float: left;
-    width: 90em;
 }
 
 
@@ -438,11 +536,6 @@ main p {
     cursor: pointer;
 } */
 
-#bet {
-    margin-bottom: 0;
-    height: 50px;
-}
-
 #betting-abilities .popuptext1 {
     visibility: hidden;
     width: 160px;
@@ -474,6 +567,50 @@ main p {
 /* Toggle this class when clicking on the popup container (hide and show the popup) */
 #betting-abilities .show {
     visibility: visible;
+}
+
+#raising-abilities .popuptext1 {
+    visibility: hidden;
+    width: 160px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0 0 0;
+    /* padding: 8px 0 0; */
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -80px;
+}
+
+/* Popup arrow */
+#raising-abilities .popuptext1::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* Toggle this class when clicking on the popup container (hide and show the popup) */
+#raising-abilities .show {
+    visibility: visible;
+}
+
+#raise-amount {
+    padding: 0 10px;
+    margin: 0;
+    /* background-color: #BCE7FD; */
+    background-color: #555555;
+    text-align: center;
+    color: #fff;
+    /* font-weight: bold; */
+    font-size: 2rem;
 }
 
 #bet-amount {
