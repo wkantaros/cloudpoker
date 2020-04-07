@@ -8,14 +8,31 @@ const s = require('../server-logic');
 router.route('/').post((req, res) => {
     //scheme to ensure valid username
     const schema = Joi.object({
-        username: Joi.string().alphanum().min(2).max(30)
+        // username: Joi.string().alphanum().min(2).max(10)
+        username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
+        smallBlind: Joi.number().integer().min(0),
+        bigBlind: Joi.number().integer().min(0),
+        stack: Joi.number().integer().min(1)
     });
-    const { error, value } = schema.validate({ username: req.body.name });
+    const {
+        error,
+        value
+    } = schema.validate({
+        username: req.body.name,
+        smallBlind: req.body.smallBlind,
+        bigBlind: req.body.bigBlind,
+        stack: req.body.stack
+    });
     if (error) {
         res.status(422);
+        let message = error.details[0].message;
+        console.log(message);
+        if (message.includes("fails to match the required pattern: /^\\w+(?:\\s+\\w+)*$/")){
+            message = "\"username\" cannot have punctuation"
+        }
         res.json({
             isValid: false,
-            message: error.details[0].message
+            message: message
         });
     } else {
         let sid = shortid.generate();

@@ -47,9 +47,18 @@ $('#buyin').on('click', () => {
 })
 
 $('#buyin-btn').on('click', () => {
-    console.log('removing class');
-    if ((!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) || !newPlayer.value) {
-        alert("Please enter valid information");
+    regex = RegExp(/^\w+(?:\s+\w+)*$/);
+    let playerName = newPlayer.value.trim();
+    if (playerName.length < 2 || playerName.length > 10) {
+        alert('name must be between 2 and 10 characters');
+    } else if (!regex.test(playerName)){
+        alert('no punctuation in username');
+    } else if (playerName == 'guest'){
+        alert("'guest' cannot be a username");
+    } else if (alreadyExistingName(playerName)){
+        alert('please enter a username that is not already at the table')
+    } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
+        alert("Please enter valid stackinformation");
     } else {
         loggedIn = true;
         let playerName = newPlayer.value;
@@ -115,13 +124,16 @@ $('#bet-amount').keyup(function (e) {
         console.log('bet');
         let betAmount = parseInt($('#bet-amount').val());
         let minBetAmount = parseInt($('#bb').html());
-        console.log(`${minBetAmount}, user just placed a bet of ${betAmount}`);
+        let maxBetAmount = parseInt($('.action > .stack').html());
+        if (betAmount > maxBetAmount){
+            betAmount = maxBetAmount;
+        }
         if (!betAmount || betAmount < minBetAmount) {
             alert(`minimum bet size is ${minBetAmount}`);
         } else {
             socket.emit('action', {
                 id: socket.id,
-                amount: parseInt($('#bet-amount').val()),
+                amount: betAmount,
                 action: 'bet'
             });
             $('#bet').click();
@@ -136,7 +148,16 @@ $('#raise').on('click', () => {
 
 $('#raise-amount').keyup(function (e) {
     if (e.keyCode == 13) {
-        console.log('bet');
+        console.log('raise');
+        let raiseAmount = parseInt($('#raise-amount').val());
+        let minRaiseAmount = parseInt($('#bb').html());
+        let maxRaiseAmount = parseInt($('.action > .stack').html());
+        if (raiseAmount > maxRaiseAmount) {
+            raiseAmount = maxRaiseAmount;
+        }
+        else if (!raiseAmount || raiseAmount < minRaiseAmount){
+            alert(`minimum raise amount is ${minBetAmount}`);
+        }
         console.log(parseInt($('#raise-amount').val()))
         socket.emit('action', {
             id: socket.id,
@@ -303,10 +324,16 @@ socket.on('waiting', (data) => {
 
 // removes old players (that have busted or quit)
 socket.on('remove-out-players', (data) => {
+    $('.out').each(function(){
+        $(this).find('.username').text('guest');
+        $(this).find('.stack').text('stack');
+    })
     $('.out').addClass('hidden').removeClass('out');
     // if seat passed in remove it
     if (data.hasOwnProperty('seat')){
         $(`#${data.seat}`).addClass('hidden');
+        $(`#${data.seat}`).find('.username').text('guest');
+        $(`#${data.seat}`).find('.stack').text('stack');
     }
 });
 
@@ -621,6 +648,19 @@ const showWinnings = (winnings, seat) => {
     console.log(seat);
     $(`#${seat}`).find('.earnings').html(`+${winnings}`);
     $(`#${seat}`).find('.earnings').removeClass('hidden');
+}
+
+const alreadyExistingName = (playerName) => {
+    let alreadyExists = false;
+    $('.hand').each(function(){
+        console.log($(this).find('.username')[0].innerHTML);
+        // console.log($(this).find('.username')[0]);
+        // console.log($(this).find('.username')[0].text());
+        if ($(this).find('.username')[0].innerHTML == playerName){
+            alreadyExists = true;
+        }
+    });
+    return alreadyExists;
 }
 
 //add hands (for sure a cleaner way to do but will work for now) ---------------------------------
