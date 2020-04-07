@@ -117,7 +117,6 @@ $('#buyin-btn').on('click', () => {
         $('#quit-btn').removeClass('collapse');
         $('#buyin').addClass('collapse');
         socket.emit('buy-in', {
-            id: socket.id,
             playerName: playerName,
             stack: stack
         });
@@ -126,7 +125,6 @@ $('#buyin-btn').on('click', () => {
 
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {
-        id: socket.id,
         amount: 0
     });
     $('#quit-btn').addClass('collapse');
@@ -182,7 +180,6 @@ $('#bet-amount').keyup(function (e) {
             alert(`minimum bet size is ${minBetAmount}`);
         } else {
             socket.emit('action', {
-                id: socket.id,
                 amount: betAmount,
                 action: 'bet'
             });
@@ -210,7 +207,6 @@ $('#raise-amount').keyup(function (e) {
         }
         console.log(parseInt($('#raise-amount').val()))
         socket.emit('action', {
-            id: socket.id,
             amount: parseInt($('#raise-amount').val()),
             action: 'bet'
         });
@@ -221,7 +217,6 @@ $('#raise-amount').keyup(function (e) {
 start_btn.addEventListener('click', () => {
     console.log('starting game');
     socket.emit('start-game', {
-        id: socket.id,
         amount: 0
     });
 });
@@ -229,7 +224,6 @@ start_btn.addEventListener('click', () => {
 call.addEventListener('click', () => {
     console.log('call');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'call'
     });
@@ -238,7 +232,6 @@ call.addEventListener('click', () => {
 check.addEventListener('click', () => {
     console.log('check');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'check'
     });
@@ -247,7 +240,6 @@ check.addEventListener('click', () => {
 fold.addEventListener('click', () => {
     console.log('fold');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'fold'
     });
@@ -257,7 +249,6 @@ minBet.addEventListener('click', () => {
     console.log('min bet');
     console.log(parseInt($('#bb').html()))
     socket.emit('action', {
-        id: socket.id,
         amount: parseInt($('#bb').html()),
         action: 'bet'
     });
@@ -290,7 +281,6 @@ send_btn.addEventListener('click', () => {
     // console.log(name.getElementsByClassName('username')[0].innerHTML);
     // console.log(name.innerText);
     socket.emit('chat', {
-        id: socket.id,
         message: message.value,
     });
     message.value = null;
