@@ -71,8 +71,6 @@ router.route('/:id').get((req, res) => {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
         setPlayerId(playerId, req, res);
-    } else if (s.gameInProgress(sid)) {
-
     }
 
     // gets a players socket ID from playerId
@@ -137,6 +135,32 @@ router.route('/:id').get((req, res) => {
         socket.on('typing', (handle) => {
             socket.broadcast.to(sid).emit('typing', handle);
         });
+
+        if (!isNewPlayer && s.gameInProgress(sid)) {
+            // TODO: get returning player in sync with hand.
+            //  render his cards, etc.
+            console.log(`syncing ${s.getPlayerById(playerId)}`);
+            let data = s.playersInfo(sid);
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].playerid === playerId) {
+                    io.to(getSocketId(`${playerId}`)).emit('render-hand', {
+                        cards: s.getCardsByPlayerName(sid, data[i].playerName),
+                        seat: data[i].seat
+                    });
+                    io.sockets.to(sid).emit('update-stack', {
+                        seat: data[i].seat,
+                        stack: data[i].stack
+                    });
+                }
+            }
+            io.sockets.to(sid).emit('action', {
+                seat: s.getActionSeat(sid),
+                availableActions: s.getAvailableActions(sid)
+            });
+            if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
+                io.to(getSocketId(playerId)).emit('players-action', {});
+            }
+        }
 
         socket.on('buy-in', (data) => {
             // console.log(data);
