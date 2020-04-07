@@ -46,13 +46,15 @@ router.route('/').post((req, res) => {
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
         s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, 6969);
+        tableSocketMap.set(sid, new TwoWayMap());
     }
 });
 
 // let socket_ids = {};
 
-// maps player ID (from cookie) -> socket ID (from socket.io session) and vice versa
-let playerIdSocketMap = new TwoWayMap();
+// maps sid -> (player ID (from cookie) -> socket ID (from socket.io session) and vice versa)
+// TODO: delete sid from tSM when table finishes
+const tableSocketMap = new Map();
 
 //login page for host
 // note: removing the ? makes id necessary (not optional)
@@ -92,12 +94,14 @@ router.route('/:id').get((req, res) => {
     //consider uncommenting if it becomes an issue
     // let socket_id = [];
     const io = req.app.get('socketio');
-    io.on('connection', function (socket) {
+    io.once('connection', function (socket) {
         // console.log(JSON.stringify(socket.handshake.headers));
         console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
+        let playerIdSocketMap = tableSocketMap.get(sid);
         if (!playerIdSocketMap.hasValue(socket.id)){
-            playerIdSocketMap.set(playerId, socket.id)
+        // if (isNewPlayer || playerIdSocketMap.val(socket.id) !== playerId){
+            playerIdSocketMap.set(playerId, socket.id);
 
             // socket.on('disconnect', (reason) => {
             //     console.log('pid', playerId, 'disconnect reason', reason);
