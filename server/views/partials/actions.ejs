@@ -8,14 +8,14 @@
             <button class="button-primary collapse" id="bet">Bet
             </button>
             <span class="popuptext1" id="myPopup1">
-                <input class="u-full-width" type="text" value="<%= bigBlind %>" id="bet-amount">
+                <input class="u-full-width" type="number" value="<%= bigBlind %>" id="bet-amount">
             </span>
         </div> 
         <div id="raising-abilities">
             <button class="button-primary collapse" id="raise">Raise
             </button>
             <span class="popuptext1" id="myPopup2">
-                <input class="u-full-width" type="text" value="<%= bigBlind %>" id="raise-amount">
+                <input class="u-full-width" type="number" value="<%= bigBlind %>" min="0" id="raise-amount">
             </span>
         </div> 
         <% if (waiting) { %>
