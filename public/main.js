@@ -163,7 +163,6 @@ function copyStringToClipboard(str) {
 
 //action buttons ---------------------------------------------------------------------------------
 $('#bet').on('click', () => {
-    console.log('here!');
     $('#myPopup1').toggleClass('show');
 })
 
@@ -189,7 +188,13 @@ $('#bet-amount').keyup(function (e) {
 });
 
 $('#raise').on('click', () => {
-    console.log('here!');
+    let minRaiseAmount = getMinRaiseAmount();
+    $('#raise-amount').attr({
+        "min": minRaiseAmount // values (or variables) here
+    });
+    $('#raise-amount').val(minRaiseAmount);
+    // $('#raise-amount').val(minRaiseAmount);
+    // $('#raise-amount').min(minRaiseAmount);
     $('#myPopup2').toggleClass('show');
 })
 
@@ -197,20 +202,43 @@ $('#raise-amount').keyup(function (e) {
     if (e.keyCode == 13) {
         console.log('raise');
         let raiseAmount = parseInt($('#raise-amount').val());
-        let minRaiseAmount = parseInt($('#bb').html());
+        console.log(raiseAmount);
+        let minRaiseAmount = getMinRaiseAmount();
         let maxRaiseAmount = parseInt($('.action > .stack').html());
+        console.log(maxRaiseAmount);
         if (raiseAmount > maxRaiseAmount) {
             raiseAmount = maxRaiseAmount;
         }
-        else if (!raiseAmount || raiseAmount < minRaiseAmount){
-            alert(`minimum raise amount is ${minBetAmount}`);
+
+        if (raiseAmount == maxRaiseAmount && maxRaiseAmount < minRaiseAmount) {
+            console.log('all in player');
+            socket.emit('action', {
+                id: socket.id,
+                amount: raiseAmount,
+                action: 'call'
+            });
+            $('#raise').click();
         }
-        console.log(parseInt($('#raise-amount').val()))
-        socket.emit('action', {
-            amount: parseInt($('#raise-amount').val()),
-            action: 'bet'
-        });
-        $('#raise').click();
+        else if (!raiseAmount || raiseAmount < minRaiseAmount){
+            alert(`minimum raise amount is ${minRaiseAmount}`);
+        }
+        else if (raiseAmount == maxRaiseAmount){ // player is going all in
+            console.log('all in mothafucka');
+            socket.emit('action', {
+                id: socket.id,
+                amount: raiseAmount,
+                action: 'bet'
+            });
+            $('#raise').click();
+        }
+        else {
+            socket.emit('action', {
+                id: socket.id,
+                amount: raiseAmount,
+                action: 'raise'
+            });
+            $('#raise').click();
+        }
     }
 });
 
@@ -299,7 +327,7 @@ message.addEventListener("keyup", (event) => {
 
 //let the server know somebody is typing a message
 message.addEventListener('keypress', () => {
-    socket.emit('typing', me.getElementsByClassName('username')[0].innerHTML || 'guest');
+    socket.emit('typing', socket.id);
 });
 
 //Listen for events--------------------------------------------------------------------------------
@@ -324,7 +352,7 @@ socket.on('chat', (data) => {
     let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
     let time = `${date.getHours()}:${minutes} ~ `
     feedback.innerHTML = '';
-    message_output.innerHTML += '<p>' + time + '<strong>' + data.handle + ': </strong>' + data.message + '</p>';
+    message_output.innerHTML += `<p><span class='info'>${time}${data.handle}</span> ${data.message}</p>`;
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
@@ -529,12 +557,28 @@ socket.on('fold', (data) => {
 
 // bet
 socket.on('bet', (data) => {
+    console.log('we are here baby')
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
     playSoundIfVolumeOn('bet');
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    console.log(`prev amount: ${prevAmount}`);
     $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
+    $('.player-bet').eq(data.seat).removeClass('hidden');
+});
+
+// raise
+socket.on('raise', (data) => {
+    feedback.innerHTML = '';
+    message_output.innerHTML += '<p><em>' + data.username + ' raises ' + data.amount + '</em></p>';
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    if ($('.volume').hasClass('on')){
+        createjs.Sound.play('bet');
+    }
+    // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    // $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
+    $('.player-bet').eq(data.seat).html(data.amount);
     $('.player-bet').eq(data.seat).removeClass('hidden');
 });
 
@@ -696,6 +740,36 @@ const alreadyExistingName = (playerName) => {
         }
     });
     return alreadyExists;
+}
+
+const getMinRaiseAmount = () => {
+    let minRaiseAmount = 0;
+    let biggestBet = 0;
+    let secondBiggestBet = 0;
+    $('.player-bet').each(function () {
+        // Test if the div element is empty
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html());
+            if (bet > biggestBet) {
+                secondBiggestBet = biggestBet;
+                biggestBet = bet;
+            } 
+            if (bet > secondBiggestBet && bet < biggestBet) {
+                secondBiggestBet = bet;
+            }
+        }
+    });
+
+    // if the biggest bet is the bb then double it
+    if (biggestBet == parseInt($('#bb').html())) {
+        console.log('here!!!!!');
+        minRaiseAmount = biggestBet + biggestBet;
+    } else {
+        console.log('second biggest bet');
+        console.log(secondBiggestBet);
+        minRaiseAmount = 2 * (biggestBet - secondBiggestBet) + secondBiggestBet;
+    }
+    return minRaiseAmount;
 }
 
 //add hands (for sure a cleaner way to do but will work for now) ---------------------------------

@@ -132,8 +132,8 @@ router.route('/:id').get((req, res) => {
         });
 
         // typing
-        socket.on('typing', (handle) => {
-            socket.broadcast.to(sid).emit('typing', handle);
+        socket.on('typing', (pid) => {
+            socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, pid));
         });
 
         if (!isNewPlayer && s.gameInProgress(sid)) {
@@ -199,7 +199,8 @@ router.route('/:id').get((req, res) => {
                 prev_round = s.getRoundName(sid);
                 console.log(`${playerName} leaves game for ${stack}`);
                 // fold player
-                s.fold(sid, playerName);
+                // note: dont actually fold him (just emit folding noise)
+                // s.fold(sid, playerName);
                 io.sockets.to(sid).emit('fold', {
                     username: playerName,
                     stack: s.getStack(sid, playerName),
@@ -265,6 +266,8 @@ router.route('/:id').get((req, res) => {
                 let canPerformAction = true;
                 if (data.action === 'bet') {
                     s.bet(sid, playerName, data.amount);
+                } else if (data.action === 'raise') {
+                    s.raise(sid, playerName, data.amount);
                 } else if (data.action === 'call') {
                     data.amount = s.getMaxBet(sid);
                     s.call(sid, playerName);

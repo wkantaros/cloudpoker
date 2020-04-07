@@ -100,7 +100,9 @@ let makeEmptySeats = (sid) => {
 let checkAllIns = (sid) => {
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
-        tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
+        if (getPlayerSeat(sid, players[i].playerName) != -1){
+            tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
+        }
     }
     console.log(tables[sid].allIn);
     return tables[sid].allIn;
@@ -277,6 +279,26 @@ let bet = (sid, playerName, betAmount) => {
     return tables[sid].table.bet(playerName, betAmount);
 }
 
+
+// allows user to raise to a number 
+// (such that node-poker doenst have him bet that number + his previous bet)
+let raise = (sid, playerName, betAmount) => {
+    // console.log(tables[sid]);
+    console.log(tables[sid].table.game);
+    let betIndex = 0;
+    for (let i = 0; i < getPlayerSeat(sid, playerName); i++){
+        if (tables[sid].seatsTaken[i]){
+            betIndex++;
+        }
+    }
+    let playersLastBet = tables[sid].table.game.bets[betIndex];
+    let realBetAmount = betAmount - playersLastBet; 
+    // let addedBetSize = betAmount - getBet
+    // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
+    console.log(`player ${playerName} is betting ${realBetAmount} on top of his last bet of ${playersLastBet}`);
+    return tables[sid].table.bet(playerName, realBetAmount);
+}
+
 let getWinnings = (sid, prev_round) => {
     console.log('calculating winnings');
     let winnings = tables[sid].table.game.pot;
@@ -412,6 +434,7 @@ module.exports.call = call;
 module.exports.check = check;
 module.exports.fold = fold;
 module.exports.bet = bet;
+module.exports.raise = raise;
 module.exports.checkwin = checkwin;
 module.exports.getWinnings = getWinnings;
 module.exports.updateStack = updateStack;
