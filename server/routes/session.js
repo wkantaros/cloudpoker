@@ -73,6 +73,10 @@ function setPlayerId(pid, req, res) {
     }));
 }
 
+// maps player ID (from cookie) -> socket ID (from socket.io session)
+// const socketPlayerIdMap = {};
+// const playerIdSocketMap = {};
+
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
@@ -109,23 +113,21 @@ router.route('/:id').get((req, res) => {
     const io = req.app.get('socketio');
     io.on('connection', function (socket) {
         // console.log(JSON.stringify(socket.handshake.headers));
-        // console.log('socket id!:', socket.id, 'player uuid', socket.request.Cookie[PLAYER_UUID_COOKIE_NAME]);
-        console.log('id!:', socket.id);
+        console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
-        if (!socket_ids[socket.id]){
+        if (!socket_ids[playerId]){
             // make sure host has a socketid associate with name
             if (s.getPlayerId(sid, t.hostName) == 6969) {
-                s.updatePlayerId(sid, t.hostName, socket.id);
+                s.updatePlayerId(sid, t.hostName, playerId);
                 console.log(s.getPlayerId(sid, t.hostName));
             }
-        
 
-            socket_id.push(socket.id);
+            socket_id.push(playerId);
             // rm connection listener for any subsequent connections with the same ID
-            if (socket_id[0] === socket.id) {
+            if (socket_id[0] === playerId) {
                 io.removeAllListeners('connection');
             }
-            console.log('a user connected at', socket.id);
+            console.log('a user connected at', socket.id, 'with player ID', playerId);
             
             // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
             socket_ids[socket_id[0]] = true;
