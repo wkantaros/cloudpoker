@@ -1,15 +1,13 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
-const cookie = require('cookie');
 
-// Player UUIDs expire after 48 hours
-const PLAYER_UUID_EXPIRY = 48 * 60 * 60 * 1000;
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 const s = require('../server-logic');
+const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
 
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post((req, res) => {
@@ -53,35 +51,16 @@ router.route('/').post((req, res) => {
 
 let socket_ids = {};
 
-const PLAYER_UUID_COOKIE_NAME = "player_uuid";
-
-function playerIdFromRequest(req) {
-    return req.cookies[PLAYER_UUID_COOKIE_NAME];
-}
-
-function newPlayerId() {
-    return shortid.generate();
-}
-
-function setPlayerId(pid, req, res) {
-    res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, {
-        // Make the player ID unique to this table by using the table's path
-        path: `${req.baseUrl}/${req.params.id}`,
-        // TODO: should httpOnly be true?
-        // httpOnly: true,
-        maxAge: PLAYER_UUID_EXPIRY,
-    }));
-}
-
-// maps player ID (from cookie) -> socket ID (from socket.io session)
-// const socketPlayerIdMap = {};
-// const playerIdSocketMap = {};
+// maps player ID (from cookie) -> socket ID (from socket.io session) and vice versa
+let playerIdSocketMap = new TwoWayMap();
 
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
     let playerId = playerIdFromRequest(req);
-    if (!playerId) {
+    const isNewPlayer = playerId === undefined;
+    if (!isNewPlayer) {
+        // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
         setPlayerId(playerId, req, res);
     }
@@ -116,6 +95,14 @@ router.route('/:id').get((req, res) => {
         console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
         if (!socket_ids[playerId]){
+            if (isNewPlayer) {
+                playerIdSocketMap.set(playerId, socket.id);
+            } else {
+                // const oldSocketId = playerIdSocketMap.Key(playerId);
+                // playerIdSocketMap.deleteKey(playerId);
+                playerIdSocketMap.set(playerId, socket.id)
+            }
+
             // make sure host has a socketid associate with name
             if (s.getPlayerId(sid, t.hostName) == 6969) {
                 s.updatePlayerId(sid, t.hostName, playerId);
