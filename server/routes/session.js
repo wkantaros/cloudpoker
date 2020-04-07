@@ -43,7 +43,7 @@ router.route('/:id').get((req, res) => {
         suit: 'S',
         action: false,
         actionSeat: s.getActionSeat(sid),
-        dealer: s.getDealer(sid),
+        dealer: s.getDealerSeat(sid),
         color: 'black',
         name: t.hostName,
         stack: t.hostStack,
@@ -51,7 +51,7 @@ router.route('/:id').get((req, res) => {
         joinedGame: false,
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
-        roundName: s.getRoundName(sid)
+        roundName: s.getRoundName(sid),
     });
 
     //consider uncommenting if it becomes an issue
@@ -80,7 +80,9 @@ router.route('/:id').get((req, res) => {
             // --------------------------------------------------------------------
             //adds socket to room (actually a sick feature)
             socket.join(sid);
-            io.sockets.to(s.getModId(sid)).emit('mod-abilities');
+            if (s.getModId(sid) != null){
+                io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+            }
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
             
             // send a message in the chatroom
@@ -105,43 +107,75 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('leave-game', (data) => {
-            let playerName = s.getPlayerById(sid, data.id);
-            let stack = s.getStack(sid, playerName);
-            let seat = s.getPlayerSeat(sid, playerName);
-            prev_round = s.getRoundName(sid);
-            console.log(`${playerName} leaves game for ${stack}`);
-            // fold player
-            s.fold(sid, playerName);
-            io.sockets.to(sid).emit('fold', {
-                username: playerName,
-                stack: s.getStack(sid, playerName),
-                pot: s.getPot(sid),
-                seat: s.getPlayerSeat(sid, playerName),
-                amount: data.amount
-            });
-            // update client's stack size
-            io.sockets.to(sid).emit('update-stack', {
-                seat: s.getPlayerSeat(sid, playerName),
-                stack: s.getStack(sid, playerName)
-            });
-            // shift action to next player in hand
-            io.sockets.to(sid).emit('action', {
-                seat: s.getActionSeat(sid)
-            });
-            s.removePlayer(sid, playerName);
-            io.sockets.emit('buy-out', {
-                playerName: playerName,
-                stack: stack,
-                seat: seat
-            });
-            setTimeout(() => {
-                // check if round has ended
-                check_round(prev_round);
-            }, 250);
-            setTimeout(() => {
-                // notify player its their action with sound
-                io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
-            }, 500);
+            // check if mod is leaving the game
+            let oldModId = data.id;
+            let modLeavingGame = false;
+            if (data.id == s.getModId(sid)) {
+                modLeavingGame = true;
+            }
+
+            if (!s.gameInProgress(sid)){
+                let playerName = s.getPlayerById(sid, data.id);
+                let seat = s.getPlayerSeat(sid, playerName);
+                s.removePlayer(sid, playerName);
+                console.log(`${playerName} leaves game`);
+                if (modLeavingGame) {
+                    // transfer mod if mod left game
+                    if (s.getModId(sid) != null){
+                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                    }
+                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                }
+                io.sockets.to(sid).emit('remove-out-players', {seat: seat});
+                s.makeEmptySeats(sid);
+                console.log('waiting for more players to rejoin');
+            } else {
+                let playerName = s.getPlayerById(sid, data.id);
+                let stack = s.getStack(sid, playerName);
+                let seat = s.getPlayerSeat(sid, playerName);
+                prev_round = s.getRoundName(sid);
+                console.log(`${playerName} leaves game for ${stack}`);
+                // fold player
+                s.fold(sid, playerName);
+                io.sockets.to(sid).emit('fold', {
+                    username: playerName,
+                    stack: s.getStack(sid, playerName),
+                    pot: s.getPot(sid),
+                    seat: s.getPlayerSeat(sid, playerName),
+                    amount: data.amount
+                });
+                // update client's stack size
+                io.sockets.to(sid).emit('update-stack', {
+                    seat: s.getPlayerSeat(sid, playerName),
+                    stack: s.getStack(sid, playerName)
+                });
+                // shift action to next player in hand
+                io.sockets.to(sid).emit('action', {
+                    seat: s.getActionSeat(sid),
+                    availableActions: s.getAvailableActions(sid)
+                });
+                s.removePlayer(sid, playerName);
+                if (modLeavingGame){
+                    // transfer mod if mod left game
+                    if (s.getModId(sid) != null){
+                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                    }
+                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                }
+                io.sockets.emit('buy-out', {
+                    playerName: playerName,
+                    stack: stack,
+                    seat: seat
+                });
+                setTimeout(() => {
+                    // check if round has ended
+                    check_round(prev_round);
+                }, 250);
+                setTimeout(() => {
+                    // notify player its their action with sound
+                    io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                }, 500);
+            }
         });
 
         socket.on('start-game', (data) => {
@@ -190,7 +224,8 @@ router.route('/:id').get((req, res) => {
                     });
                     // shift action to next player in hand
                     io.sockets.to(sid).emit('action', {
-                        seat: s.getActionSeat(sid)
+                        seat: s.getActionSeat(sid),
+                        availableActions: s.getAvailableActions(sid)
                     });
                     setTimeout(()=>{
                         // check if round has ended
@@ -217,21 +252,54 @@ router.route('/:id').get((req, res) => {
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
         let table = s.getTableById(sid).table;
+        s.checkAllIns(sid);
         // console.log(table);
         let data = s.checkwin(sid);
         if (s.getRoundName(sid) === 'showdown') {
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             winners = s.getWinners(sid);
             console.log('winners');
-            console.log(winners);
+            console.log('LOSERS');
+            let losers = s.getLosers(sid);
             io.sockets.to(sid).emit('showdown', winners);
+
+            
+            // console.log("ALL IN");
+            // console.log(s.getTableById(sid).table);
             // start new round
             setTimeout(() => {
+                // handle losers
+                for (let i = 0; i < losers.length; i++){
+                    let playerName = losers[i].playerName;
+                    let seat = s.getPlayerSeat(sid, playerName);
+                    console.log(`${playerName} leaves game for 0`);
+                    let oldModId = s.getModId(sid);
+                    s.removePlayer(sid, playerName);
+                    if (oldModId != s.getModId(sid)){
+                        if (s.getModId(sid) != null){
+                            io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                        }
+                        io.sockets.to(oldModId).emit('remove-mod-abilities');
+                    }
+                    io.sockets.emit('buy-out', {
+                        playerName: playerName,
+                        stack: 0,
+                        seat: seat
+                    });
+                }
                 // start new round
                 s.startRound(sid);
                 if (s.gameInProgress(sid)) {
                     begin_round();
                 } else {
+                    io.sockets.to(sid).emit('waiting', {});
+                    s.makeEmptySeats(sid);
+                    io.sockets.to(sid).emit('remove-out-players', {});
+                    io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
+                    io.sockets.to(sid).emit('new-dealer', {seat: -1});
+                    io.sockets.to(sid).emit('update-pot', {amount: 0});
+                    io.sockets.to(sid).emit('clear-earnings', {});
+                    io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
                     console.log('waiting for more players to rejoin!');
                 }
             }, (3000));
@@ -269,15 +337,19 @@ router.route('/:id').get((req, res) => {
                     begin_round();
                 } else {
                     io.sockets.to(sid).emit('waiting', {});
+                    s.makeEmptySeats(sid);
                     io.sockets.to(sid).emit('remove-out-players', {});
                     io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
                     io.sockets.to(sid).emit('new-dealer', {seat: -1});
                     io.sockets.to(sid).emit('update-pot', {amount: 0});
                     io.sockets.to(sid).emit('clear-earnings', {});
+                    io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
                     console.log('waiting for more players to rejoin!');
                 }
             }, (3000));
         } else if (prev_round !== s.getRoundName(sid)) {
+            // console.log("ALL IN");
+            // console.log(s.getTableById(sid).table);
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             io.sockets.to(sid).emit('render-board', {
                 street: s.getRoundName(sid),
@@ -289,8 +361,9 @@ router.route('/:id').get((req, res) => {
 
     let begin_round = () => {
         io.sockets.to(sid).emit('render-board', {street: 'deal', sound: true});
+        s.makeEmptySeats(sid);
         io.sockets.to(sid).emit('remove-out-players', {});
-        io.sockets.to(sid).emit('new-dealer', {seat: s.getDealer(sid)});
+        io.sockets.to(sid).emit('new-dealer', {seat: s.getDealerSeat(sid)});
         io.sockets.to(sid).emit('nobody-waiting', {});
         io.sockets.to(sid).emit('update-pot', {amount: 0});
         io.sockets.to(sid).emit('clear-earnings', {});
@@ -310,7 +383,10 @@ router.route('/:id').get((req, res) => {
             });
 
         }
-        io.sockets.to(sid).emit('action', {seat: s.getActionSeat(sid)});
+        io.sockets.to(sid).emit('action', {
+            seat: s.getActionSeat(sid),
+            availableActions: s.getAvailableActions(sid)
+        });
         // abstracting this to be able to work with bomb pots/straddles down the line
         io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
     }

@@ -19,67 +19,61 @@ let host = document.getElementById('host'),
 
 
 //header functions--------------------------------------------------------------------------------
-let loggedIn = false;
-buyinSubmit.addEventListener('click', () => {
-    if (loggedIn) {
-        console.log('quits');
-        socket.emit('buy-out', {
-            id: socket.id,
-            name: newPlayer.value,
-            stack: newStack.value
-        });
-        document.getElementById('txt').innerHTML = 'Join Game';
-        loggedIn = false;
-    } else {
-        if (!parseInt(newStack.value) || !newPlayer.value) {
-            alert("Please enter valid information");
-            // newStack.value = null;
-            // newPlayer.value = null;
-        } else {
-            document.getElementById('txt').innerHTML = 'Game joined!';
-            socket.emit('buy-in', {
-                id: socket.id,
-                playerName: newPlayer.value,
-                stack: parseInt(newStack.value)
-            });
-            let popup = document.getElementById("buyin-info");
-            popup.classList.remove("show");
-            loggedIn = true;
-            quit.classList.remove("hidden");
-            $('#start').hide();
-            // standup.classList.remove("hidden");
-            // buyin.classList.add("hidden");
-        }
+$(document).mouseup(function (e) {
+    let buyinInfo = $('#buyin-info');
+    let betConsole =$('#myPopup1');
+    let raiseConsole =$('#myPopup2');
+
+    // if the target of the click isn't the container nor a descendant of the container
+    if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
+        buyinInfo.removeClass('show');
+    }
+
+    // if the target of the click isn't the container nor a descendant of the container
+    if (!betConsole.is(e.target) && betConsole.has(e.target).length === 0) {
+        betConsole.removeClass('show');
+    }
+
+    // if the target of the click isn't the container nor a descendant of the container
+    if (!raiseConsole.is(e.target) && raiseConsole.has(e.target).length === 0) {
+        raiseConsole.removeClass('show');
     }
 });
 
-buyin.addEventListener('click', () => {
-    let popup = document.getElementById("buyin-info");
-    if (!loggedIn) {
-        popup.classList.add("show");
+let loggedIn = false;
+$('#buyin').on('click', () => {
+    if (!loggedIn)
+        $('#buyin-info').addClass('show');
+})
+
+$('#buyin-btn').on('click', () => {
+    console.log('removing class');
+    if ((!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) || !newPlayer.value) {
+        alert("Please enter valid information");
     } else {
-        $('#buyin').remove();
+        loggedIn = true;
+        let playerName = newPlayer.value;
+        let stack = parseInt(newStack.value);
+        $('#buyin-info').removeClass('show');
+        $('#quit-btn').removeClass('collapse');
+        $('#buyin').addClass('collapse');
+        socket.emit('buy-in', {
+            id: socket.id,
+            playerName: playerName,
+            stack: stack
+        });
     }
 })
 
 quit.addEventListener('click', () => {
-    // let popup = document.getElementById("buyin-info");
-    // if (!loggedIn) {
-    //     popup.classList.add("show");
-    // } 
     socket.emit('leave-game', {
         id: socket.id,
         amount: 0
     });
-
+    $('#quit-btn').addClass('collapse');
+    $('#buyin').removeClass('collapse');
+    loggedIn = false;
 })
-// let myFunction = () => {
-//     let popup = document.getElementById("buyin-info");
-//     console.log(popup);
-//     // popup.classList.toggle("show");
-//     if (!loggedIn) popup.classList.add("show");
-//     // var buyinbtn = document.getElementById('buyin-btn')
-// }
 
 let copyLink = () => {
     copyStringToClipboard(window.location.href);
@@ -119,13 +113,37 @@ $('#bet').on('click', () => {
 $('#bet-amount').keyup(function (e) {
     if (e.keyCode == 13) {
         console.log('bet');
-        console.log(parseInt($('#bet-amount').val()))
+        let betAmount = parseInt($('#bet-amount').val());
+        let minBetAmount = parseInt($('#bb').html());
+        console.log(`${minBetAmount}, user just placed a bet of ${betAmount}`);
+        if (!betAmount || betAmount < minBetAmount) {
+            alert(`minimum bet size is ${minBetAmount}`);
+        } else {
+            socket.emit('action', {
+                id: socket.id,
+                amount: parseInt($('#bet-amount').val()),
+                action: 'bet'
+            });
+            $('#bet').click();
+        }
+    }
+});
+
+$('#raise').on('click', () => {
+    console.log('here!');
+    $('#myPopup2').toggleClass('show');
+})
+
+$('#raise-amount').keyup(function (e) {
+    if (e.keyCode == 13) {
+        console.log('bet');
+        console.log(parseInt($('#raise-amount').val()))
         socket.emit('action', {
             id: socket.id,
-            amount: parseInt($('#bet-amount').val()),
+            amount: parseInt($('#raise-amount').val()),
             action: 'bet'
         });
-        $('#bet').click();
+        $('#raise').click();
     }
 });
 
@@ -214,12 +232,19 @@ message.addEventListener('keypress', () => {
 
 //Listen for events--------------------------------------------------------------------------------
 
-// have start game button for mod
-socket.on('mod-abilities', (data) => {
-    $('#quit-btn').removeClass('hidden');
-    $('#start').removeClass('hidden');
-    $('#buyin').hide();
-})
+// add additional abilities for mod
+socket.on('add-mod-abilities', (data) => {
+    $('#quit-btn').removeClass('collapse');
+    $('#buyin').addClass('collapse');
+    $('#bomb-pot').removeClass('collapse');
+});
+
+// remove additional abilities for mod when mod leaves
+socket.on('remove-mod-abilities', (data) => {
+    $('#quit-btn').addClass('collapse');
+    $('#buyin').removeClass('collapse');
+    $('#bomb-pot').addClass('collapse');
+});
 
 //incoming chat
 socket.on('chat', (data) => {
@@ -278,9 +303,11 @@ socket.on('waiting', (data) => {
 
 // removes old players (that have busted or quit)
 socket.on('remove-out-players', (data) => {
-    console.log('has out class!!');
     $('.out').addClass('hidden').removeClass('out');
-    // $(`#${data[i].seat}`).removeClass('hidden');
+    // if seat passed in remove it
+    if (data.hasOwnProperty('seat')){
+        $(`#${data.seat}`).addClass('hidden');
+    }
 });
 
 // renders the board (flop, turn, river)
@@ -372,13 +399,19 @@ socket.on('update-pot', (data) => {
 socket.on('start-game', (data) => {
     $('.back-card').removeClass('waiting');
     loadSounds();
-    $('#start').hide();
+    $('#start').addClass('collapse');
 });
 
 // changes that person to the person who has the action
 socket.on('action', (data) => {
     $('.name').removeClass('action');
     $(`#${data.seat} > .name`).addClass('action');
+    displayButtons(data.availableActions);
+});
+
+// changes that person to the person who has the action
+socket.on('available-actions', (data) => {
+    displayButtons(data.availableActions);
 });
 
 // adds dealer chip to seat of dealer
@@ -494,6 +527,16 @@ const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
     createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
     createjs.Sound.volume = 0.25;
+}
+
+const displayButtons = (availableActions) => {
+    for (let key of Object.keys(availableActions)) {
+        if (availableActions[key]){
+            $(`#${key}`).removeClass('collapse');
+        } else {
+            $(`#${key}`).addClass('collapse');
+        }
+    }
 }
 
 const cleanInput = (input) => {

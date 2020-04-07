@@ -1,12 +1,12 @@
-LOGIC EDITS:
+LOGIC/NODE-POKER EDITS:
     [*] make host login
     [*] make login so users can join
     [ ] handle all-in's to work accordingly
-    [*] handle players leaving game
-    [*] handle players joining game
+    [*] handle players leaving game (really works, tested extensively)
+    [*] handle players joining game (works well, more tests to be certain, currently dealer stays in same spot on occaision)
     [*] delays (for frontend, sounds, winner page, etc)
-    [ ] handle host leaving game (transfer host rights to new player)
-    [ ] see what the deal is if a player busts / quits and new player buys in at that spot (with order)
+    [ ] handle host leaving game (transfer host rights to new player (error check, adjust some features))
+    [*] fixed logical order if player busts/leaves from a seat and new player joins that seat
     
 FRONTEND EDITS:
     [*] ejs syntax
@@ -44,6 +44,7 @@ FRONTEND EDITS:
     [ ] keyboard shortcuts
     [*] fix join game button to work when it should work and not when it shouldnt
     [ ] fix sounds to work when they sould
+    [*] update bet/check/fold/call/raise buttons / abilities depending on action
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -67,7 +68,6 @@ DOWN THE LINE CODE:
     [*] make login to adjust blinds (for host)
     [*] restructure so its more organized
     [*] simplify bet/check/call/fold to one button (on backend)
-    [ ] update bet/check/fold/call/raise buttons / abilities depending on action
     [ ] your action (have a physical notification as well)
     [ ] improve bet button to have increased functionality w/slider (1/4 pot, 1/2 pot, 3/4, all in, etc)
     [ ] have player's hand turn gray when folded (so they can still see what they had)
