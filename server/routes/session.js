@@ -1,4 +1,11 @@
 const router = require('express').Router();
+const cookieParser = require('cookie-parser');
+const cookie = require('cookie');
+
+// Player UUIDs expire after 48 hours
+const PLAYER_UUID_EXPIRY = 48 * 60 * 60 * 1000;
+router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
+
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
@@ -30,20 +37,39 @@ router.route('/').post((req, res) => {
 let socket_ids = {};
 
 const PLAYER_UUID_COOKIE_NAME = "player_uuid";
-// Player UUIDs expire after 48 hours
-const PLAYER_UUID_EXPIRY = 48 * 24 * 60 * 60;
-// // Player UUIDs expire after 48 hours
-// const PLAYER_UUID_EXPIRY = 48 * 24 * 60 * 60 * 1000;
+
+function playerIdFromRequest(req) {
+    return req.cookies[PLAYER_UUID_COOKIE_NAME];
+}
+
+function newPlayerId() {
+    return shortid.generate();
+}
+
+function setPlayerId(pid, req, res) {
+    res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, {
+        // Make the player ID unique to this table by using the table's path
+        path: `${req.baseUrl}/${req.params.id}`,
+        // TODO: should httpOnly be true?
+        // httpOnly: true,
+        maxAge: PLAYER_UUID_EXPIRY,
+    }));
+}
 
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
+    let playerId = playerIdFromRequest(req);
+    if (!playerId) {
+        playerId = newPlayerId();
+        setPlayerId(playerId, req, res);
+    }
+
     let sid = req.params.id;
     let t = s.getTableById(sid);
     let table = t.table;
 
     res
-        // .cookie(PLAYER_UUID_COOKIE_NAME, shortid.generate(), {maxAge: PLAYER_UUID_EXPIRY, path: `/${req.params.id}`})
         .render('pages/game', {
             bigBlind: table.bigBlind,
             smallBlind: table.smallBlind,

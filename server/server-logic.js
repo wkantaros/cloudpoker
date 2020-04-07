@@ -95,7 +95,7 @@ let getAvailableSeat = (sid) => {
 // returns a list of {playerName, seat, stack}
 let playersInfo = (sid) => {
     let info = [];
-    console.log(getTableById(sid).table);
+    // console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
     for (name in playerids[sid]){
         // console.log(name);
@@ -103,7 +103,7 @@ let playersInfo = (sid) => {
         // console.log(getStack(sid, name));
         let isWaiting = false;
         for (let i = 0; i < getTableById(sid).table.playersToAdd.length; i++){
-            console.log('here!');
+            // console.log('here!');
             if (name === getTableById(sid).table.playersToAdd[i].playerName){
                 isWaiting = true;
                 break;
