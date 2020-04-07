@@ -29,6 +29,12 @@ router.route('/').post((req, res) => {
 
 let socket_ids = {};
 
+const PLAYER_UUID_COOKIE_NAME = "player_uuid";
+// Player UUIDs expire after 48 hours
+const PLAYER_UUID_EXPIRY = 48 * 24 * 60 * 60;
+// // Player UUIDs expire after 48 hours
+// const PLAYER_UUID_EXPIRY = 48 * 24 * 60 * 60 * 1000;
+
 //login page for host
 // note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
@@ -36,28 +42,32 @@ router.route('/:id').get((req, res) => {
     let t = s.getTableById(sid);
     let table = t.table;
 
-    res.render('pages/game', {
-        bigBlind: table.bigBlind,
-        smallBlind: table.smallBlind,
-        rank: 'A',
-        suit: 'S',
-        action: false,
-        actionSeat: s.getActionSeat(sid),
-        dealer: s.getDealer(sid),
-        color: 'black',
-        name: t.hostName,
-        stack: t.hostStack,
-        showCards: false,
-        joinedGame: false,
-        waiting: !s.gameInProgress(sid),
-        pot: s.getPot(sid),
-        roundName: s.getRoundName(sid)
-    });
+    res
+        // .cookie(PLAYER_UUID_COOKIE_NAME, shortid.generate(), {maxAge: PLAYER_UUID_EXPIRY, path: `/${req.params.id}`})
+        .render('pages/game', {
+            bigBlind: table.bigBlind,
+            smallBlind: table.smallBlind,
+            rank: 'A',
+            suit: 'S',
+            action: false,
+            actionSeat: s.getActionSeat(sid),
+            dealer: s.getDealer(sid),
+            color: 'black',
+            name: t.hostName,
+            stack: t.hostStack,
+            showCards: false,
+            joinedGame: false,
+            waiting: !s.gameInProgress(sid),
+            pot: s.getPot(sid),
+            roundName: s.getRoundName(sid)
+        });
 
     //consider uncommenting if it becomes an issue
     let socket_id = [];
     const io = req.app.get('socketio');
     io.on('connection', function (socket) {
+        // console.log(JSON.stringify(socket.handshake.headers));
+        // console.log('socket id!:', socket.id, 'player uuid', socket.request.Cookie[PLAYER_UUID_COOKIE_NAME]);
         console.log('id!:', socket.id);
         // added bc duplicate sockets (idk why, need to fix this later)
         if (!socket_ids[socket.id]){
@@ -159,6 +169,7 @@ router.route('/:id').get((req, res) => {
         });
         
         socket.on('action', (data) => {
+            // console.log(`data:\n${JSON.stringify(data)}`);
             let playerName = s.getPlayerById(sid, data.id);
             if (!s.gameInProgress(sid)) {
                 console.log('game hasn\'t started yet');
