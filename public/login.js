@@ -9,8 +9,8 @@ form.addEventListener('submit', (event) => {
     const formData = new FormData(form);
     const name = formData.get('name').trim();
     const stack = formData.get('stack') || 1000;
-    const smallBlind = formData.get('small-blind') || 25;
-    const bigBlind = formData.get('big-blind') || 50;
+    const smallBlind = parseInt(formData.get('small-blind')) || 25;
+    const bigBlind = parseInt(formData.get('big-blind')) || 50;
 
     const game = {
         name,
