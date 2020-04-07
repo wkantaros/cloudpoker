@@ -73,6 +73,11 @@ router.route('/:id').get((req, res) => {
     let t = s.getTableById(sid);
     let table = t.table;
 
+    // gets a players socket ID from playerId
+    const getSocketId = (playerId) => {
+        return tableSocketMap.get(sid).key(playerId);
+    };
+
     res.render('pages/game', {
         bigBlind: table.bigBlind,
         smallBlind: table.smallBlind,
@@ -128,7 +133,7 @@ router.route('/:id').get((req, res) => {
             //adds socket to room (actually a sick feature)
             socket.join(sid);
             if (s.getModId(sid) != null){
-                io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
             }
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
             
@@ -175,9 +180,9 @@ router.route('/:id').get((req, res) => {
                 if (modLeavingGame) {
                     // transfer mod if mod left game
                     if (s.getModId(sid) != null){
-                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                        io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                     }
-                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                    io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                 }
                 io.sockets.to(sid).emit('remove-out-players', {seat: seat});
                 s.makeEmptySeats(sid);
@@ -211,9 +216,9 @@ router.route('/:id').get((req, res) => {
                 if (modLeavingGame){
                     // transfer mod if mod left game
                     if (s.getModId(sid) != null){
-                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                        io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                     }
-                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                    io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                 }
                 io.sockets.emit('buy-out', {
                     playerName: playerName,
@@ -226,7 +231,7 @@ router.route('/:id').get((req, res) => {
                 }, 250);
                 setTimeout(() => {
                     // notify player its their action with sound
-                    io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                    io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
                 }, 500);
             }
         });
@@ -287,7 +292,7 @@ router.route('/:id').get((req, res) => {
                     }, 250);
                     setTimeout(()=>{
                         // notify player its their action with sound
-                        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -331,9 +336,9 @@ router.route('/:id').get((req, res) => {
                     s.removePlayer(sid, playerName);
                     if (oldModId != s.getModId(sid)){
                         if (s.getModId(sid) != null){
-                            io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                            io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                         }
-                        io.sockets.to(oldModId).emit('remove-mod-abilities');
+                        io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                     }
                     io.sockets.emit('buy-out', {
                         playerName: playerName,
@@ -425,9 +430,10 @@ router.route('/:id').get((req, res) => {
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
         // console.log(data);
+        let playerIdSocketMap = tableSocketMap.get(sid);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
-            io.to(`${data[i].playerid}`).emit('render-hand', {
+            io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(sid, name),
                 seat: data[i].seat
             });
@@ -442,7 +448,7 @@ router.route('/:id').get((req, res) => {
             availableActions: s.getAvailableActions(sid)
         });
         // abstracting this to be able to work with bomb pots/straddles down the line
-        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action', {});
     }
 });
 
