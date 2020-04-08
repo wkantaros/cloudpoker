@@ -1,3 +1,3 @@
-# That's poker baby
+# Poker Server
 
-Ya making a cheeky server for poker, should be fun
+Currently building a full stack poker website. Should be fun
