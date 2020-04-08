@@ -139,8 +139,16 @@ router.route('/:id').get((req, res) => {
         if (!isNewPlayer && s.gameInProgress(sid)) {
             // TODO: get returning player in sync with hand.
             //  render his cards, etc.
-            console.log(`syncing ${s.getPlayerById(playerId)}`);
+            console.log(`syncing ${s.getPlayerById(sid, playerId)}`);
             let data = s.playersInfo(sid);
+            io.sockets.to(playerId).emit('render-board', {
+                street: s.getRoundName(sid),
+                board: s.getDeal(sid),
+                sound: true
+            });
+            // TODO: check if player is in game
+            // render player's hand
+            // TODO: this doesn't work
             for (let i = 0; i < data.length; i++) {
                 if (data[i].playerid === playerId) {
                     io.to(getSocketId(`${playerId}`)).emit('render-hand', {
@@ -153,10 +161,13 @@ router.route('/:id').get((req, res) => {
                     });
                 }
             }
+
+            // Highlight cards of player in action seat
             io.sockets.to(sid).emit('action', {
                 seat: s.getActionSeat(sid),
                 availableActions: s.getAvailableActions(sid)
             });
+            // Play sound for action seat player
             if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
                 io.to(getSocketId(playerId)).emit('players-action', {});
             }

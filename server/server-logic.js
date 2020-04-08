@@ -154,7 +154,7 @@ let getAvailableSeat = (sid) => {
     return -1;
 }
 
-// returns a list of {playerName, seat, stack}
+// returns a list of {playerName, seat, stack, playerid, waiting}
 let playersInfo = (sid) => {
     let info = [];
     // console.log(getTableById(sid).table);

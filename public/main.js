@@ -1,54 +1,3 @@
-// function getCookie(cname) {
-//     let name = cname + "=";
-//     let decodedCookie = decodeURIComponent(document.cookie);
-//     let ca = decodedCookie.split(';');
-//     for(let i = 0; i < ca.length; i++) {
-//         let c = ca[i];
-//         while (c.charAt(0) == ' ') {
-//             c = c.substring(1);
-//         }
-//         if (c.indexOf(name) == 0) {
-//             return c.substring(name.length, c.length);
-//         }
-//     }
-//     return "";
-// }
-//
-// function setCookieWithMaxAge(cname, cvalue, maxAgeSeconds) {
-//     document.cookie =cname + "=" + cvalue + "; max-age=" + maxAgeSeconds.toString();
-// }
-//
-// function unsetCookie(cname) {
-//     document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-// }
-//
-// function uuidv4() {
-//     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-//         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-//         return v.toString(16);
-//     });
-// }
-//
-//
-// const PLAYER_UUID_COOKIE_NAME = "player_uuid";
-// // Player UUIDs expire after 48 hours
-// const PLAYER_UUID_EXPIRY = 48 * 24 * 60 * 60;
-
-// let isNewPlayer = function() {
-//     let player_uuid = getCookie(PLAYER_UUID_COOKIE_NAME);
-//     if (player_uuid.length > 0) { // if the player has previously played in this game
-//         let wantsToContinue = confirm("Press OK to continue from your previous game.")
-//         if (wantsToContinue) {
-//             // Extend expiration of player UUID
-//             setCookieWithMaxAge(PLAYER_UUID_COOKIE_NAME, player_uuid, PLAYER_UUID_EXPIRY);
-//             return false;
-//         }
-//     }
-//     setCookieWithMaxAge(PLAYER_UUID_COOKIE_NAME, uuidv4(), PLAYER_UUID_EXPIRY);
-//
-//     return true;
-// }();
-
 let socket = io();
 
 let host = document.getElementById('host'),
@@ -564,9 +513,13 @@ socket.on('bet', (data) => {
     playSoundIfVolumeOn('bet');
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     console.log(`prev amount: ${prevAmount}`);
-    $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
+    drawBet(data.seat, data.amount + prevAmount);
 });
+
+function drawBet(seat, amount) {
+    $('.player-bet').eq(seat).html(amount);
+    $('.player-bet').eq(seat).removeClass('hidden');
+}
 
 // raise
 socket.on('raise', (data) => {
@@ -824,7 +777,7 @@ function createBets() {
     for (var i = 0; i < 10; i++) {
         $('<div/>', {
             'class': 'player-bet hidden',
-            'text': 69
+            'text': 0
         }).appendTo(table);
     }
 }
