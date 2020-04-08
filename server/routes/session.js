@@ -53,7 +53,6 @@ router.route('/').post((req, res) => {
     }
 });
 
-// let socket_ids = {};
 
 // maps sid -> (player ID (from cookie) -> socket ID (from socket.io session) and vice versa)
 // TODO: delete sid from tSM when table finishes
@@ -102,12 +101,10 @@ router.route('/:id').get((req, res) => {
         roundName: s.getRoundName(sid),
     });
 
-    //consider uncommenting if it becomes an issue
-    // let socket_id = [];
     const io = req.app.get('socketio');
     io.once('connection', function (socket) {
         console.log('socket id!:', socket.id, 'player id', playerId);
-        // added bc duplicate sockets (idk why, need to fix this later)
+        
         tableSocketMap.get(sid).set(playerId, socket.id);
 
         // socket.on('disconnect', (reason) => {
@@ -115,7 +112,7 @@ router.route('/:id').get((req, res) => {
         //     io.removeAllListeners('connection');
         // });
 
-        // make sure host has a socketid associate with name
+        // make sure host has a socketid associate with name (first player to enter the game)
         if (s.getPlayerId(sid, t.hostName) == 6969) {
             s.updatePlayerId(sid, t.hostName, playerId);
             console.log(s.getPlayerId(sid, t.hostName));
@@ -358,6 +355,7 @@ router.route('/:id').get((req, res) => {
         let playerSeatsAllInBool = s.getAllIns(sid);
         // console.log(table);
         let data = s.checkwin(sid);
+        // SHOWDOWN CASE
         if (s.getRoundName(sid) === 'showdown') {
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             winners = s.getWinners(sid);
@@ -391,20 +389,7 @@ router.route('/:id').get((req, res) => {
                     });
                 }
                 // start new round
-                s.startRound(sid);
-                if (s.gameInProgress(sid)) {
-                    begin_round();
-                } else {
-                    io.sockets.to(sid).emit('waiting', {});
-                    s.makeEmptySeats(sid);
-                    io.sockets.to(sid).emit('remove-out-players', {});
-                    io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
-                    io.sockets.to(sid).emit('new-dealer', {seat: -1});
-                    io.sockets.to(sid).emit('update-pot', {amount: 0});
-                    io.sockets.to(sid).emit('clear-earnings', {});
-                    io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
-                    console.log('waiting for more players to rejoin!');
-                }
+                startNextRoundOrWaitingForPlayers()
             }, (3000));
         } 
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
@@ -467,21 +452,9 @@ router.route('/:id').get((req, res) => {
                 s.updateStack(sid, data.winner.playerName, winnings);
                 console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`)
 
-                // start new round
-                s.startRound(sid);
-                if (s.gameInProgress(sid)) {
-                    begin_round();
-                } else {
-                    io.sockets.to(sid).emit('waiting', {});
-                    s.makeEmptySeats(sid);
-                    io.sockets.to(sid).emit('remove-out-players', {});
-                    io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
-                    io.sockets.to(sid).emit('new-dealer', {seat: -1});
-                    io.sockets.to(sid).emit('update-pot', {amount: 0});
-                    io.sockets.to(sid).emit('clear-earnings', {});
-                    io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
-                    console.log('waiting for more players to rejoin!');
-                }
+                // next round
+                startNextRoundOrWaitingForPlayers();
+                
             }, (3000));
         } else if (prev_round !== s.getRoundName(sid)) {
             // console.log("ALL IN");
@@ -493,6 +466,24 @@ router.route('/:id').get((req, res) => {
                 sound: true
             });
         }
+    }
+
+    let startNextRoundOrWaitingForPlayers = () => {
+        // start new round
+            s.startRound(sid);
+            if (s.gameInProgress(sid)) {
+                begin_round();
+            } else {
+                io.sockets.to(sid).emit('waiting', {});
+                s.makeEmptySeats(sid);
+                io.sockets.to(sid).emit('remove-out-players', {});
+                io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
+                io.sockets.to(sid).emit('new-dealer', {seat: -1});
+                io.sockets.to(sid).emit('update-pot', {amount: 0});
+                io.sockets.to(sid).emit('clear-earnings', {});
+                io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
+                console.log('waiting for more players to rejoin!');
+            }
     }
 
     let begin_round = () => {

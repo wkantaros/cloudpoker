@@ -62,7 +62,7 @@ BACKEND:
     [*] check
     [*] bet
     [*] fold
-    [ ] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
+    [*] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
 
 DOWN THE LINE CODE:
     [*] make login to adjust blinds (for host)
