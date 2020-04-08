@@ -130,6 +130,10 @@ let getModId = (sid) => {
     }
 }
 
+const isActivePlayerId = (sid, playerid) => {
+    return Object.values(playerids[sid]).map(x => x.playerid).includes(playerid);
+};
+
 let getPlayerById = (sid, pid) => {
     // let t = tables[sid].table;
     for (name in playerids[sid]){
@@ -169,34 +173,41 @@ let getAvailableSeat = (sid) => {
     return -1;
 }
 
-// returns a list of {playerName, seat, stack}
+
+
+// returns a list of {playerName, seat, stack, playerid, waiting, betAmount}
+// playerName -> { playerid, seat }
 let playersInfo = (sid) => {
     let info = [];
     // console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
-    for (name in playerids[sid]){
-        // console.log(name);
-        // console.log(playerids[sid][name].seat);
-        // console.log(getStack(sid, name));
-        let isWaiting = false;
-        for (let i = 0; i < getTableById(sid).table.playersToAdd.length; i++){
-            // console.log('here!');
-            if (name === getTableById(sid).table.playersToAdd[i].playerName){
-                isWaiting = true;
-                break;
-            }
-        }
+
+    for (let name in playerids[sid]){
+        let isWaiting = getTableById(sid).table.playersToAdd.map(x => x.playerName).includes(name);
         info.push({
             playerName: name,
             seat: playerids[sid][name].seat,
             stack: getStack(sid, name),
             playerid: playerids[sid][name].playerid,
-            waiting: isWaiting
+            waiting: isWaiting,
+            betAmount: getBet(sid, name), // amount that name bet so far in this street
         })
     }
     console.log(info);
     return info;
-}
+};
+
+const getBet = (sid, playerName) => {
+    if (!gameInProgress(sid)) return 0;
+    
+    let table = getTableById(sid).table;
+    for (let i = 0; i < table.players.length; i++){
+        if (table.players[i].playerName == playerName){
+            return table.game.bets[i];
+        }
+    }
+    return 0;
+};
 
 let getStack = (sid, playerName) => {
     let table = getTableById(sid).table;
@@ -312,7 +323,7 @@ let raise = (sid, playerName, betAmount) => {
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
     console.log(`player ${playerName} is betting ${realBetAmount} on top of his last bet of ${playersLastBet}`);
-    return tables[sid].table.bet(playerName, realBetAmount);
+    return bet(sid, playerName, realBetAmount);
 }
 
 let getWinnings = (sid, prev_round) => {
@@ -503,6 +514,7 @@ module.exports.removePlayer = removePlayer;
 module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
+module.exports.isActivePlayerId = isActivePlayerId;
 module.exports.getPlayerBySeat = getPlayerBySeat;
 // need to change name to getSeatByPlayer eventually
 module.exports.getPlayerSeat = getPlayerSeat;

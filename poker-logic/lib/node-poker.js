@@ -887,16 +887,26 @@ Table.prototype.call = function( playerName ){
     return false;
   }
 };
+
+/**
+ * @param playerName Player betting
+ * @param amt Amount to bet
+ * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y = 0 if amt < 0 or it is not user's turn.
+ */
 Table.prototype.bet = function( playerName, amt ){
-  var currentPlayer = this.currentPlayer;
-  if( playerName === this.players[ currentPlayer ].playerName ){
-    this.players[ currentPlayer ].Bet( amt );
-    console.log(`${playerName} bet ${amt}`);
-    return true;
-  }else{
-    console.log("wrong user has made a move");
-    return false;
-  }
+    if (amt < 0) {
+        console.log(`${playerName} tried to bet ${amt}`);
+        return 0;
+    }
+    let currentPlayer = this.currentPlayer;
+    if( playerName === this.players[ currentPlayer ].playerName ){
+        const amountBet = this.players[ currentPlayer ].Bet( amt );
+        console.log(`${playerName} bet ${amountBet}`);
+        return amountBet;
+    } else {
+        console.log("wrong user has made a move");
+        return 0;
+    }
 };
 Table.prototype.getWinners = function(){
   return this.gameWinners;
@@ -1093,20 +1103,15 @@ Table.prototype.NewRound = function() {
       bigBlind -= this.players.length;
   }
   //Force Blind Bets
+  // TODO: the next two lines can give players negative stacks. must check that this doesn't happen.
+  //  force them all-in if their balance <= their bland.
   this.players[smallBlind].chips -= this.smallBlind;
   this.players[bigBlind].chips -= this.bigBlind;
   this.game.bets[smallBlind] = this.smallBlind;
   this.game.bets[bigBlind] = this.bigBlind;
 
   // get currentPlayer
-  this.currentPlayer = this.dealer + 3;
-  if( this.currentPlayer >= this.players.length ) {
-    this.currentPlayer -= this.players.length;
-    // EDITED
-    if (this.currentPlayer === this.players.length){
-        this.currentPlayer = 0;
-    }
-  }
+  this.currentPlayer = (this.dealer + 3) % this.players.length;
 
   this.eventEmitter.emit( "newRound" );
 };
@@ -1158,7 +1163,15 @@ Player.prototype.Fold = function() {
     progress(this.table);
 };
 
+// Returns amount bet. If this.chips < (parameter) bet, return value will be this.chips.
+/**
+ * @param bet Amount to bet
+ * @return {number|*} Amount actually bet
+ */
 Player.prototype.Bet = function(bet) {
+    if (bet < 0) {
+        return 0;
+    }
     var i;
     if (this.chips > bet) {
         for (i = 0; i < this.table.players.length; i += 1) {
@@ -1169,15 +1182,19 @@ Player.prototype.Bet = function(bet) {
             }
         }
 
-        //Attemp to progress the game
+        //Attempt to progress the game
         this.turnBet = {action: "bet", playerName: this.playerName, amount: bet}
         progress(this.table);
+        return bet;
     } else {
-        console.log('You don\'t have enought chips --> ALL IN !!!');
-        this.AllIn();
+        console.log('You don\'t have enough chips --> ALL IN !!!');
+        return this.AllIn();
     }
 };
 
+/**
+ * @return {number} Amount bet
+ */
 Player.prototype.Call = function() {
     var maxBet, i;
     maxBet = getMaxBet(this.table.game.bets);
@@ -1196,12 +1213,16 @@ Player.prototype.Call = function() {
         //Attemp to progress the game
         this.turnBet = {action: "call", playerName: this.playerName, amount: maxBet}
         progress(this.table);
+        return maxBet;
     } else {
         console.log('You don\'t have enought chips --> ALL IN !!!');
-        this.AllIn();
+        return this.AllIn();
     }
 };
 
+/**
+ * @return {number} Amount bet
+ */
 Player.prototype.AllIn = function() {
     var i, allInValue=0;
     for (i = 0; i < this.table.players.length; i += 1) {
@@ -1220,6 +1241,7 @@ Player.prototype.AllIn = function() {
     //Attemp to progress the game
     this.turnBet = {action: "allin", playerName: this.playerName, amount: allInValue}
     progress(this.table);
+    return allInValue;
 };
 
 function rankHands(hands) {

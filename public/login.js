@@ -20,7 +20,7 @@ form.addEventListener('submit', (event) => {
     };
     console.log(game);
 
-    fetch(API_URL, {
+    fetch(`${window.location.href}session`, {
         method: 'POST',
         body: JSON.stringify(game),
         headers: {

@@ -1,8 +1,13 @@
 const router = require('express').Router();
+const cookieParser = require('cookie-parser');
+
+router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
+
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 const s = require('../server-logic');
+const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
 
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post((req, res) => {
@@ -14,6 +19,9 @@ router.route('/').post((req, res) => {
         bigBlind: Joi.number().integer().min(0),
         stack: Joi.number().integer().min(1)
     });
+    if (process.env.DEBUG === 'true') {
+        req.body.name = req.body.name || 'debugName';
+    }
     const {
         error,
         value
@@ -41,10 +49,15 @@ router.route('/').post((req, res) => {
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
         s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, 6969);
+        tableSocketMap.set(sid, new TwoWayMap());
     }
 });
 
-let socket_ids = {};
+// let socket_ids = {};
+
+// maps sid -> (player ID (from cookie) -> socket ID (from socket.io session) and vice versa)
+// TODO: delete sid from tSM when table finishes
+const tableSocketMap = new Map();
 
 router.route('/:id').get((req, res) => {
     let sid = req.params.id;
@@ -53,6 +66,23 @@ router.route('/:id').get((req, res) => {
         res.status(404).render('pages/404');
     }
     let table = t.table;
+
+    let playerId = playerIdFromRequest(req);
+
+    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(sid, playerId));
+    // isActivePlayerId is false if the player previously quit the game
+    const isNewPlayer = (playerId === undefined) || !s.isActivePlayerId(sid, playerId);
+    console.log('inp', isNewPlayer);
+    if (isNewPlayer) {
+        // Create new player ID and set it as a cookie in user's browser
+        playerId = newPlayerId();
+        setPlayerId(playerId, req, res);
+    }
+
+    // gets a players socket ID from playerId
+    const getSocketId = (playerId) => {
+        return tableSocketMap.get(sid).key(playerId);
+    };
 
     res.render('pages/game', {
         bigBlind: table.bigBlind,
@@ -73,82 +103,110 @@ router.route('/:id').get((req, res) => {
     });
 
     //consider uncommenting if it becomes an issue
-    let socket_id = [];
+    // let socket_id = [];
     const io = req.app.get('socketio');
-    io.on('connection', function (socket) {
-        console.log('id!:', socket.id);
+    io.once('connection', function (socket) {
+        console.log('socket id!:', socket.id, 'player id', playerId);
         // added bc duplicate sockets (idk why, need to fix this later)
-        if (!socket_ids[socket.id]){
-            // make sure host has a socketid associate with name
-            if (s.getPlayerId(sid, t.hostName) == 6969) {
-                s.updatePlayerId(sid, t.hostName, socket.id);
-                console.log(s.getPlayerId(sid, t.hostName));
-            }
-        
+        tableSocketMap.get(sid).set(playerId, socket.id);
 
-            socket_id.push(socket.id);
-            // rm connection listener for any subsequent connections with the same ID
-            if (socket_id[0] === socket.id) {
-                io.removeAllListeners('connection');
-            }
-            console.log('a user connected at', socket.id);
-            
-            // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
-            socket_ids[socket_id[0]] = true;
-            // --------------------------------------------------------------------
-            //adds socket to room (actually a sick feature)
-            socket.join(sid);
-            if (s.getModId(sid) != null){
-                io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
-            }
-            io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
-            
-            // send a message in the chatroom
-            socket.on('chat', (data) => {
-                io.to(sid).emit('chat', {
-                    handle: s.getPlayerById(sid, data.id),
-                    message: data.message
-                });
-                // io.sockets.to(sid).emit('chat', data);
-            });
-            
-            // typing
-            socket.on('typing', (pid) => {
-                socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, pid));
-            });
+        // socket.on('disconnect', (reason) => {
+        //     console.log('pid', playerId, 'disconnect reason', reason);
+        //     io.removeAllListeners('connection');
+        // });
 
-            socket.on('buy-in', (data) => {
+        // make sure host has a socketid associate with name
+        if (s.getPlayerId(sid, t.hostName) == 6969) {
+            s.updatePlayerId(sid, t.hostName, playerId);
+            console.log(s.getPlayerId(sid, t.hostName));
+        }
+        console.log('a user connected at', socket.id, 'with player ID', playerId);
+
+        //adds socket to room (actually a sick feature)
+        socket.join(sid);
+        if (s.getModId(sid) != null){
+            io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+        }
+        io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+
+        // send a message in the chatroom
+        socket.on('chat', (data) => {
+            io.to(sid).emit('chat', {
+                handle: s.getPlayerById(sid, playerId),
+                message: data.message
+            });
+        });
+
+        // typing
+        socket.on('typing', (pid) => {
+            socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, pid));
+        });
+
+        if (!isNewPlayer && s.gameInProgress(sid)) {
+            // TODO: get returning player in sync with hand.
+            //  render his cards, etc.
+            console.log(`syncing ${s.getPlayerById(sid, playerId)}`);
+            let data = s.playersInfo(sid);
+            io.sockets.to(getSocketId(playerId)).emit('sync-board', {
+                street: s.getRoundName(sid),
+                board: s.getDeal(sid),
+                sound: true
+            });
+            // TODO: check if player is in game
+            // render player's hand
+            // TODO: this doesn't work
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].playerid === playerId) {
+                    io.to(getSocketId(`${playerId}`)).emit('render-hand', {
+                        cards: s.getCardsByPlayerName(sid, data[i].playerName),
+                        seat: data[i].seat
+                    });
+                }
+            }
+
+            // Highlight cards of player in action seat
+            io.sockets.to(sid).emit('action', {
+                seat: s.getActionSeat(sid),
+                availableActions: s.getAvailableActions(sid)
+            });
+            // Play sound for action seat player
+            if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
+                io.to(getSocketId(playerId)).emit('players-action', {});
+            }
+        }
+
+        socket.on('buy-in', (data) => {
             // console.log(data);
-            s.buyin(sid, data.playerName, data.id, data.stack);
+            s.buyin(sid, data.playerName, playerId, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
         });
 
         socket.on('leave-game', (data) => {
             // check if mod is leaving the game
-            let oldModId = data.id;
+            let oldModId = playerId;
             let modLeavingGame = false;
-            if (data.id == s.getModId(sid)) {
+            if (playerId == s.getModId(sid)) {
                 modLeavingGame = true;
             }
 
             if (!s.gameInProgress(sid)){
-                let playerName = s.getPlayerById(sid, data.id);
+                let playerName = s.getPlayerById(sid, playerId);
                 let seat = s.getPlayerSeat(sid, playerName);
                 s.removePlayer(sid, playerName);
                 console.log(`${playerName} leaves game`);
                 if (modLeavingGame) {
                     // transfer mod if mod left game
                     if (s.getModId(sid) != null){
-                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                        io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                     }
-                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                    io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                 }
                 io.sockets.to(sid).emit('remove-out-players', {seat: seat});
                 s.makeEmptySeats(sid);
                 console.log('waiting for more players to rejoin');
             } else {
-                let playerName = s.getPlayerById(sid, data.id);
+                let playerName = s.getPlayerById(sid, playerId);
                 let stack = s.getStack(sid, playerName);
                 let seat = s.getPlayerSeat(sid, playerName);
                 prev_round = s.getRoundName(sid);
@@ -181,9 +239,9 @@ router.route('/:id').get((req, res) => {
                 if (modLeavingGame){
                     // transfer mod if mod left game
                     if (s.getModId(sid) != null){
-                        io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                        io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                     }
-                    io.sockets.to(oldModId).emit('remove-mod-abilities');
+                    io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                 }
                 io.sockets.emit('buy-out', {
                     playerName: playerName,
@@ -196,7 +254,7 @@ router.route('/:id').get((req, res) => {
                 }, 250);
                 setTimeout(() => {
                     // notify player its their action with sound
-                    io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                    io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
                 }, 500);
             }
         });
@@ -214,33 +272,54 @@ router.route('/:id').get((req, res) => {
                 console.log("waiting on players");
             }
         });
+
+        /**
+         * @param playerName
+         * @param data Player's action Object
+         * @return {number} Amount bet. -1 if action cannot be performed
+         */
+        function performAction(playerName, data) {
+            if (data.amount < 0) {
+                return -1;
+            }
+            let actualBetAmount = 0;
+            if (data.action === 'bet') {
+                actualBetAmount = s.bet(sid, playerName, data.amount);
+            } else if (data.action === 'raise') {
+                actualBetAmount = s.raise(sid, playerName, data.amount);
+            } else if (data.action === 'call') {
+                actualBetAmount = s.getMaxBet(sid);
+                s.call(sid, playerName);
+            } else if (data.action === 'fold') {
+                actualBetAmount = 0;
+                s.fold(sid, playerName);
+            } else if (data.action === 'check') {
+                let canPerformAction = s.check(sid, playerName);
+                if (canPerformAction) {
+                    actualBetAmount = 0;
+                }
+            }
+            return actualBetAmount;
+        }
         
         socket.on('action', (data) => {
-            let playerName = s.getPlayerById(sid, data.id);
+            // console.log(`data:\n${JSON.stringify(data)}`);
+            let playerName = s.getPlayerById(sid, playerId);
             if (!s.gameInProgress(sid)) {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
                 prev_round = s.getRoundName(sid);
-                let canPerformAction = true;
-                if (data.action === 'bet') {
-                    s.bet(sid, playerName, data.amount);
-                } else if (data.action === 'raise') {
-                    s.raise(sid, playerName, data.amount);
-                } else if (data.action === 'call') {
-                    data.amount = s.getMaxBet(sid);
-                    s.call(sid, playerName);
-                } else if (data.action === 'fold') {
-                    s.fold(sid, playerName);
-                } else if (data.action === 'check') {
-                    canPerformAction = s.check(sid, playerName);
-                }
+
+                let actualBetAmount = performAction(playerName, data);
+                let canPerformAction = actualBetAmount >= 0;
+
                 if (canPerformAction) {
                     io.sockets.to(sid).emit(`${data.action}`, {
                         username: playerName,
                         stack: s.getStack(sid, playerName),
                         pot: s.getPot(sid),
                         seat: s.getPlayerSeat(sid, playerName),
-                        amount: data.amount
+                        amount: actualBetAmount
                     });
                     // update client's stack size
                     io.sockets.to(sid).emit('update-stack', {
@@ -262,7 +341,7 @@ router.route('/:id').get((req, res) => {
                     }, 250);
                     setTimeout(()=>{
                         // notify player its their action with sound
-                        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -271,11 +350,6 @@ router.route('/:id').get((req, res) => {
                 console.log(`not ${playerName}'s action`);
             }
         });
-        
-        // this if else statement is a nonsense fix need to find a better one
-        } else {
-            console.log('fuck already connected');
-        }
     });
     
     //checks if round has ended (reveals next card)
@@ -306,9 +380,9 @@ router.route('/:id').get((req, res) => {
                     s.removePlayer(sid, playerName);
                     if (oldModId != s.getModId(sid)){
                         if (s.getModId(sid) != null){
-                            io.sockets.to(s.getModId(sid)).emit('add-mod-abilities');
+                            io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
                         }
-                        io.sockets.to(oldModId).emit('remove-mod-abilities');
+                        io.sockets.to(getSocketId(oldModId)).emit('remove-mod-abilities');
                     }
                     io.sockets.emit('buy-out', {
                         playerName: playerName,
@@ -432,10 +506,10 @@ router.route('/:id').get((req, res) => {
         // io.sockets.to(sid).emit('hide-hands', {});
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
-        // console.log(data);
+        console.log('d', data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
-            io.to(`${data[i].playerid}`).emit('render-hand', {
+            io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(sid, name),
                 seat: data[i].seat
             });
@@ -450,7 +524,7 @@ router.route('/:id').get((req, res) => {
             availableActions: s.getAvailableActions(sid)
         });
         // abstracting this to be able to work with bomb pots/straddles down the line
-        io.to(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`).emit('players-action', {});
+        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action', {});
     }
 });
 
