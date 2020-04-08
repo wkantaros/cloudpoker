@@ -45,6 +45,13 @@ $('#buyin').on('click', () => {
         $('#buyin-info').addClass('show');
 })
 
+const logIn = () => {
+    loggedIn = true;
+    $('#buyin-info').removeClass('show');
+    $('#quit-btn').removeClass('collapse');
+    $('#buyin').addClass('collapse');
+};
+
 $('#buyin-btn').on('click', () => {
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
@@ -59,12 +66,9 @@ $('#buyin-btn').on('click', () => {
     } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
         alert("Please enter valid stackinformation");
     } else {
-        loggedIn = true;
+        logIn();
         let playerName = newPlayer.value;
         let stack = parseInt(newStack.value);
-        $('#buyin-info').removeClass('show');
-        $('#quit-btn').removeClass('collapse');
-        $('#buyin').addClass('collapse');
         socket.emit('buy-in', {
             playerName: playerName,
             stack: stack

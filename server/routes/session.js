@@ -19,6 +19,9 @@ router.route('/').post((req, res) => {
         bigBlind: Joi.number().integer().min(0),
         stack: Joi.number().integer().min(1)
     });
+    if (process.env.DEBUG === 'true') {
+        req.body.name = req.body.name || 'debugName';
+    }
     const {
         error,
         value
