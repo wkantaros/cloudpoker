@@ -17,7 +17,6 @@ let host = document.getElementById('host'),
     minBet = document.getElementById('min-bet');
     // standup = document.getElementById('standup-btn');
 
-
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
     let buyinInfo = $('#buyin-info');
@@ -46,6 +45,16 @@ $('#buyin').on('click', () => {
         $('#buyin-info').addClass('show');
 })
 
+/**
+ * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
+ */
+const logIn = () => {
+    loggedIn = true;
+    $('#buyin-info').removeClass('show');
+    $('#quit-btn').removeClass('collapse');
+    $('#buyin').addClass('collapse');
+};
+
 $('#buyin-btn').on('click', () => {
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
@@ -60,14 +69,10 @@ $('#buyin-btn').on('click', () => {
     } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
         alert("Please enter valid stackinformation");
     } else {
-        loggedIn = true;
+        logIn();
         let playerName = newPlayer.value;
         let stack = parseInt(newStack.value);
-        $('#buyin-info').removeClass('show');
-        $('#quit-btn').removeClass('collapse');
-        $('#buyin').addClass('collapse');
         socket.emit('buy-in', {
-            id: socket.id,
             playerName: playerName,
             stack: stack
         });
@@ -76,7 +81,6 @@ $('#buyin-btn').on('click', () => {
 
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {
-        id: socket.id,
         amount: 0
     });
     $('#quit-btn').addClass('collapse');
@@ -131,7 +135,6 @@ $('#bet-amount').keyup(function (e) {
             alert(`minimum bet size is ${minBetAmount}`);
         } else {
             socket.emit('action', {
-                id: socket.id,
                 amount: betAmount,
                 action: 'bet'
             });
@@ -198,7 +201,6 @@ $('#raise-amount').keyup(function (e) {
 start_btn.addEventListener('click', () => {
     console.log('starting game');
     socket.emit('start-game', {
-        id: socket.id,
         amount: 0
     });
 });
@@ -206,7 +208,6 @@ start_btn.addEventListener('click', () => {
 call.addEventListener('click', () => {
     console.log('call');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'call'
     });
@@ -215,7 +216,6 @@ call.addEventListener('click', () => {
 check.addEventListener('click', () => {
     console.log('check');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'check'
     });
@@ -224,7 +224,6 @@ check.addEventListener('click', () => {
 fold.addEventListener('click', () => {
     console.log('fold');
     socket.emit('action', {
-        id: socket.id,
         amount: 0,
         action: 'fold'
     });
@@ -234,14 +233,17 @@ minBet.addEventListener('click', () => {
     console.log('min bet');
     console.log(parseInt($('#bb').html()))
     socket.emit('action', {
-        id: socket.id,
         amount: parseInt($('#bb').html()),
         action: 'bet'
     });
 });
 
+function isVolumeOn() {
+    return $('.volume').hasClass('on');
+}
+
 $(".volume").click( function (e) {
-    if ($('.volume').hasClass('on')){
+    if (isVolumeOn()){
         $('#volume-icon').attr('src', "../public/img/mute.svg");
         $('.volume').removeClass('on');
     } else {
@@ -250,13 +252,19 @@ $(".volume").click( function (e) {
     }
 } );
 
+
+function playSoundIfVolumeOn(soundName) {
+    if (isVolumeOn()){
+        createjs.Sound.play(soundName);
+    }
+}
+
 //chat room functions-----------------------------------------------------------------------------
 //send the contents of the message to the server
 send_btn.addEventListener('click', () => {
     // console.log(name.getElementsByClassName('username')[0].innerHTML);
     // console.log(name.innerText);
     socket.emit('chat', {
-        id: socket.id,
         message: message.value,
     });
     message.value = null;
@@ -298,10 +306,8 @@ socket.on('remove-mod-abilities', (data) => {
 socket.on('chat', (data) => {
     let date = new Date;
     let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
-    let time = `${date.getHours()}:${minutes} ~ `
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p><span class='info'>${time}${data.handle}</span> ${data.message}</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    let time = `${date.getHours()}:${minutes} ~ `;
+    outputMessage(`<span class='info'>${time}${data.handle}</span> ${data.message}`);
 });
 
 //somebody is typing
@@ -318,9 +324,7 @@ socket.on('buy-in', (data) => {
 
 //somebody left the game
 socket.on('buy-out', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p><em> ${data.playerName} has left the game (finishing stack: ${data.stack})</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
     // if ($('.volume').hasClass('on')) {
     //     createjs.Sound.play('fold');
     // }
@@ -338,6 +342,10 @@ socket.on('render-players', (data) => {
         hand.querySelector('.stack').innerHTML = data[i].stack;
         if (data[i].waiting){
             $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
+        } else if (data[i].betAmount <= 0) {
+            hideBet(data[i].seat)
+        } else if (data[i].betAmount > 0) {
+            showBet(data[i].seat, data[i].betAmount);
         }
     }
 });
@@ -364,61 +372,78 @@ socket.on('remove-out-players', (data) => {
     }
 });
 
+const showCard = (card, locator) => {
+    let cardRank = card.charAt(0);
+    let cardSuit = getSuitSymbol(card.charAt(1));
+    let cardColor = getColor(card.charAt(1));
+    $(locator).removeClass('black').addClass(cardColor);
+    $(locator).find('.card-corner-rank').html(cardRank);
+    $(locator).find('.card-corner-suit').html(cardSuit);
+};
+
+const showFlop = (board) => {
+    $('#flop').removeClass('hidden');
+    for (let i = 0; i < 3; i++){
+        showCard(board[i], `#flop .card:nth-child(${i+1})`);
+    }
+    flipCard('flop');
+};
+
+const showTurn = (board) => {
+    $('#turn').removeClass('hidden');
+    showCard(board[3], `#turn .card`);
+    flipCard('turn');
+};
+
+const showRiver = (board) => {
+    $('#river').removeClass('hidden');
+    showCard(board[4], `#river .card`);
+    flipCard('river');
+};
+
+const hideBoardPreFlop = () => {
+    $('#flop').addClass('hidden');
+    $('#turn').addClass('hidden');
+    $('#river').addClass('hidden');
+    $('#cards').find('.back-card').removeClass('hidden');
+    $('#cards').find('.card-topleft').addClass('hidden');
+    $('#cards').find('.card-bottomright').addClass('hidden');
+};
+
+// when the players joins in the middle of a hand
+// data: {street, board, sound}
+socket.on('sync-board', (data) => {
+    logIn();
+    console.log('syncing board', JSON.stringify(data));
+    hideBoardPreFlop();
+    if (data.street === 'deal') return;
+    showFlop(data.board);
+    if (data.street === 'flop') return;
+    showTurn(data.board);
+    if (data.street === 'turn') return;
+    showRiver(data.board);
+});
+
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
-    $('.player-bet').html(0);
-    $('.player-bet').addClass('hidden');
+    hideAllBets();
     if (data.street == 'deal'){
-        $('#flop').addClass('hidden');
-        $('#turn').addClass('hidden');
-        $('#river').addClass('hidden');
-        $('#cards').find('.back-card').removeClass('hidden');
-        $('#cards').find('.card-topleft').addClass('hidden');
-        $('#cards').find('.card-bottomright').addClass('hidden');
-        if ($('.volume').hasClass('on') && data.sound){
-            createjs.Sound.play('deal');
+        hideBoardPreFlop();
+        if (data.sound) {
+            playSoundIfVolumeOn('deal');
         }
     }
     else if (data.street == 'flop'){
-        $('#flop').removeClass('hidden');
-        for (let i = 0; i < 3; i++){
-            let cardRank = data.board[i].charAt(0);
-            let cardSuit = getSuitSymbol(data.board[i].charAt(1));
-            let cardColor = getColor(data.board[i].charAt(1));
-            $(`#flop .card:nth-child(${i+1})`).removeClass('black').addClass(cardColor);
-            $(`#flop .card:nth-child(${i+1})`).find('.card-corner-rank').html(cardRank);
-            $(`#flop .card:nth-child(${i+1})`).find('.card-corner-suit').html(cardSuit);
-        }
-        if ($('.volume').hasClass('on')){
-            createjs.Sound.play('flop');
-        }
-        flipCard('flop');
+        showFlop(data.board);
+        playSoundIfVolumeOn('flop');
     }
     else if (data.street == 'turn'){
-        $('#turn').removeClass('hidden');
-        let cardRank = data.board[3].charAt(0);
-        let cardSuit = getSuitSymbol(data.board[3].charAt(1));
-        let cardColor = getColor(data.board[3].charAt(1));
-        $(`#turn .card`).removeClass('black').addClass(cardColor);
-        $(`#turn .card`).find('.card-corner-rank').html(cardRank);
-        $(`#turn .card`).find('.card-corner-suit').html(cardSuit);
-        if ($('.volume').hasClass('on')){
-            createjs.Sound.play('turn');
-        }
-        flipCard('turn');
+        showTurn(data.board);
+        playSoundIfVolumeOn('turn');
     }
     else if (data.street == 'river'){
-        $('#river').removeClass('hidden');
-        let cardRank = data.board[4].charAt(0);
-        let cardSuit = getSuitSymbol(data.board[4].charAt(1));
-        let cardColor = getColor(data.board[4].charAt(1));
-        $(`#river .card`).removeClass('black').addClass(cardColor);
-        $(`#river .card`).find('.card-corner-rank').html(cardRank);
-        $(`#river .card`).find('.card-corner-suit').html(cardSuit);
-        // if ($('.volume').hasClass('on')){
-        //     createjs.Sound.play('river');
-        // }
-        flipCard('river');
+        showRiver(data.board);
+        // playSoundIfVolumeOn('river');
     }
 });
 
@@ -452,7 +477,6 @@ socket.on('update-pot', (data) => {
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
     $('.back-card').removeClass('waiting');
-    loadSounds();
     $('#start').addClass('collapse');
 });
 
@@ -484,72 +508,74 @@ socket.on('nobody-waiting', (data) => {
 
 // calls
 socket.on('call', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' calls</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
-    }
-    $('.player-bet').eq(data.seat).html(data.amount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
+    outputEmphasizedMessage(data.username + ' calls');
+    playSoundIfVolumeOn('bet');
+    showBet(data.seat, data.amount);
 });
 
 // check
 socket.on('check', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' checks</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('check');
-    }
+    outputEmphasizedMessage(data.username + ' checks');
+    playSoundIfVolumeOn('check');
 });
 
 // fold
 socket.on('fold', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' folds</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('fold');
-    }
+    outputEmphasizedMessage(data.username + ' folds');
+    playSoundIfVolumeOn('fold');
     outHand(data.seat);
 });
 
+function outputMessage(s) {
+    feedback.innerHTML = '';
+    message_output.innerHTML += '<p>' + s + '</p>';
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+}
+
+function outputEmphasizedMessage(s) {
+    // feedback\.innerHTML\s*=\s*['"]['"];\s*message_output\.innerHTML\s*\+=\s*['"]<p><em>['"]\s*\+(.+?)\+\s*['"]<\/em><\/p>['"];\s*\$\(['"]#chat-window['"]\)\.scrollTop\(\$\(['"]#chat-window['"]\)\[0\]\.scrollHeight\);
+    outputMessage('<em>' + s + '</em>');
+}
+
 // bet
 socket.on('bet', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' bets ' + data.amount);
+    playSoundIfVolumeOn('bet');
+    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    console.log(`prev amount: ${prevAmount}`);
+    showBet(data.seat, data.amount + prevAmount);
+});
+
+function hideAllBets() {
+    $('.player-bet').html(0);
+    $('.player-bet').addClass('hidden');
+}
+
+function hideBet(seat) {
+    $('.player-bet').eq(seat).html(0);
+    $('.player-bet').eq(seat).addClass('hidden');
+}
+
+function showBet(seat, amount) {
+    $('.player-bet').eq(seat).html(amount);
+    $('.player-bet').eq(seat).removeClass('hidden');
+}
+
+// raise
+socket.on('raise', (data) => {
+    outputEmphasizedMessage(data.username + ' raises ' + data.amount);
     if ($('.volume').hasClass('on')){
         createjs.Sound.play('bet');
     }
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    console.log(`prev amount: ${prevAmount}`);
-    $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
-});
-
-// raise
-socket.on('raise', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' raises ' + data.amount + '</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
-    }
-    // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    // $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
-    $('.player-bet').eq(data.seat).html(data.amount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
+    showBet(data.seat, data.amount + prevAmount);
 });
 
 //showdown
 socket.on('showdown', function (data) {
     for (let i = 0; i < data.length; i++) {
         renderHand(data[i].seat, data[i].hand.cards);
-        feedback.innerHTML = '';
-        message_output.innerHTML += `<p>${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} </p>`;
-        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+        outputMessage(`${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} `);
         showWinnings(data[i].amount, data[i].seat);
     }
 });
@@ -568,9 +594,7 @@ socket.on('turn-cards-all-in', function (data) {
 
 //folds-through
 socket.on('folds-through', function (data) {
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p>${data.username} wins a pot of ${data.amount}</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputMessage(`${data.username} wins a pot of ${data.amount}`);
     showWinnings(data.amount, data.seat);
 });
 
@@ -582,9 +606,7 @@ socket.on('clear-earnings', function (data) {
 
 // user's action (alert with sound)
 socket.on('players-action', function(data){
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('action');
-    }
+    playSoundIfVolumeOn('action');
 });
 
 // user's action (alert with sound)
@@ -592,8 +614,7 @@ socket.on('initial-bets', function(data){
     console.log(data);
     let seats = data.seats;
     for (let i = 0; i < seats.length; i++){
-        $('.player-bet').eq(seats[i].seat).html(seats[i].bet);
-        $('.player-bet').eq(seats[i].seat).removeClass('hidden');
+        showBet(seats[i].seat, seats[i].bet);
     }
 });
 
@@ -608,7 +629,8 @@ const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
     createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
     createjs.Sound.volume = 0.25;
-}
+};
+loadSounds();
 
 const displayButtons = (availableActions) => {
     for (let key of Object.keys(availableActions)) {
@@ -799,7 +821,7 @@ function createBets() {
     for (var i = 0; i < 10; i++) {
         $('<div/>', {
             'class': 'player-bet hidden',
-            'text': 69
+            'text': 0
         }).appendTo(table);
     }
 }
