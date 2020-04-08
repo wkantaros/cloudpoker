@@ -365,57 +365,77 @@ socket.on('remove-out-players', (data) => {
     }
 });
 
+const showCard = (card, locator) => {
+    let cardRank = card.charAt(0);
+    let cardSuit = getSuitSymbol(card.charAt(1));
+    let cardColor = getColor(card.charAt(1));
+    $(locator).removeClass('black').addClass(cardColor);
+    $(locator).find('.card-corner-rank').html(cardRank);
+    $(locator).find('.card-corner-suit').html(cardSuit);
+};
+
+const showFlop = (board) => {
+    $('#flop').removeClass('hidden');
+    for (let i = 0; i < 3; i++){
+        showCard(board[i], `#flop .card:nth-child(${i+1})`);
+    }
+    flipCard('flop');
+};
+
+const showTurn = (board) => {
+    $('#turn').removeClass('hidden');
+    showCard(board[3], `#turn .card`);
+    flipCard('turn');
+};
+
+const showRiver = (board) => {
+    $('#river').removeClass('hidden');
+    showCard(board[4], `#river .card`);
+    flipCard('river');
+};
+
+const hideBoardPreFlop = () => {
+    $('#flop').addClass('hidden');
+    $('#turn').addClass('hidden');
+    $('#river').addClass('hidden');
+    $('#cards').find('.back-card').removeClass('hidden');
+    $('#cards').find('.card-topleft').addClass('hidden');
+    $('#cards').find('.card-bottomright').addClass('hidden');
+};
+
+// when the players joins in the middle of a hand
+// data: {street, board, sound}
+socket.on('sync-board', (data) => {
+    console.log('syncing board', JSON.stringify(data));
+    hideBoardPreFlop();
+    if (data.street === 'deal') return;
+    showFlop(data.board);
+    if (data.street === 'flop') return;
+    showTurn(data.board);
+    if (data.street === 'turn') return;
+    showRiver(data.board);
+});
+
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
-    // If data.showBets, player joined in the middle of a betting round so don't hide players' bets.
-    if (!data.showBets) {
-        hideAllBets();
-    }
+    hideAllBets();
     if (data.street == 'deal'){
-        $('#flop').addClass('hidden');
-        $('#turn').addClass('hidden');
-        $('#river').addClass('hidden');
-        $('#cards').find('.back-card').removeClass('hidden');
-        $('#cards').find('.card-topleft').addClass('hidden');
-        $('#cards').find('.card-bottomright').addClass('hidden');
+        hideBoardPreFlop();
         if (data.sound) {
             playSoundIfVolumeOn('deal');
         }
     }
     else if (data.street == 'flop'){
-        $('#flop').removeClass('hidden');
-        for (let i = 0; i < 3; i++){
-            let cardRank = data.board[i].charAt(0);
-            let cardSuit = getSuitSymbol(data.board[i].charAt(1));
-            let cardColor = getColor(data.board[i].charAt(1));
-            $(`#flop .card:nth-child(${i+1})`).removeClass('black').addClass(cardColor);
-            $(`#flop .card:nth-child(${i+1})`).find('.card-corner-rank').html(cardRank);
-            $(`#flop .card:nth-child(${i+1})`).find('.card-corner-suit').html(cardSuit);
-        }
+        showFlop(data.board);
         playSoundIfVolumeOn('flop');
-        flipCard('flop');
     }
     else if (data.street == 'turn'){
-        $('#turn').removeClass('hidden');
-        let cardRank = data.board[3].charAt(0);
-        let cardSuit = getSuitSymbol(data.board[3].charAt(1));
-        let cardColor = getColor(data.board[3].charAt(1));
-        $(`#turn .card`).removeClass('black').addClass(cardColor);
-        $(`#turn .card`).find('.card-corner-rank').html(cardRank);
-        $(`#turn .card`).find('.card-corner-suit').html(cardSuit);
+        showTurn(data.board);
         playSoundIfVolumeOn('turn');
-        flipCard('turn');
     }
     else if (data.street == 'river'){
-        $('#river').removeClass('hidden');
-        let cardRank = data.board[4].charAt(0);
-        let cardSuit = getSuitSymbol(data.board[4].charAt(1));
-        let cardColor = getColor(data.board[4].charAt(1));
-        $(`#river .card`).removeClass('black').addClass(cardColor);
-        $(`#river .card`).find('.card-corner-rank').html(cardRank);
-        $(`#river .card`).find('.card-corner-suit').html(cardSuit);
+        showRiver(data.board);
         // playSoundIfVolumeOn('river');
-        flipCard('river');
     }
 });
 
@@ -449,7 +469,6 @@ socket.on('update-pot', (data) => {
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
     $('.back-card').removeClass('waiting');
-    loadSounds();
     $('#start').addClass('collapse');
 });
 
@@ -603,7 +622,8 @@ const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
     createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
     createjs.Sound.volume = 0.25;
-}
+};
+loadSounds();
 
 const displayButtons = (availableActions) => {
     for (let key of Object.keys(availableActions)) {

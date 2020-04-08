@@ -64,8 +64,10 @@ router.route('/:id').get((req, res) => {
     let table = t.table;
 
     let playerId = playerIdFromRequest(req);
-    console.log('playerIdFromRequest', playerId);
-    const isNewPlayer = playerId === undefined;
+
+    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(sid, playerId));
+    // isActivePlayerId is false if the player previously quit the game
+    const isNewPlayer = (playerId === undefined) || !s.isActivePlayerId(sid, playerId);
     console.log('inp', isNewPlayer);
     if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
@@ -141,11 +143,10 @@ router.route('/:id').get((req, res) => {
             //  render his cards, etc.
             console.log(`syncing ${s.getPlayerById(sid, playerId)}`);
             let data = s.playersInfo(sid);
-            io.sockets.to(playerId).emit('render-board', {
+            io.sockets.to(getSocketId(playerId)).emit('sync-board', {
                 street: s.getRoundName(sid),
                 board: s.getDeal(sid),
-                sound: true,
-                showBets: true
+                sound: true
             });
             // TODO: check if player is in game
             // render player's hand

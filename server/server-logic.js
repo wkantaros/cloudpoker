@@ -128,6 +128,10 @@ let getModId = (sid) => {
     }
 }
 
+const isActivePlayerId = (sid, playerid) => {
+    return Object.values(playerids[sid]).map(x => x.playerid).includes(playerid);
+};
+
 let getPlayerById = (sid, pid) => {
     // let t = tables[sid].table;
     for (name in playerids[sid]){
@@ -477,6 +481,7 @@ module.exports.removePlayer = removePlayer;
 module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
+module.exports.isActivePlayerId = isActivePlayerId;
 module.exports.getPlayerBySeat = getPlayerBySeat;
 // need to change name to getSeatByPlayer eventually
 module.exports.getPlayerSeat = getPlayerSeat;

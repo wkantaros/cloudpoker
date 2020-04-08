@@ -17,7 +17,7 @@ function newPlayerId() {
 }
 module.exports.newPlayerId = newPlayerId;
 
-function setPlayerId(pid, req, res) {
+function setPlayerIdCookie(pid, req, res) {
     res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, {
         // Make the player ID unique to this table by using the table's path
         path: `${req.baseUrl}/${req.params.id}`,
@@ -26,7 +26,7 @@ function setPlayerId(pid, req, res) {
         maxAge: PLAYER_UUID_EXPIRY,
     }));
 }
-module.exports.setPlayerId = setPlayerId;
+module.exports.setPlayerId = setPlayerIdCookie;
 
 function TwoWayMap() {
     // maps player ID (from cookie) -> socket ID (from socket.io session)
