@@ -315,7 +315,7 @@ let raise = (sid, playerName, betAmount) => {
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
     console.log(`player ${playerName} is betting ${realBetAmount} on top of his last bet of ${playersLastBet}`);
-    return bet(playerName, realBetAmount);
+    return bet(sid, playerName, realBetAmount);
 }
 
 let getWinnings = (sid, prev_round) => {
