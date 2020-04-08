@@ -45,6 +45,9 @@ $('#buyin').on('click', () => {
         $('#buyin-info').addClass('show');
 })
 
+/**
+ * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
+ */
 const logIn = () => {
     loggedIn = true;
     $('#buyin-info').removeClass('show');
@@ -410,6 +413,7 @@ const hideBoardPreFlop = () => {
 // when the players joins in the middle of a hand
 // data: {street, board, sound}
 socket.on('sync-board', (data) => {
+    logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     if (data.street === 'deal') return;
