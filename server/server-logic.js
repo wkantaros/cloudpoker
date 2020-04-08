@@ -97,7 +97,8 @@ let makeEmptySeats = (sid) => {
     }
 }
 
-let checkAllIns = (sid) => {
+// returns the seats of all all in players
+let getAllIns = (sid) => {
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
         if (getPlayerSeat(sid, players[i].playerName) != -1){
@@ -136,6 +137,18 @@ let getPlayerById = (sid, pid) => {
     }
     return 'guest';
 }
+
+let getPlayerBySeat = (sid, seat) => {
+    // let t = tables[sid].table;
+    for (name in playerids[sid]) {
+        if (playerids[sid][name].seat == seat) {
+            return name;
+        }
+    }
+    return 'guest';
+}
+
+
 let getPlayerSeat = (sid, playerName) => {
     if (playerids[sid][playerName])
         return playerids[sid][playerName].seat;
@@ -179,7 +192,7 @@ let playersInfo = (sid) => {
             waiting: isWaiting
         })
     }
-    // console.log(info);
+    console.log(info);
     return info;
 }
 
@@ -261,6 +274,7 @@ let getDeal = (sid) => {
 
 let call = (sid, playerName) => {
     // tables[sid].table.call(tables[sid].table.getCurrentPlayer());
+    console.log(tables[sid].table);
     tables[sid].table.call(playerName);
 }
 
@@ -409,6 +423,48 @@ let getAvailableActions = (sid) => {
     }
 }
 
+// if thats the case, just call and move forward with game
+let actionOnAllInPlayer = (sid) => {
+    let actionSeat = getActionSeat(sid);
+    if (getTableById(sid).allIn[actionSeat]){
+        console.log('action on all in player, moving game forward');
+        call(sid, getPlayerSeat(sid, actionSeat));
+        return true;
+    } else {
+        return false;
+    }
+}
+
+let everyoneAllIn = (sid) => {
+    let playersInfos = playersInfo(sid);
+    let playersWhoCanAct = 0;
+    let allInPlayer = false;
+    let allInSeats = getTableById(sid).allIn;
+    for (let i = 0; i < 10; i++){
+        allInPlayer = allInPlayer || allInSeats[i];
+    }
+    for (let i = 0; i < playersInfos.length; i++){
+        // if the player is currently in the hand
+        if (!playersInfos[i].waiting) {
+            // if player is not all in
+            if (!getTableById(sid).allIn[playersInfos[i].seat]){
+                // if player hasnt folded
+                if (!playerFolded(sid, playersInfos[i].playerName)){
+                    // the number of players in the hand who can act ++
+                    playersWhoCanAct++;
+                }
+            }
+        }
+    }
+    console.log(`Number of players who can act: ${playersWhoCanAct}`);
+    return (playersWhoCanAct <= 1);
+}
+
+let playerFolded = (sid, playerName) => {
+    let table = getTableById(sid).table;
+    return table.getPlayer(playerName).folded;
+}
+
 module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
@@ -416,6 +472,8 @@ module.exports.removePlayer = removePlayer;
 module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
+module.exports.getPlayerBySeat = getPlayerBySeat;
+// need to change name to getSeatByPlayer eventually
 module.exports.getPlayerSeat = getPlayerSeat;
 module.exports.updatePlayerId = updatePlayerId;
 // module.exports.getAvailableSeat = getAvailableSeat;
@@ -444,5 +502,7 @@ module.exports.getInitialBets = getInitialBets;
 module.exports.getWinners = getWinners;
 module.exports.getLosers = getLosers;
 module.exports.getModId = getModId;
-module.exports.checkAllIns = checkAllIns;
+module.exports.getAllIns = getAllIns;
 module.exports.getAvailableActions = getAvailableActions;
+module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
+module.exports.everyoneAllIn = everyoneAllIn;
