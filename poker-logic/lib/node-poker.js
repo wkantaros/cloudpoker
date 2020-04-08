@@ -708,7 +708,10 @@ function progress(table) {
         //   table.currentPlayer = (table.currentPlayer >= table.players.length-1) ? (table.currentPlayer-table.players.length+1) : (table.currentPlayer + 1 );
           table.currentPlayer = (table.dealer + 1 >= table.players.length) ? 0 : table.dealer + 1;
           let ctr = 0;
+          console.log(`TABLE!!! ${table}`);
+        //   console.log(table);
           while(table.players[table.currentPlayer].folded && ctr < table.players.length){
+              console.log('here 123:O');
               // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
               table.currentPlayer = (table.currentPlayer + 1 >= table.players.length) ? 0 : table.currentPlayer + 1;
               ctr++;

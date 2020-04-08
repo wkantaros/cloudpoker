@@ -2,22 +2,31 @@ var poker = require('./lib/node-poker');
 
 var table = new poker.Table(50,100,2,10,100,1000);
 
-table.AddPlayer('bob',1000) //dealer
-table.AddPlayer('jane',1000) //small blind
-// table.AddPlayer('dylan',1000) //big blind
+table.AddPlayer('bob',400) //dealer
+table.AddPlayer('jane',400) //small blind
+table.AddPlayer('dylan',1000) //big blind
 // table.AddPlayer('john',400) //first to act preflop
 // table.AddPlayer('eve',1000) //second to act preflop
 
 let whosAction = () => console.log(`We are on the ${table.game.roundName}, it is ${table.getCurrentPlayer()}\'s action`);
 
+console.log(table);
+
+table.StartGame();
+
+whosAction();
+table.bet('bob', 500);
+console.log(table);
+whosAction();
+table.call('jane');
+whosAction();
+table.call('dylan');
+whosAction();
+table.check('jane');
 // console.log(table);
-
-// whosAction();
-// table.call('dylan');
-// whosAction();
-// table.call('bob');
-// whosAction();
-
+whosAction();
+table.bet('dylan', 100);
+whosAction();
 // //preflop
 // console.log(table.game.pot);
 // whosAction();

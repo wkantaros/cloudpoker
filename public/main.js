@@ -517,7 +517,6 @@ socket.on('fold', (data) => {
 
 // bet
 socket.on('bet', (data) => {
-    console.log('we are here baby')
     feedback.innerHTML = '';
     message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
     $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
@@ -552,6 +551,18 @@ socket.on('showdown', function (data) {
         message_output.innerHTML += `<p>${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} </p>`;
         $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
         showWinnings(data[i].amount, data[i].seat);
+    }
+});
+
+//if everyone is all in in the hand, turn over the cards
+socket.on('turn-cards-all-in', function (data) {
+    // console.log(data);
+    feedback.innerHTML = '';
+    message_output.innerHTML += `<p>All in, lets dance</p>`;
+    for (let i = 0; i < data.length; i++) {
+        renderHand(data[i].seat, data[i].cards);
+        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+        // showWinnings(data[i].amount, data[i].seat);
     }
 });
 

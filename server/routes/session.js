@@ -168,10 +168,14 @@ router.route('/:id').get((req, res) => {
                     stack: s.getStack(sid, playerName)
                 });
                 // shift action to next player in hand
-                io.sockets.to(sid).emit('action', {
-                    seat: s.getActionSeat(sid),
-                    availableActions: s.getAvailableActions(sid)
-                });
+                if (s.actionOnAllInPlayer(sid)) {
+                    console.log('ACTION ON ALL IN PLAYER 123');
+                } else {
+                    io.sockets.to(sid).emit('action', {
+                        seat: s.getActionSeat(sid),
+                        availableActions: s.getAvailableActions(sid)
+                    });
+                }
                 s.removePlayer(sid, playerName);
                 if (modLeavingGame){
                     // transfer mod if mod left game
@@ -243,10 +247,14 @@ router.route('/:id').get((req, res) => {
                         stack: s.getStack(sid, playerName)
                     });
                     // shift action to next player in hand
-                    io.sockets.to(sid).emit('action', {
-                        seat: s.getActionSeat(sid),
-                        availableActions: s.getAvailableActions(sid)
-                    });
+                    if (s.actionOnAllInPlayer(sid)){
+                        console.log('ACTION ON ALL IN PLAYER');
+                    } else {
+                        io.sockets.to(sid).emit('action', {
+                            seat: s.getActionSeat(sid),
+                            availableActions: s.getAvailableActions(sid)
+                        });
+                    }
                     setTimeout(()=>{
                         // check if round has ended
                         check_round(prev_round);
@@ -272,7 +280,7 @@ router.route('/:id').get((req, res) => {
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
         let table = s.getTableById(sid).table;
-        s.checkAllIns(sid);
+        let playerSeatsAllInBool = s.getAllIns(sid);
         // console.log(table);
         let data = s.checkwin(sid);
         if (s.getRoundName(sid) === 'showdown') {
@@ -323,6 +331,39 @@ router.route('/:id').get((req, res) => {
                     console.log('waiting for more players to rejoin!');
                 }
             }, (3000));
+        } 
+        // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
+        else if (s.everyoneAllIn(sid) && prev_round !== s.getRoundName(sid)) {
+            console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
+            let allInPlayerSeatsHands = [];
+            for (let i = 0; i < playerSeatsAllInBool.length; i++){
+                if (playerSeatsAllInBool[i]){
+                    allInPlayerSeatsHands.push({
+                        seat: i,
+                        cards: s.getCardsByPlayerName(sid, s.getPlayerBySeat(sid, i))
+                    });
+                }
+            }
+            // NEED TO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
+            io.sockets.to(sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
+            io.sockets.to(sid).emit('update-pot', {
+                amount: s.getPot(sid)
+            });
+
+            let rName = prev_round;
+            while (s.getRoundName(sid) !== 'showdown'){
+                console.log(rName);
+                if (rName !== s.getRoundName(sid)){
+                    rName = s.getRoundName(sid);
+                        io.sockets.to(sid).emit('render-board', {
+                            street: s.getRoundName(sid),
+                            board: s.getDeal(sid),
+                            sound: true
+                        });
+                }
+                s.call(sid, s.getNameByActionSeat(sid));
+            }
+            check_round('showdown');
         } else if (data.everyoneFolded) {
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with s.getRoundName

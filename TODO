@@ -78,8 +78,6 @@ DOWN THE LINE CODE:
     [ ] have num hands won logged as bagde
     [ ] build log outside of chatroom for hands
     [ ] update your stack on your own (rebuy/etc)
-    [ ] give a mod ability to kick players
-    [ ] timer function (to act)
     [ ] premove function
     [ ] update message board to look better
     [ ] probably should have a proper database at some point (not essential but a good idea)
@@ -89,6 +87,13 @@ GAME FEATURES TO ADD:
     [ ] implement straddle
     [ ] implement tokyo
     [ ] implement the game of games
+
+MOD ABILITIES TO ADD:
+    [ ] ability to kick players
+    [ ] timer function (to act)
+    [ ] adjust blinds
+    [ ] bomb pots/tokyo/game variation approval
+    [ ] transfer mod
 
 Error checks:
     [ ] on create game bb/sb and stacks cant be decimals (need to be numbers)
@@ -100,3 +105,6 @@ Handling all in's
         kick him from table
             have the remove the quit button from page
             add the buyin button again
+
+
+when player goes all in and the game ends
