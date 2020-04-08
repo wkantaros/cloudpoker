@@ -12,11 +12,13 @@ let tables = {};
 let playerids = {}
 
 let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, playerid) => {
-    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000);
+    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000);
     tables[sessionid] = {
         table: table,
         hostName: hostName,
         hostStack: hostStack,
+        smallBlind: smallBlind,
+        bigBlind: bigBlind,
         seatsTaken: [false, false, false, false, false, false, false, false, false, false],
         leavingGame: [false, false, false, false, false, false, false, false, false, false],
         allIn: [false, false, false, false, false, false, false, false, false, false],
@@ -389,17 +391,45 @@ let getWinners = (sid) => {
     return winners;
 }
 
+let getBigBlindSeat = (sid) => {
+    let seat = getDealerSeat(sid);
+    let seats = getTableById(sid).seatsTaken;
+    let counter = 0; 
+    while (counter < 2){
+        if (seat + 1 >= seats.length) {
+            seat = 0;
+        } else {
+            seat++;
+        }
+        if (seats[seat]) counter++;
+    }
+    return seat;
+}
+
 let getAvailableActions = (sid) => {
     if (gameInProgress(sid) && getMaxBet(sid)){
-        return {
-            'min-bet': false,
-            'bet': false,
-            'raise': true,
-            'fold': true,
-            'call': true,
-            'start': false,
-            'check': false
-        };
+        if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind){
+            return {
+                'min-bet': false,
+                'bet': false,
+                'raise': true,
+                'fold': true,
+                'call': false,
+                'start': false,
+                'check': true
+            };
+        }
+        else {
+            return {
+                'min-bet': false,
+                'bet': false,
+                'raise': true,
+                'fold': true,
+                'call': true,
+                'start': false,
+                'check': false
+            };
+        }
     } else if (gameInProgress(sid)){
         return {
             'min-bet': true,
@@ -456,8 +486,9 @@ let everyoneAllIn = (sid) => {
             }
         }
     }
-    console.log(`Number of players who can act: ${playersWhoCanAct}`);
-    return (playersWhoCanAct <= 1);
+    console.log(`Number of players who can act: ${allInPlayer}`);
+    console.log(`All in player: ${playersWhoCanAct}`);
+    return (playersWhoCanAct <= 1) && allInPlayer;
 }
 
 let playerFolded = (sid, playerName) => {

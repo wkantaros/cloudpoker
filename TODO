@@ -1,7 +1,6 @@
 LOGIC/NODE-POKER EDITS:
     [*] make host login
     [*] make login so users can join
-    [ ] handle all-in's to work accordingly
     [ ] all-in's where has < or = bb
     [*] handle players leaving game (really works, tested extensively)
     [*] handle players joining game (works well, more tests to be certain, currently dealer stays in same spot on occaision)
@@ -10,9 +9,6 @@ LOGIC/NODE-POKER EDITS:
     [*] fixed logical order if player busts/leaves from a seat and new player joins that seat
     
 FRONTEND EDITS:
-    [*] ejs syntax
-    [*] begin making a frontend
-    [*] favicon
     [*] chatroom
     [*] copy link (get sharable link)
     [*] make a card template
@@ -43,10 +39,12 @@ FRONTEND EDITS:
     [*] have sound button in header user can toggle
     [*] have 'winner page' where winners cards are shown for showdown
     [*] have 'winner page' for when action folds through
-    [ ] keyboard shortcuts
     [*] fix join game button to work when it should work and not when it shouldnt
-    [ ] fix sounds to work when they sould
     [*] update bet/check/fold/call/raise buttons / abilities depending on action
+    [ ] fix sounds to work when they sould
+    [ ] keyboard shortcuts
+    [ ] slider, added bet/raise features
+    [ ] have all in render properly 
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -55,7 +53,6 @@ BACKEND:
     [*] create table associated with that id
     [*] send user to table (localhost:5000/game/id)
     [*] chatroom
-    [ ] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
     [*] deal with users with the same name (at same table)
     [*] add players
     [*] start game
@@ -65,6 +62,7 @@ BACKEND:
     [*] check
     [*] bet
     [*] fold
+    [ ] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
 
 DOWN THE LINE CODE:
     [*] make login to adjust blinds (for host)
@@ -88,7 +86,7 @@ GAME FEATURES TO ADD:
     [ ] implement tokyo
     [ ] implement the game of games
 
-MOD ABILITIES TO ADD:
+MOD PAGE:
     [ ] ability to kick players
     [ ] timer function (to act)
     [ ] adjust blinds
@@ -96,7 +94,7 @@ MOD ABILITIES TO ADD:
     [ ] transfer mod
 
 Error checks:
-    [ ] on create game bb/sb and stacks cant be decimals (need to be numbers)
+    [*] on create game bb/sb and stacks cant be decimals (need to be numbers)
 
 
 //-------------------------------------------------------------------------------------------------

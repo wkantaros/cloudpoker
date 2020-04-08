@@ -36,3 +36,8 @@ app.use('/session', sessionRouter);
 server.listen(port, function () {
     console.log(`Starting server on port ${port}`);
 });
+
+// 404 pages
+app.use(function (req, res) {
+    res.status(404).render('pages/404');
+});

@@ -46,11 +46,12 @@ router.route('/').post((req, res) => {
 
 let socket_ids = {};
 
-//login page for host
-// note: removing the ? makes id necessary (not optional)
 router.route('/:id').get((req, res) => {
     let sid = req.params.id;
     let t = s.getTableById(sid);
+    if (!t){
+        res.status(404).render('pages/404');
+    }
     let table = t.table;
 
     res.render('pages/game', {
