@@ -196,6 +196,8 @@ let playersInfo = (sid) => {
 };
 
 const getBet = (sid, playerName) => {
+    if (!gameInProgress(sid)) return 0;
+    
     let table = getTableById(sid).table;
     for (let i = 0; i < table.players.length; i++){
         if (table.players[i].playerName == playerName){

@@ -563,9 +563,8 @@ socket.on('raise', (data) => {
     if ($('.volume').hasClass('on')){
         createjs.Sound.play('bet');
     }
-    // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    // $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
-    showBet(data.seat, data.amount);
+    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    showBet(data.seat, data.amount + prevAmount);
 });
 
 //showdown
