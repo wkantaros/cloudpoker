@@ -144,7 +144,8 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(playerId).emit('render-board', {
                 street: s.getRoundName(sid),
                 board: s.getDeal(sid),
-                sound: true
+                sound: true,
+                showBets: true
             });
             // TODO: check if player is in game
             // render player's hand
@@ -154,10 +155,6 @@ router.route('/:id').get((req, res) => {
                     io.to(getSocketId(`${playerId}`)).emit('render-hand', {
                         cards: s.getCardsByPlayerName(sid, data[i].playerName),
                         seat: data[i].seat
-                    });
-                    io.sockets.to(sid).emit('update-stack', {
-                        seat: data[i].seat,
-                        stack: data[i].stack
                     });
                 }
             }
@@ -310,7 +307,7 @@ router.route('/:id').get((req, res) => {
 
                 let actualBetAmount = performAction(playerName, data);
                 let canPerformAction = actualBetAmount >= 0;
-                
+
                 if (canPerformAction) {
                     io.sockets.to(sid).emit(`${data.action}`, {
                         username: playerName,

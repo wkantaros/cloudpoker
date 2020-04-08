@@ -167,33 +167,38 @@ let getAvailableSeat = (sid) => {
     return -1;
 }
 
-// returns a list of {playerName, seat, stack, playerid, waiting}
+
+
+// returns a list of {playerName, seat, stack, playerid, waiting, betAmount}
+// playerName -> { playerid, seat }
 let playersInfo = (sid) => {
     let info = [];
     // console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
-    for (name in playerids[sid]){
-        // console.log(name);
-        // console.log(playerids[sid][name].seat);
-        // console.log(getStack(sid, name));
-        let isWaiting = false;
-        for (let i = 0; i < getTableById(sid).table.playersToAdd.length; i++){
-            // console.log('here!');
-            if (name === getTableById(sid).table.playersToAdd[i].playerName){
-                isWaiting = true;
-                break;
-            }
-        }
+
+    for (let name in playerids[sid]){
+        let isWaiting = getTableById(sid).table.playersToAdd.map(x => x.playerName).includes(name);
         info.push({
             playerName: name,
             seat: playerids[sid][name].seat,
             stack: getStack(sid, name),
             playerid: playerids[sid][name].playerid,
-            waiting: isWaiting
+            waiting: isWaiting,
+            betAmount: getBet(sid, name), // amount that name bet so far in this street
         })
     }
     console.log(info);
     return info;
+};
+
+const getBet = (sid, playerName) => {
+    let table = getTableById(sid).table;
+    for (let i = 0; i < table.players.length; i++){
+        if (table.players[i].playerName == playerName){
+            return table.game.bets[i];
+        }
+    }
+    return 0;
 };
 
 let getStack = (sid, playerName) => {

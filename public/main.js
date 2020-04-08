@@ -335,6 +335,10 @@ socket.on('render-players', (data) => {
         hand.querySelector('.stack').innerHTML = data[i].stack;
         if (data[i].waiting){
             $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
+        } else if (data[i].betAmount <= 0) {
+            hideBet(data[i].seat)
+        } else if (data[i].betAmount > 0) {
+            showBet(data[i].seat, data[i].betAmount);
         }
     }
 });
@@ -363,8 +367,10 @@ socket.on('remove-out-players', (data) => {
 
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
-    $('.player-bet').html(0);
-    $('.player-bet').addClass('hidden');
+    // If data.showBets, player joined in the middle of a betting round so don't hide players' bets.
+    if (!data.showBets) {
+        hideAllBets();
+    }
     if (data.street == 'deal'){
         $('#flop').addClass('hidden');
         $('#turn').addClass('hidden');
@@ -477,8 +483,7 @@ socket.on('nobody-waiting', (data) => {
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
     playSoundIfVolumeOn('bet');
-    $('.player-bet').eq(data.seat).html(data.amount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
+    showBet(data.seat, data.amount);
 });
 
 // check
@@ -511,10 +516,20 @@ socket.on('bet', (data) => {
     playSoundIfVolumeOn('bet');
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     console.log(`prev amount: ${prevAmount}`);
-    drawBet(data.seat, data.amount + prevAmount);
+    showBet(data.seat, data.amount + prevAmount);
 });
 
-function drawBet(seat, amount) {
+function hideAllBets() {
+    $('.player-bet').html(0);
+    $('.player-bet').addClass('hidden');
+}
+
+function hideBet(seat) {
+    $('.player-bet').eq(seat).html(0);
+    $('.player-bet').eq(seat).addClass('hidden');
+}
+
+function showBet(seat, amount) {
     $('.player-bet').eq(seat).html(amount);
     $('.player-bet').eq(seat).removeClass('hidden');
 }
@@ -527,8 +542,7 @@ socket.on('raise', (data) => {
     }
     // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     // $('.player-bet').eq(data.seat).html(data.amount + prevAmount);
-    $('.player-bet').eq(data.seat).html(data.amount);
-    $('.player-bet').eq(data.seat).removeClass('hidden');
+    showBet(data.seat, data.amount);
 });
 
 //showdown
@@ -574,8 +588,7 @@ socket.on('initial-bets', function(data){
     console.log(data);
     let seats = data.seats;
     for (let i = 0; i < seats.length; i++){
-        $('.player-bet').eq(seats[i].seat).html(seats[i].bet);
-        $('.player-bet').eq(seats[i].seat).removeClass('hidden');
+        showBet(seats[i].seat, seats[i].bet);
     }
 });
 
