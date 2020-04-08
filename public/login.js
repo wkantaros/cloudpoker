@@ -3,6 +3,8 @@ const API_URL = `${window.location.href}session`
 // const API_URL = 'http://localhost:8080/session';
 // const API_URL = 'https://d2689150.ngrok.io/session';
 
+document.getElementById("name").select();
+
 form.addEventListener('submit', (event) => {
     event.preventDefault();
     console.log('form successfully submitted');
