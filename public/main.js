@@ -299,10 +299,8 @@ socket.on('remove-mod-abilities', (data) => {
 socket.on('chat', (data) => {
     let date = new Date;
     let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
-    let time = `${date.getHours()}:${minutes} ~ `
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p><span class='info'>${time}${data.handle}</span> ${data.message}</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    let time = `${date.getHours()}:${minutes} ~ `;
+    outputMessage(`<span class='info'>${time}${data.handle}</span> ${data.message}`);
 });
 
 //somebody is typing
@@ -319,9 +317,7 @@ socket.on('buy-in', (data) => {
 
 //somebody left the game
 socket.on('buy-out', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p><em> ${data.playerName} has left the game (finishing stack: ${data.stack})</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
     // if ($('.volume').hasClass('on')) {
     //     createjs.Sound.play('fold');
     // }
@@ -479,9 +475,7 @@ socket.on('nobody-waiting', (data) => {
 
 // calls
 socket.on('call', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' calls</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' calls');
     playSoundIfVolumeOn('bet');
     $('.player-bet').eq(data.seat).html(data.amount);
     $('.player-bet').eq(data.seat).removeClass('hidden');
@@ -489,26 +483,31 @@ socket.on('call', (data) => {
 
 // check
 socket.on('check', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' checks</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' checks');
     playSoundIfVolumeOn('check');
 });
 
 // fold
 socket.on('fold', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' folds</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' folds');
     playSoundIfVolumeOn('fold');
     outHand(data.seat);
 });
 
+function outputMessage(s) {
+    feedback.innerHTML = '';
+    message_output.innerHTML += '<p>' + s + '</p>';
+    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+}
+
+function outputEmphasizedMessage(s) {
+    // feedback\.innerHTML\s*=\s*['"]['"];\s*message_output\.innerHTML\s*\+=\s*['"]<p><em>['"]\s*\+(.+?)\+\s*['"]<\/em><\/p>['"];\s*\$\(['"]#chat-window['"]\)\.scrollTop\(\$\(['"]#chat-window['"]\)\[0\]\.scrollHeight\);
+    outputMessage('<em>' + s + '</em>');
+}
+
 // bet
 socket.on('bet', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' bets ' + data.amount + '</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' bets ' + data.amount);
     playSoundIfVolumeOn('bet');
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     console.log(`prev amount: ${prevAmount}`);
@@ -522,9 +521,7 @@ function drawBet(seat, amount) {
 
 // raise
 socket.on('raise', (data) => {
-    feedback.innerHTML = '';
-    message_output.innerHTML += '<p><em>' + data.username + ' raises ' + data.amount + '</em></p>';
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputEmphasizedMessage(data.username + ' raises ' + data.amount);
     if ($('.volume').hasClass('on')){
         createjs.Sound.play('bet');
     }
@@ -538,9 +535,7 @@ socket.on('raise', (data) => {
 socket.on('showdown', function (data) {
     for (let i = 0; i < data.length; i++) {
         renderHand(data[i].seat, data[i].hand.cards);
-        feedback.innerHTML = '';
-        message_output.innerHTML += `<p>${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} </p>`;
-        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+        outputMessage(`${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} `);
         showWinnings(data[i].amount, data[i].seat);
     }
 });
@@ -559,9 +554,7 @@ socket.on('turn-cards-all-in', function (data) {
 
 //folds-through
 socket.on('folds-through', function (data) {
-    feedback.innerHTML = '';
-    message_output.innerHTML += `<p>${data.username} wins a pot of ${data.amount}</p>`;
-    $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    outputMessage(`${data.username} wins a pot of ${data.amount}`);
     showWinnings(data.amount, data.seat);
 });
 
