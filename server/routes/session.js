@@ -270,6 +270,35 @@ router.route('/:id').get((req, res) => {
                 console.log("waiting on players");
             }
         });
+
+        /**
+         * @param playerName
+         * @param data Player's action Object
+         * @return {number} Amount bet. -1 if action cannot be performed
+         */
+        function performAction(playerName, data) {
+            if (data.amount < 0) {
+                return -1;
+            }
+            let actualBetAmount = 0;
+            if (data.action === 'bet') {
+                actualBetAmount = s.bet(sid, playerName, data.amount);
+            } else if (data.action === 'raise') {
+                actualBetAmount = s.raise(sid, playerName, data.amount);
+            } else if (data.action === 'call') {
+                actualBetAmount = s.getMaxBet(sid);
+                s.call(sid, playerName);
+            } else if (data.action === 'fold') {
+                actualBetAmount = 0;
+                s.fold(sid, playerName);
+            } else if (data.action === 'check') {
+                let canPerformAction = s.check(sid, playerName);
+                if (canPerformAction) {
+                    actualBetAmount = 0;
+                }
+            }
+            return actualBetAmount;
+        }
         
         socket.on('action', (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
@@ -278,26 +307,17 @@ router.route('/:id').get((req, res) => {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
                 prev_round = s.getRoundName(sid);
-                let canPerformAction = true;
-                if (data.action === 'bet') {
-                    s.bet(sid, playerName, data.amount);
-                } else if (data.action === 'raise') {
-                    s.raise(sid, playerName, data.amount);
-                } else if (data.action === 'call') {
-                    data.amount = s.getMaxBet(sid);
-                    s.call(sid, playerName);
-                } else if (data.action === 'fold') {
-                    s.fold(sid, playerName);
-                } else if (data.action === 'check') {
-                    canPerformAction = s.check(sid, playerName);
-                }
+
+                let actualBetAmount = performAction(playerName, data);
+                let canPerformAction = actualBetAmount >= 0;
+                
                 if (canPerformAction) {
                     io.sockets.to(sid).emit(`${data.action}`, {
                         username: playerName,
                         stack: s.getStack(sid, playerName),
                         pot: s.getPot(sid),
                         seat: s.getPlayerSeat(sid, playerName),
-                        amount: data.amount
+                        amount: actualBetAmount
                     });
                     // update client's stack size
                     io.sockets.to(sid).emit('update-stack', {

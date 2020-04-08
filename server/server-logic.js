@@ -194,7 +194,7 @@ let playersInfo = (sid) => {
     }
     console.log(info);
     return info;
-}
+};
 
 let getStack = (sid, playerName) => {
     let table = getTableById(sid).table;
@@ -310,7 +310,7 @@ let raise = (sid, playerName, betAmount) => {
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
     console.log(`player ${playerName} is betting ${realBetAmount} on top of his last bet of ${playersLastBet}`);
-    return tables[sid].table.bet(playerName, realBetAmount);
+    return bet(playerName, realBetAmount);
 }
 
 let getWinnings = (sid, prev_round) => {
