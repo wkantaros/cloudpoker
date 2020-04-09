@@ -107,7 +107,7 @@ let getAllIns = (sid) => {
             tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
         }
     }
-    console.log(tables[sid].allIn);
+    // console.log(tables[sid].allIn);
     return tables[sid].allIn;
 }
 
@@ -417,51 +417,49 @@ let getBigBlindSeat = (sid) => {
     return seat;
 }
 
-let getAvailableActions = (sid) => {
-    if (gameInProgress(sid) && getMaxBet(sid)){
-        if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind){
-            return {
-                'min-bet': false,
-                'bet': false,
-                'raise': true,
-                'fold': true,
-                'call': false,
-                'start': false,
-                'check': true
-            };
+let getAvailableActions = (sid, playerid) => {
+    let actions = {
+        'min-bet': false,
+        'bet': false,
+        'raise': false,
+        'fold': false,
+        'call': false,
+        'start': false,
+        'check': false
+    };
+    // if player is at the table
+    if (isActivePlayerId(sid, playerid)){
+        console.log('player at table');
+        // case where game hasnt started yet, player is mod and there are enough players
+        let seatsTaken = getTableById(sid).seatsTaken.filter(isTaken => isTaken).length;
+        if (!gameInProgress(sid) && (getModId(sid) == playerid) && seatsTaken >= 2) {
+            console.log('game can start');
+            actions['start'] = true;
         }
-        else {
-            return {
-                'min-bet': false,
-                'bet': false,
-                'raise': true,
-                'fold': true,
-                'call': true,
-                'start': false,
-                'check': false
-            };
+        // cases where it's the player's action and game is in progress
+        else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
+            // player is in big blind
+            if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind) {
+                actions['check'] = true;
+                actions['raise'] = true;
+                actions['fold'] = true;
+            }
+            // bet on table
+            else if (getMaxBet(sid)){
+                actions['call'] = true;
+                actions['raise'] = true;
+                actions['fold'] = true;
+            }
+            // no bets yet
+            else {
+                actions['check'] = true;
+                actions['bet'] = true;
+                actions['min-bet'] = true;
+                actions['fold'] = true;
+            }
         }
-    } else if (gameInProgress(sid)){
-        return {
-            'min-bet': true,
-            'bet': true,
-            'raise': false,
-            'fold': true,
-            'call': false,
-            'start': false,
-            'check': true
-        };
-    } else {
-        return {
-            'min-bet': false,
-            'bet': false,
-            'raise': false,
-            'fold': false,
-            'call': false,
-            'start': true,
-            'check': false
-        };
     }
+    return actions;
 }
 
 // if thats the case, just call and move forward with game
@@ -497,14 +495,18 @@ let everyoneAllIn = (sid) => {
             }
         }
     }
-    console.log(`Number of players who can act: ${allInPlayer}`);
-    console.log(`All in player: ${playersWhoCanAct}`);
+    console.log(`Number of players who can act: ${playersWhoCanAct}`);
+    console.log(`All in player: ${allInPlayer}`);
     return (playersWhoCanAct <= 1) && allInPlayer;
 }
 
 let playerFolded = (sid, playerName) => {
     let table = getTableById(sid).table;
     return table.getPlayer(playerName).folded;
+}
+
+let getPlayerIds = (sid) => {
+    return Object.values(playerids[sid]).map(x => x.playerid);
 }
 
 module.exports.createNewTable = createNewTable;
@@ -549,3 +551,4 @@ module.exports.getAllIns = getAllIns;
 module.exports.getAvailableActions = getAvailableActions;
 module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
 module.exports.everyoneAllIn = everyoneAllIn;
+module.exports.getPlayerIds = getPlayerIds;

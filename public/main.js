@@ -484,8 +484,13 @@ socket.on('start-game', (data) => {
 socket.on('action', (data) => {
     $('.name').removeClass('action');
     $(`#${data.seat} > .name`).addClass('action');
-    displayButtons(data.availableActions);
 });
+
+// renders available buttons for player
+socket.on('render-action-buttons', (data) => {
+    displayButtons(data.availableActions);
+})
+
 
 // changes that person to the person who has the action
 socket.on('available-actions', (data) => {
@@ -605,7 +610,7 @@ socket.on('clear-earnings', function (data) {
 });
 
 // user's action (alert with sound)
-socket.on('players-action', function(data){
+socket.on('players-action-sound', function(data){
     playSoundIfVolumeOn('action');
 });
 

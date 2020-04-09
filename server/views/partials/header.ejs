@@ -22,8 +22,27 @@
                     <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
                 </div>
             </div>
+            <anchor class="button popup collapse" id="quit-btn">Quit</anchor>
+        <% } else { %>
+            <div class="button popup collapse" id = "buyin">
+                <span id="txt">Join Game</span>
+                <div class="popuptext" id="buyin-info">
+                    <div class="row">
+                        <!-- <div class="u-full-width"> -->
+                        <!-- <label for="exampleEmailInput">Name</label> -->
+                        <input type="text" placeholder="name" id="new-playerName">
+                        <!-- </div> -->
+                    </div>
+                    <div class="row">
+                        <input type="text" placeholder="stack size" id="new-stack">
+                        <!-- </div> -->
+                    </div>
+                    <div class="button-primary" id="buyin-btn">Submit</div>
+                    <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
+                </div>
+            </div>
+            <anchor class="button popup" id="quit-btn">Quit</anchor>
         <% } %>
-        <anchor class="button popup collapse" id="quit-btn">Quit</anchor>
         <button class="button collapse" id="bomb-pot">Bomb Pot</button>
         <!-- <anchor class="button popup hidden" id="standup-btn">Standup</anchor> -->
         <div class="button disabled" id="blinds"> Blind: <span id="sb"><%= smallBlind %></span> / <span id="bb"><%= bigBlind %></span></div>

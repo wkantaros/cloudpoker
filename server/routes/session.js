@@ -83,6 +83,8 @@ router.route('/:id').get((req, res) => {
         return tableSocketMap.get(sid).key(playerId);
     };
 
+    console.log('is active player', s.isActivePlayerId(sid,playerId));
+
     res.render('pages/game', {
         bigBlind: table.bigBlind,
         smallBlind: table.smallBlind,
@@ -95,7 +97,7 @@ router.route('/:id').get((req, res) => {
         name: t.hostName,
         stack: t.hostStack,
         showCards: false,
-        joinedGame: false,
+        joinedGame: s.isActivePlayerId(sid, playerId),
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid),
@@ -125,7 +127,9 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
         }
         io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+        renderActionSeatAndPlayerActions(sid);
 
+        // chatroom features
         // send a message in the chatroom
         socket.on('chat', (data) => {
             io.to(sid).emit('chat', {
@@ -161,14 +165,20 @@ router.route('/:id').get((req, res) => {
                 }
             }
 
-            // Highlight cards of player in action seat
-            io.sockets.to(sid).emit('action', {
-                seat: s.getActionSeat(sid),
-                availableActions: s.getAvailableActions(sid)
-            });
+            // // Highlight cards of player in action seat
+            // io.sockets.to(sid).emit('action', {
+            //     seat: s.getActionSeat(sid),
+            //     availableActions: s.getAvailableActions(sid)
+            // });
+            // // Play sound for action seat player
+            // if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
+            //     io.to(getSocketId(playerId)).emit('players-action-sound', {});
+            // }
+            // highlight cards of player in action seat and get available buttons for players
+            renderActionSeatAndPlayerActions(sid);
             // Play sound for action seat player
             if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
-                io.to(getSocketId(playerId)).emit('players-action', {});
+                io.to(getSocketId(playerId)).emit('players-action-sound', {});
             }
         }
 
@@ -177,6 +187,7 @@ router.route('/:id').get((req, res) => {
             s.buyin(sid, data.playerName, playerId, data.stack);
             io.sockets.to(sid).emit('buy-in', data);
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+            renderActionSeatAndPlayerActions(sid);
         });
 
         socket.on('leave-game', (data) => {
@@ -201,6 +212,7 @@ router.route('/:id').get((req, res) => {
                 }
                 io.sockets.to(sid).emit('remove-out-players', {seat: seat});
                 s.makeEmptySeats(sid);
+                renderActionSeatAndPlayerActions(sid);
                 console.log('waiting for more players to rejoin');
             } else {
                 let playerName = s.getPlayerById(sid, playerId);
@@ -227,10 +239,11 @@ router.route('/:id').get((req, res) => {
                 if (s.actionOnAllInPlayer(sid)) {
                     console.log('ACTION ON ALL IN PLAYER 123');
                 } else {
-                    io.sockets.to(sid).emit('action', {
-                        seat: s.getActionSeat(sid),
-                        availableActions: s.getAvailableActions(sid)
-                    });
+                    // io.sockets.to(sid).emit('action', {
+                    //     seat: s.getActionSeat(sid),
+                    //     availableActions: s.getAvailableActions(sid)
+                    // });
+                    renderActionSeatAndPlayerActions(sid);
                 }
                 s.removePlayer(sid, playerName);
                 if (modLeavingGame){
@@ -251,7 +264,7 @@ router.route('/:id').get((req, res) => {
                 }, 250);
                 setTimeout(() => {
                     // notify player its their action with sound
-                    io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
+                    io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
                 }, 500);
             }
         });
@@ -327,10 +340,11 @@ router.route('/:id').get((req, res) => {
                     if (s.actionOnAllInPlayer(sid)){
                         console.log('ACTION ON ALL IN PLAYER');
                     } else {
-                        io.sockets.to(sid).emit('action', {
-                            seat: s.getActionSeat(sid),
-                            availableActions: s.getAvailableActions(sid)
-                        });
+                        renderActionSeatAndPlayerActions(sid);
+                        // io.sockets.to(sid).emit('action', {
+                        //     seat: s.getActionSeat(sid),
+                        //     availableActions: s.getAvailableActions(sid)
+                        // });
                     }
                     setTimeout(()=>{
                         // check if round has ended
@@ -338,7 +352,7 @@ router.route('/:id').get((req, res) => {
                     }, 250);
                     setTimeout(()=>{
                         // notify player its their action with sound
-                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action', {});
+                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -510,12 +524,30 @@ router.route('/:id').get((req, res) => {
             });
 
         }
-        io.sockets.to(sid).emit('action', {
-            seat: s.getActionSeat(sid),
-            availableActions: s.getAvailableActions(sid)
-        });
+        // io.sockets.to(sid).emit('action', {
+        //     seat: s.getActionSeat(sid),
+        //     availableActions: s.getAvailableActions(sid)
+        // });
+        renderActionSeatAndPlayerActions(sid);
         // abstracting this to be able to work with bomb pots/straddles down the line
-        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action', {});
+        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action-sound', {});
+    }
+
+    let renderActionSeatAndPlayerActions = (sid) => {
+        // highlight cards of player in action seat
+        io.sockets.to(sid).emit('action', {
+            seat: s.getActionSeat(sid)
+        });
+        // get available actions for player to act
+        // TODO: iterate over every player in sid and emit actions (for premoves, etc)
+        let playerIds = s.getPlayerIds(sid);
+        for (let i = 0; i < playerIds.length; i++){
+            let pid = playerIds[i];
+            // console.log(s.getAvailableActions(sid, actionPlayerId));
+            io.to(getSocketId(`${pid}`)).emit('render-action-buttons', {
+                availableActions: s.getAvailableActions(sid, pid)
+            });
+        }
     }
 });
 
