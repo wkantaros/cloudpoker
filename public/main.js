@@ -300,6 +300,7 @@ socket.on('remove-mod-abilities', (data) => {
     $('#quit-btn').addClass('collapse');
     $('#buyin').removeClass('collapse');
     $('#bomb-pot').addClass('collapse');
+    $('#start').addClass('collapse');
 });
 
 //incoming chat
