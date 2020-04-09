@@ -522,11 +522,10 @@ router.route('/:id').get((req, res) => {
             seat: s.getActionSeat(sid)
         });
         // get available actions for player to act
-        // TODO: iterate over every player in sid and emit actions (for premoves, etc)
+        // TODO: allow players to premove 
         let playerIds = s.getPlayerIds(sid);
         for (let i = 0; i < playerIds.length; i++){
             let pid = playerIds[i];
-            // console.log(s.getAvailableActions(sid, actionPlayerId));
             io.to(getSocketId(`${pid}`)).emit('render-action-buttons', {
                 availableActions: s.getAvailableActions(sid, pid)
             });
