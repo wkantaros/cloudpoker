@@ -502,7 +502,8 @@ let everyoneAllIn = (sid) => {
     }
     console.log(`Number of players who can act: ${playersWhoCanAct}`);
     console.log(`All in player: ${allInPlayer}`);
-    return (playersWhoCanAct <= 1) && allInPlayer;
+    let everyoneFolded = getTableById(sid).table.checkwin().everyoneFolded;
+    return !everyoneFolded && (playersWhoCanAct <= 1) && allInPlayer;
 }
 
 let playerFolded = (sid, playerName) => {

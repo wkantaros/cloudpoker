@@ -1,0 +1,124 @@
+Starting server on port 8080
+starting new table with id: jivDFHZFo
+adding player kt
+playerIdFromRequest undefined is active false
+inp true
+socket id!: Loxy6gkOEwTLbVTQAAAC player id GNON5IKDlf
+updating hostname playerid to: GNON5IKDlf
+a user connected at Loxy6gkOEwTLbVTQAAAC with player ID GNON5IKDlf
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+playerIdFromRequest undefined is active false
+inp true
+playerIdFromRequest undefined is active false
+inp true
+socket id!: t2rsRFSWQZ7A2ILRAAAD player id 0t86Mkoq9
+a user connected at t2rsRFSWQZ7A2ILRAAAD with player ID 0t86Mkoq9
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+socket id!: t2rsRFSWQZ7A2ILRAAAD player id szvrwayps
+a user connected at t2rsRFSWQZ7A2ILRAAAD with player ID szvrwayps
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+adding player xzc
+xzc buys in for 100 at seat 1
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  },
+  {
+    playerName: 'xzc',
+    seat: 1,
+    stack: 100,
+    playerid: '0t86Mkoq9',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+game can start
+player at table
+adding player xzc
+xzc buys in for 100 at seat 2
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  },
+  {
+    playerName: 'xzc',
+    seat: 2,
+    stack: 100,
+    playerid: 'szvrwayps',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+game can start
+player at table
+playerIdFromRequest szvrwayps is active true
+inp false
+pid 0t86Mkoq9 socket ID t2rsRFSWQZ7A2ILRAAAD disconnect reason transport close
+pid szvrwayps socket ID t2rsRFSWQZ7A2ILRAAAD disconnect reason transport close
+playerIdFromRequest szvrwayps is active true
+inp false
+socket id!: LM3tA_SqPZMQ9GbTAAAF player id szvrwayps
+a user connected at LM3tA_SqPZMQ9GbTAAAF with player ID szvrwayps
+[
+  {
+    playerName: 'kt',
+    seat: 0,
+    stack: 1000,
+    playerid: 'GNON5IKDlf',
+    waiting: true,
+    betAmount: 0
+  },
+  {
+    playerName: 'xzc',
+    seat: 2,
+    stack: 100,
+    playerid: 'szvrwayps',
+    waiting: true,
+    betAmount: 0
+  }
+]
+player at table
+game can start
+player at table
