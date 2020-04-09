@@ -992,7 +992,10 @@ Table.prototype.removePlayer = function (playerName){
   for( var i in this.players ){
     if( this.players[i].playerName === playerName ){
       this.playersToRemove.push( i );
-      this.players[i].Fold();
+      // EDITED
+      if (this.game != null) {
+          this.players[i].Fold();
+      }
     }
   }
   for( var i in this.playersToAdd ){

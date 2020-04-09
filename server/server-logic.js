@@ -59,6 +59,7 @@ let buyin = (sessionid, playerName, playerid, stack) => {
 }
 
 let removePlayer = (sessionid, playerName) => {
+    console.log('table:', tables[sessionid].table);
     tables[sessionid].table.removePlayer(playerName);
     // console.log(tables[sessionid])
     tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
