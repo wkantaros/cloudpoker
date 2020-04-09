@@ -92,8 +92,6 @@ router.route('/:id').get((req, res) => {
         actionSeat: s.getActionSeat(sid),
         dealer: s.getDealerSeat(sid),
         color: 'black',
-        name: t.hostName,
-        stack: t.hostStack,
         showCards: false,
         joinedGame: s.isActivePlayerId(sid, playerId),
         waiting: !s.gameInProgress(sid),
@@ -112,10 +110,10 @@ router.route('/:id').get((req, res) => {
         //     io.removeAllListeners('connection');
         // });
 
-        // make sure host has a socketid associate with name (first player to enter the game)
-        if (s.getPlayerId(sid, t.hostName) == 6969) {
-            s.updatePlayerId(sid, t.hostName, playerId);
-            console.log(s.getPlayerId(sid, t.hostName));
+        // make sure host has a socketid associate with name (player who sent in login form)
+        if (s.getModId(sid) != null && s.getModId(sid) == 6969) {
+            s.updatePlayerId(sid, s.getPlayerById(sid, s.getModId(sid)), playerId);
+            console.log('updating hostname playerid to:', s.getPlayerId(sid, s.getPlayerById(sid, s.getModId(sid))));
         }
         console.log('a user connected at', socket.id, 'with player ID', playerId);
 
@@ -173,8 +171,10 @@ router.route('/:id').get((req, res) => {
         }
 
         socket.on('buy-in', (data) => {
-            // console.log(data);
             s.buyin(sid, data.playerName, playerId, data.stack);
+            if (s.getModId(sid) === playerId) {
+                io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+            }
             io.sockets.to(sid).emit('buy-in', data);
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
             // highlight cards of player in action seat and get available buttons for players
@@ -328,10 +328,9 @@ router.route('/:id').get((req, res) => {
                     // shift action to next player in hand
                     if (s.actionOnAllInPlayer(sid)){
                         console.log('ACTION ON ALL IN PLAYER');
-                    } else {
-                        // highlight cards of player in action seat and get available buttons for players
-                        renderActionSeatAndPlayerActions(sid);
                     }
+                    // highlight cards of player in action seat and get available buttons for players
+                    renderActionSeatAndPlayerActions(sid);
                     setTimeout(()=>{
                         // check if round has ended
                         check_round(prev_round);

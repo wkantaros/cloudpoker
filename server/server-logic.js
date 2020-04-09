@@ -47,6 +47,10 @@ let buyin = (sessionid, playerName, playerid, stack) => {
         // console.log(tables[sessionid]);
         tables[sessionid].table.AddPlayer(playerName, stack, seat);
         console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
+        if (getTableById(sessionid).hostName === null){
+            console.log(`transferring host to ${playerName} (pid: ${playerid})`);
+            transferHost(sessionid, playerName);
+        }
         return true;
     } else {
         console.log('no seats available');
@@ -467,7 +471,7 @@ let actionOnAllInPlayer = (sid) => {
     let actionSeat = getActionSeat(sid);
     if (getTableById(sid).allIn[actionSeat]){
         console.log('action on all in player, moving game forward');
-        call(sid, getPlayerSeat(sid, actionSeat));
+        check(sid, getPlayerSeat(sid, actionSeat));
         return true;
     } else {
         return false;
