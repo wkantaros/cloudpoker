@@ -123,6 +123,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
         }
         io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+        renderActionSeatAndPlayerActions(sid);
         // highlight cards of player in action seat and get available buttons for players
         // renderActionSeatAndPlayerActions(sid);
 
