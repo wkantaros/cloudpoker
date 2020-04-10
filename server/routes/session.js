@@ -287,8 +287,11 @@ router.route('/:id').get((req, res) => {
             } else if (data.action === 'raise') {
                 actualBetAmount = s.raise(sid, playerName, data.amount);
             } else if (data.action === 'call') {
-                actualBetAmount = s.getMaxBet(sid);
-                s.call(sid, playerName);
+                if (s.getRoundName(sid) === 'Deal') {
+                    actualBetAmount = s.callBlind(sid, playerName);
+                } else {
+                    actualBetAmount = s.call(sid, playerName);
+                }
             } else if (data.action === 'fold') {
                 actualBetAmount = 0;
                 s.fold(sid, playerName);

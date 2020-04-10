@@ -817,8 +817,36 @@ Table.prototype.getPreviousPlayerAction = function(){
   return this.turnBet;
 };
 
-Table.prototype.callBlind = function(playerName) {
+Table.prototype.maximumPossibleBet = function() {
+    let m = 0;
+    for (let i = 0; i < this.players.length; i++) {
+        m = Math.max(m, this.players[i].chips + this.game.bets[i])
+    }
+    return m;
+}
 
+Table.prototype.callBlind = function(playerName) {
+    let currentPlayer = this.currentPlayer;
+    if ( playerName !== this.players[ currentPlayer ].playerName ) {
+        console.log("wrong user has made a move");
+        return -1;
+    }
+    console.log(`${playerName} calls`);
+    const maxBet = getMaxBet(this.game.bets);
+    const availableToBet = this.game.bets[currentPlayer] + this.players[currentPlayer].chips;
+
+    // if can't call
+    if (availableToBet <= maxBet || (availableToBet <= this.bigBlind && currentPlayer !== this.players.length -1)) {
+        return this.players[currentPlayer].AllIn();
+    }
+    // bet big blind if there is a following player with balance >= bigBlind
+    // TODO: if the "following player" folds, and all other players are all in,
+    //   return extra chips to currentPlayer. need side pot functionality
+    if (currentPlayer !== this.players.length -1) {
+        return this.players[currentPlayer].Bet(Math.min(this.maximumPossibleBet(), this.bigBlind));
+    }
+    // call maxBet (possibly < bigBlind if everyone else went all in)
+    return this.players[currentPlayer].Call();
 };
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
@@ -828,7 +856,6 @@ Table.prototype.check = function( playerName ){
   let cancheck = true;
   for (let v = 0; v < this.game.bets.length; v++) {
       //essentially wrapping this check as a call
-      // if (this.game.roundName === 'Deal' && currentPlayer === v && (this.game.bets[v] === this.bigBlind || this.players[v].allIn)){
       if (this.game.roundName === 'Deal' && this.game.bets[v] === this.bigBlind && currentPlayer === v){
           if (playerName === this.players[currentPlayer].playerName) {
               this.players[currentPlayer].Call();
@@ -872,12 +899,11 @@ Table.prototype.fold = function( playerName ){
 Table.prototype.call = function( playerName ){
   var currentPlayer = this.currentPlayer;
   if( playerName === this.players[ currentPlayer ].playerName ){
-    this.players[ currentPlayer ].Call();
     console.log(`${playerName} calls`);
-    return true;
+    return this.players[ currentPlayer ].Call();
   }else{
     console.log("wrong user has made a move");
-    return false;
+    return -1;
   }
 };
 
@@ -1093,11 +1119,9 @@ Table.prototype.NewRound = function() {
   smallBlind = (this.dealer + 1) % this.players.length;
   bigBlind = (this.dealer + 2) % this.players.length;
   //Force Blind Bets
-  // TODO: the next two lines can give players negative stacks. must check that this doesn't happen.
-  //  force them all-in if their balance <= their bland.
-  // Bet amounts are less than blinds if player goes all in
-  this.game.bets[smallBlind] = this.players[smallBlind].PostBlind(this.smallBlind);
-  this.game.bets[bigBlind] = this.players[bigBlind].PostBlind(this.bigBlind);
+  this.players[smallBlind].Bet(this.smallBlind);
+  this.currentPlayer = bigBlind; // removing this line causes callBlind to fail
+  this.players[bigBlind].Bet(this.bigBlind);
 
   // get currentPlayer
   this.currentPlayer = (this.dealer + 3) % this.players.length;
@@ -1105,14 +1129,23 @@ Table.prototype.NewRound = function() {
   this.eventEmitter.emit( "newRound" );
 };
 
-Player.prototype.GetChips = function(cash) {
-    this.chips += cash;
-};
+Player.prototype.postSmallBlind = function(amount) {
+    if (this.chips <= amount) {
+        let betAmount = this.chips;
+        return this.AllIn();
+    } else {
+
+    }
+}
 
 // TODO: PostBlind
 Player.prototype.PostBlind = function(blindAmount) {
     this.chips -= blindAmount;
     return blindAmount
+};
+
+Player.prototype.GetChips = function(cash) {
+    this.chips += cash;
 };
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()

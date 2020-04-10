@@ -106,6 +106,9 @@ let makeEmptySeats = (sid) => {
 
 // returns the seats of all all in players
 let getAllIns = (sid) => {
+    // tables[sid].table.players
+    //     .filter(p => getPlayerSeat(p.playerName) !== -1)
+    //     .forEach(p => tables[sid].allIn[getPlayerSeat(sid, p.playerName)] = p.allIn);
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
         if (getPlayerSeat(sid, players[i].playerName) != -1){
@@ -290,10 +293,14 @@ let getDeal = (sid) => {
     return tables[sid].table.getDeal();
 }
 
+const callBlind = (sid, playerName) => {
+    tables[sid].table.callBlind(playerName);
+};
+
 let call = (sid, playerName) => {
     // tables[sid].table.call(tables[sid].table.getCurrentPlayer());
     console.log(tables[sid].table);
-    tables[sid].table.call(playerName);
+    return tables[sid].table.call(playerName);
 }
 
 let check = (sid, playerName) => {
@@ -539,6 +546,7 @@ module.exports.gameInProgress = gameInProgress;
 module.exports.getPot = getPot;
 module.exports.getRoundName = getRoundName;
 module.exports.getDeal = getDeal;
+module.exports.callBlind = callBlind;
 module.exports.call = call;
 module.exports.check = check;
 module.exports.fold = fold;
