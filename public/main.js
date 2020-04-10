@@ -293,7 +293,7 @@ minBet.addEventListener('click', () => {
 $(document).keydown(function (event) {
     // m key
     if (event.keyCode === 77) {
-        // event.preventDefault();
+        event.preventDefault();
         message.select();
     }
     // k key (check)
@@ -362,6 +362,7 @@ message.addEventListener("keydown", (event) => {
     event.stopPropagation()
     if (event.keyCode === 13) {
         if (message.value) {
+            $('#message').blur();
             event.preventDefault();
             send_btn.click();
         }
