@@ -118,6 +118,10 @@ $('#buyin-btn').on('click', () => {
     }
 })
 
+$('#buyin-info').keydown(function (e){
+    e.stopPropagation();
+})
+
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {
         amount: 0
@@ -159,9 +163,13 @@ function copyStringToClipboard(str) {
 //action buttons ---------------------------------------------------------------------------------
 $('#bet').on('click', () => {
     $('#myPopup1').toggleClass('show');
+    if ($('#myPopup1').hasClass('show')) {
+        $('#bet-amount').select();
+    }
 })
 
-$('#bet-amount').keyup(function (e) {
+$('#bet-amount').keydown(function (e) {
+    e.stopPropagation();
     if (e.keyCode == 13) {
         console.log('bet');
         let betAmount = parseInt($('#bet-amount').val());
@@ -191,9 +199,13 @@ $('#raise').on('click', () => {
     // $('#raise-amount').val(minRaiseAmount);
     // $('#raise-amount').min(minRaiseAmount);
     $('#myPopup2').toggleClass('show');
+    if ($('#myPopup2').hasClass('show')){
+        $('#raise-amount').select();
+    }
 })
 
-$('#raise-amount').keyup(function (e) {
+$('#raise-amount').keydown(function (e) {
+    e.stopPropagation()
     if (e.keyCode == 13) {
         console.log('raise');
         let raiseAmount = parseInt($('#raise-amount').val());
@@ -277,6 +289,41 @@ minBet.addEventListener('click', () => {
     });
 });
 
+// keyboard shortcuts for all events
+$(document).keydown(function (event) {
+    // m key
+    if (event.keyCode === 77) {
+        // event.preventDefault();
+        message.select();
+    }
+    // k key (check)
+    if (event.keyCode === 75 && !$('#check').hasClass('collapse')){
+        check.click();
+    }
+    // c key (call)
+    if (event.keyCode === 67 && !$('#call').hasClass('collapse')){
+        call.click();
+    }
+    // c key (min bet)
+    if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
+        minBet.click();
+    }
+    // r key (raise)
+    if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
+        raise.click();
+    }
+    // r key (bet)
+    if (event.keyCode === 82 && !$('#bet').hasClass('collapse')){
+        bet.click();
+        bet
+    }
+    // f key (fold)
+    if (event.keyCode === 70 && !$('#fold').hasClass('collapse')){
+        console.log('here!!');
+        fold.click();
+    }
+});
+
 function isVolumeOn() {
     return $('.volume').hasClass('on');
 }
@@ -310,8 +357,9 @@ send_btn.addEventListener('click', () => {
 });
 
 //allow user to send message with enter key
-message.addEventListener("keyup", (event) => {
+message.addEventListener("keydown", (event) => {
     // Number 13 is the "Enter" key on the keyboard
+    event.stopPropagation()
     if (event.keyCode === 13) {
         if (message.value) {
             event.preventDefault();
@@ -562,6 +610,12 @@ socket.on('call', (data) => {
 socket.on('check', (data) => {
     outputEmphasizedMessage(data.username + ' checks');
     playSoundIfVolumeOn('check');
+    if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
+        console.log('big blind player closing action');
+    }
+    else {
+        showBet(data.seat, 'check');
+    }
 });
 
 // fold
@@ -866,7 +920,7 @@ function createBets() {
     for (var i = 0; i < 10; i++) {
         $('<div/>', {
             'class': 'player-bet hidden',
-            'text': 0
+            'text': 'check'
         }).appendTo(table);
     }
 }
