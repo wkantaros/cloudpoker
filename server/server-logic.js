@@ -322,7 +322,6 @@ let bet = (sid, playerName, betAmount) => {
 // (such that node-poker doenst have him bet that number + his previous bet)
 let raise = (sid, playerName, betAmount) => {
     // console.log(tables[sid]);
-    console.log(tables[sid].table.game);
     let betIndex = 0;
     for (let i = 0; i < getPlayerSeat(sid, playerName); i++){
         if (tables[sid].seatsTaken[i]){
@@ -354,7 +353,7 @@ let updateStack = (sid, playerName, winnings) => {
 }
 
 let getMaxBet = (sid) => {
-    return tables[sid].getMaxBet();
+    return tables[sid].table.getMaxBet();
 };
 
 let getNameByActionSeat = (sid) => {

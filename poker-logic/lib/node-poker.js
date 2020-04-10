@@ -108,17 +108,6 @@ function fillDeck(deck) {
     }
 }
 
-function getMaxBet(bets) {
-    var maxBet, i;
-    maxBet = 0;
-    for (i = 0; i < bets.length; i += 1) {
-        if (bets[i] > maxBet) {
-            maxBet = bets[i];
-        }
-    }
-    return maxBet;
-}
-
 function checkForEndOfRound(table) {
     let endOfRound = true;
     const maxBet = table.getMaxBet();
@@ -813,6 +802,7 @@ Table.prototype.check = function( playerName ){
               //
               this.players[currentPlayer].Bet(0);
               console.log(`${playerName} calls`);
+              progress(this);
               return true;
           } else {
               console.log("wrong user has made a move 1234");
@@ -826,7 +816,9 @@ Table.prototype.check = function( playerName ){
       console.log('here!');
       if (cancheck){
         this.players[currentPlayer].Check();
+          progress(this);
         console.log(`${playerName} checks`);
+          progress(this);
         return true;
       } else {
         console.log(`${playerName} unable to check`);
@@ -843,6 +835,7 @@ Table.prototype.fold = function( playerName ){
   if( playerName === p.playerName ){
     this.game.pot += p.bet;
     p.Fold();
+      progress(this);
     console.log(`${playerName} folds`);
     return true;
   }else{
@@ -857,10 +850,14 @@ Table.prototype.call = function( playerName ){
       if (p.chips + p.bet > maxBet) {
           console.log(`${playerName} calls`);
           // treat call as bet
-          return p.Bet(maxBet - p.bet);
+          const betAmount = p.Bet(maxBet - p.bet);
+          progress(this);
+          return betAmount;
       } else {
           console.log(`${playerName} doesn't have enough to call, going all in.`);
-          return p.AllIn();
+          const betAmount = p.AllIn();
+          progress(this);
+          return betAmount;
       }
   }else{
     console.log("wrong user has made a move");
@@ -883,7 +880,9 @@ Table.prototype.bet = function( playerName, amt ){
         return 0;
     }
     console.log(`${playerName} bet ${amt}`);
-    return this.players[ this.currentPlayer ].Bet( amt );
+    const betAmount = this.players[ this.currentPlayer ].Bet( amt );
+    progress(this);
+    return betAmount;
 };
 Table.prototype.getWinners = function(){
   return this.gameWinners;
@@ -963,7 +962,9 @@ Table.prototype.AddPlayer = function (playerName, chips, seat) {
 //     this.StartGame();
 //   }
 };
-Table.prototype.getMaxBet = () => {
+Table.prototype.getMaxBet = function() {
+    console.log('pls', JSON.stringify(this.players));
+    console.log('plstadd', JSON.stringify(this.playersToAdd));
     return Math.max(...this.players.map(x => x.bet));
 };
 Table.prototype.removePlayer = function (playerName){
@@ -974,6 +975,7 @@ Table.prototype.removePlayer = function (playerName){
       if (this.game != null) {
           this.game.pot += this.players[i].bet;
           this.players[i].Fold();
+          progress(this);
       }
     }
   }
@@ -993,6 +995,8 @@ Table.prototype.NewRound = function() {
     console.log('sorted toRemove:');
     console.log(this.playersToRemove);
     // done editing
+    console.log('init players', JSON.stringify(this.players));
+    console.log('to add players', JSON.stringify(this.playersToAdd));
   for(let i = 0; i < this.playersToAdd.length; i++){
     // new
         let seat = this.playersToAdd[i].seat;
@@ -1016,6 +1020,7 @@ Table.prototype.NewRound = function() {
             this.players.push(this.playersToAdd[i]);
         }
     }
+  console.log('p to add', JSON.stringify(this.players));
   // Remove players
   // EDITED
   for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
@@ -1092,7 +1097,6 @@ Player.prototype.GetChips = function(cash) {
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
 Player.prototype.Check = function() {
     this.applyBet(0);
-    progress(this.table);
     return 0;
 };
 
@@ -1100,8 +1104,6 @@ Player.prototype.Fold = function() {
     this.bet = 0;
     this.talked = true;
     this.folded = true;
-
-    progress(this.table);
     return 0;
 };
 
@@ -1125,7 +1127,6 @@ Player.prototype.Bet = function(bet) {
     }
     if (this.bet + this.chips > bet) {
         this.applyBet(bet);
-        progress(this.table);
         return bet;
     } else {
         console.log('You don\'t have enough chips --> ALL IN !!!');
@@ -1139,7 +1140,6 @@ Player.prototype.Bet = function(bet) {
 Player.prototype.AllIn = function() {
     const allInValue = this.chips;
     this.applyBet(allInValue);
-    progress(this.table);
     return allInValue;
 };
 
