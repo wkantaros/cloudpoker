@@ -106,7 +106,7 @@ router.route('/:id').get((req, res) => {
         tableSocketMap.get(sid).set(playerId, socket.id);
 
         // socket.on('disconnect', (reason) => {
-        //     console.log('pid', playerId, 'disconnect reason', reason);
+        //     console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
         //     io.removeAllListeners('connection');
         // });
 
