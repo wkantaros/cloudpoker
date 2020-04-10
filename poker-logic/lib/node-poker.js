@@ -14,7 +14,6 @@ function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn)
     this.playersToRemove = [];
     this.playersToAdd = [];
     this.eventEmitter = new events.EventEmitter();
-    this.turnBet = {};
     this.gameWinners = [];
     this.gameLosers = [];
 
@@ -39,8 +38,9 @@ function Player(playerName, chips, table) {
     this.folded = false;
     this.allIn = false;
     this.talked = false;
-    this.table = table; //Circular reference to allow reference back to parent object.
+    // this.table = table; //Circular reference to allow reference back to parent object.
     this.cards = [];
+    this.bet = 0;
 }
 
 function fillDeck(deck) {
@@ -120,9 +120,8 @@ function getMaxBet(bets) {
 }
 
 function checkForEndOfRound(table) {
-    var maxBet, i, endOfRound;
-    endOfRound = true;
-    maxBet = getMaxBet(table.game.bets);
+    let endOfRound = true;
+    const maxBet = table.getMaxBet();
     //For each player, check
     // EDITED
     let counter = 1;
@@ -130,7 +129,7 @@ function checkForEndOfRound(table) {
     while (counter <= table.players.length){
         // console.log(`Current player: ${j}`);
         if (table.players[j].folded === false) {
-            if (table.players[j].talked === false || table.game.bets[j] !== maxBet) {
+            if (table.players[j].talked === false || table.players[j].bet !== maxBet) {
                 if (table.players[j].allIn === false) {
                     table.currentPlayer = j;
                     endOfRound = false;
@@ -138,20 +137,9 @@ function checkForEndOfRound(table) {
                 }
             }
         }
-        j++;
-        if (j >= table.players.length) j = 0;
+        j = (j + 1) % table.players.length;
         counter++;
     }
-    // for (i = 0; i < table.players.length; i += 1) {
-    //     if (table.players[i].folded === false) {
-    //         if (table.players[i].talked === false || table.game.bets[i] !== maxBet) {
-    //             if (table.players[i].allIn === false) {
-    //               table.currentPlayer = i;
-    //               endOfRound = false;
-    //             }
-    //         }
-    //     }
-    // }
     return endOfRound;
 }
 
@@ -706,7 +694,7 @@ function progress(table) {
         if (checkForEndOfRound(table) === true) {
             // EDITED
         //   table.currentPlayer = (table.currentPlayer >= table.players.length-1) ? (table.currentPlayer-table.players.length+1) : (table.currentPlayer + 1 );
-          table.currentPlayer = (table.dealer + 1 >= table.players.length) ? 0 : table.dealer + 1;
+          table.currentPlayer = (table.dealer + 1) % table.players.length;
           let ctr = 0;
           console.log(`TABLE!!! ${table}`);
         //   console.log(table);
@@ -721,13 +709,13 @@ function progress(table) {
           }
           // ^^done with edits
             //Move all bets to the pot
-            for (i = 0; i < table.game.bets.length; i += 1) {
-                table.game.pot += parseInt(table.game.bets[i], 10);
-                table.game.roundBets[i] += parseInt(table.game.bets[i], 10);
+            for (i = 0; i < table.players.length; i++) {
+                table.game.pot += table.players[i].bet;
+                table.game.roundBets[i] += table.players[i].bet;
             }
             if (table.game.roundName === 'River') {
                 table.game.roundName = 'Showdown';
-                table.game.bets.splice(0, table.game.bets.length);
+                // table.game.bets.splice(0, table.game.bets.length);
                 //Evaluate each hand
                 for (j = 0; j < table.players.length; j += 1) {
                     cards = table.players[j].cards.concat(table.game.board);
@@ -740,46 +728,31 @@ function progress(table) {
             } else if (table.game.roundName === 'Turn') {
                 console.log('effective turn');
                 table.game.roundName = 'River';
-                table.game.deck.pop(); //Burn a card
-                table.game.board.push(table.game.deck.pop()); //Turn a card
-                //table.game.bets.splice(0,table.game.bets.length-1);
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 1);
             } else if (table.game.roundName === 'Flop') {
                 console.log('effective flop');
                 table.game.roundName = 'Turn';
-                table.game.deck.pop(); //Burn a card
-                table.game.board.push(table.game.deck.pop()); //Turn a card
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 1);
             } else if (table.game.roundName === 'Deal') {
                 console.log('effective deal');
                 table.game.roundName = 'Flop';
-                table.game.deck.pop(); //Burn a card
-                for (i = 0; i < 3; i += 1) { //Turn three cards
-                    table.game.board.push(table.game.deck.pop());
-                }
-                //table.game.bets.splice(0,table.game.bets.length-1);
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 3);
             }
         }
     }
+}
+
+// count is the amount of cards to turn.for flop, should be 3. for turn and river, 1.
+function turnCards(table, count) {
+    table.game.deck.pop(); //Burn a card
+    for (let i = 0; i < count; i += 1) { //Turn a card <count> times
+        table.game.board.push(table.game.deck.pop());
+    }
+    for (let i = 0; i < table.players.length; i += 1) {
+        table.players[i].talked = false;
+        table.players[i].bet = 0;
+    }
+    table.eventEmitter.emit( "deal" );
 }
 
 function Game(smallBlind, bigBlind) {
@@ -826,26 +799,26 @@ Table.prototype.getEventEmitter = function() {
 Table.prototype.getCurrentPlayer = function(){
   return this.players[ this.currentPlayer ].playerName;
 };
-Table.prototype.getPreviousPlayerAction = function(){
-  return this.turnBet;
-};
+
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
 Table.prototype.check = function( playerName ){
-  var currentPlayer = this.currentPlayer;
+  const currentPlayer = this.currentPlayer;
     //   EDITED (primarily to deal with 'checking' to close action as bb)
   let cancheck = true;
-  for (let v = 0; v < this.game.bets.length; v++) {
+
+  for (let v = 0; v < this.players.length; v++) {
       //essentially wrapping this check as a call
-      if (this.game.roundName === 'Deal' && this.game.bets[v] === this.bigBlind && currentPlayer === v){
+      if (this.game.roundName === 'Deal' && this.players[v].bet === this.bigBlind && currentPlayer === v){
           if (playerName === this.players[currentPlayer].playerName) {
-              this.players[currentPlayer].Call();
+              //
+              this.players[currentPlayer].Bet(0);
               console.log(`${playerName} calls`);
               return true;
           } else {
               console.log("wrong user has made a move 1234");
               return false;
           }
-      } else if (this.game.bets[v] !== 0) {
+      } else if (this.players[v].bet !== 0) {
           cancheck = false;
       }
   }
@@ -866,9 +839,10 @@ Table.prototype.check = function( playerName ){
   }
 };
 Table.prototype.fold = function( playerName ){
-  var currentPlayer = this.currentPlayer;
-  if( playerName === this.players[ currentPlayer ].playerName ){
-    this.players[ currentPlayer ].Fold();
+  let p = this.players[this.currentPlayer];
+  if( playerName === p.playerName ){
+    this.game.pot += p.bet;
+    p.Fold();
     console.log(`${playerName} folds`);
     return true;
   }else{
@@ -877,11 +851,17 @@ Table.prototype.fold = function( playerName ){
   }
 };
 Table.prototype.call = function( playerName ){
-  var currentPlayer = this.currentPlayer;
-  if( playerName === this.players[ currentPlayer ].playerName ){
-    this.players[ currentPlayer ].Call();
-    console.log(`${playerName} calls`);
-    return true;
+  let p = this.players[this.currentPlayer];
+  if( playerName === p.playerName ) {
+      const maxBet = this.getMaxBet();
+      if (p.chips + p.bet > maxBet) {
+          console.log(`${playerName} calls`);
+          // treat call as bet
+          return p.Bet(maxBet - p.bet);
+      } else {
+          console.log(`${playerName} doesn't have enough to call, going all in.`);
+          return p.AllIn();
+      }
   }else{
     console.log("wrong user has made a move");
     return false;
@@ -898,15 +878,12 @@ Table.prototype.bet = function( playerName, amt ){
         console.log(`${playerName} tried to bet ${amt}`);
         return 0;
     }
-    let currentPlayer = this.currentPlayer;
-    if( playerName === this.players[ currentPlayer ].playerName ){
-        const amountBet = this.players[ currentPlayer ].Bet( amt );
-        console.log(`${playerName} bet ${amountBet}`);
-        return amountBet;
-    } else {
+    if( playerName !== this.players[ this.currentPlayer ].playerName ) {
         console.log("wrong user has made a move");
         return 0;
     }
+    console.log(`${playerName} bet ${amt}`);
+    return this.players[ this.currentPlayer ].Bet( amt );
 };
 Table.prototype.getWinners = function(){
   return this.gameWinners;
@@ -928,7 +905,6 @@ Table.prototype.getAllHands = function(){
 };
 
 Table.prototype.initNewRound = function () {
-    var i;
     this.dealer += 1;
     if (this.dealer >= this.players.length) {
         this.dealer = 0;
@@ -936,10 +912,10 @@ Table.prototype.initNewRound = function () {
     this.game.pot = 0;
     this.game.roundName = 'Deal'; //Start the first round
     this.game.betName = 'bet'; //bet,raise,re-raise,cap
-    this.game.bets.splice(0, this.game.bets.length);
     this.game.deck.splice(0, this.game.deck.length);
     this.game.board.splice(0, this.game.board.length);
-    for (i = 0; i < this.players.length; i += 1) {
+    for (let i = 0; i < this.players.length; i += 1) {
+        this.players[i].bet = 0;
         this.players[i].folded = false;
         this.players[i].talked = false;
         this.players[i].allIn = false;
@@ -987,13 +963,16 @@ Table.prototype.AddPlayer = function (playerName, chips, seat) {
 //     this.StartGame();
 //   }
 };
-
+Table.prototype.getMaxBet = () => {
+    return Math.max(...this.players.map(x => x.bet));
+};
 Table.prototype.removePlayer = function (playerName){
   for( var i in this.players ){
     if( this.players[i].playerName === playerName ){
       this.playersToRemove.push( i );
       // EDITED
       if (this.game != null) {
+          this.game.pot += this.players[i].bet;
           this.players[i].Fold();
       }
     }
@@ -1006,9 +985,6 @@ Table.prototype.removePlayer = function (playerName){
 }
 Table.prototype.NewRound = function() {
   // Add players in waiting list
-//   console.log('table!!!!!!');
-//   console.log(this);
-  var removeIndex = 0;
     // EDITED
     // make sure its all in order (note this works bc numbers can only be between 0 and 9)
     if (this.playersToRemove.length > 0) {
@@ -1018,16 +994,6 @@ Table.prototype.NewRound = function() {
     console.log(this.playersToRemove);
     // done editing
   for(let i = 0; i < this.playersToAdd.length; i++){
-//   for( var i in this.playersToAdd ){
-      // old
-    //   if( removeIndex < this.playersToRemove.length ){
-    //       var index = this.playersToRemove[ removeIndex ];
-    //       this.players[ index ] = this.playersToAdd[ i ];
-    //       removeIndex += 1;
-    //     }else{
-    //         this.players.push( this.playersToAdd[i] );
-    //     }
-    // end old
     // new
         let seat = this.playersToAdd[i].seat;
         if (seat < this.players.length){
@@ -1052,7 +1018,7 @@ Table.prototype.NewRound = function() {
     }
   // Remove players
   // EDITED
-  for (removeIndex; removeIndex < this.playersToRemove.length; removeIndex++){
+  for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
       let indexval = parseInt(this.playersToRemove[removeIndex]);
       this.players.splice(this.playersToRemove[removeIndex], 1);
       // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
@@ -1088,12 +1054,12 @@ Table.prototype.NewRound = function() {
       return;
   }
 
-  var i, smallBlind, bigBlind;
+  let i, smallBlind, bigBlind;
   //Deal 2 cards to each player
   for (i = 0; i < this.players.length; i += 1) {
       this.players[i].cards.push(this.game.deck.pop());
       this.players[i].cards.push(this.game.deck.pop());
-      this.game.bets[i] = 0;
+      this.players[i].bet = 0;
       this.game.roundBets[i] = 0;
   }
   //Identify Small and Big Blind player indexes
@@ -1110,8 +1076,8 @@ Table.prototype.NewRound = function() {
   //  force them all-in if their balance <= their bland.
   this.players[smallBlind].chips -= this.smallBlind;
   this.players[bigBlind].chips -= this.bigBlind;
-  this.game.bets[smallBlind] = this.smallBlind;
-  this.game.bets[bigBlind] = this.bigBlind;
+  this.players[smallBlind].bet = this.smallBlind;
+  this.players[bigBlind].bet = this.bigBlind;
 
   // get currentPlayer
   this.currentPlayer = (this.dealer + 3) % this.players.length;
@@ -1125,45 +1091,27 @@ Player.prototype.GetChips = function(cash) {
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
 Player.prototype.Check = function() {
-    var checkAllow, v, i;
-    checkAllow = true;
-    for (v = 0; v < this.table.game.bets.length; v += 1) {
-        if (this.table.game.bets[v] !== 0) {
-            checkAllow = false;
-        }
-    }
-    if (checkAllow) {
-        for (i = 0; i < this.table.players.length; i += 1) {
-            if (this === this.table.players[i]) {
-                this.table.game.bets[i] = 0;
-                this.talked = true;
-            }
-        }
-        //Attemp to progress the game
-        this.turnBet = {action: "check", playerName: this.playerName}
-        progress(this.table);
-    } else {
-        console.log("Check not allowed, replay please");
-    }
+    this.applyBet(0);
+    progress(this.table);
+    return 0;
 };
 
 Player.prototype.Fold = function() {
-    var i, bet;
-    //Move any current bet into the pot
-    for (i = 0; i < this.table.players.length; i += 1) {
-        if (this === this.table.players[i]) {
-            bet = parseInt(this.table.game.bets[i], 10);
-            this.table.game.bets[i] = 0;
-            this.table.game.pot += bet;
-            this.talked = true;
-        }
-    }
-    //Mark the player as folded
+    this.bet = 0;
+    this.talked = true;
     this.folded = true;
-    this.turnBet = {action: "fold", playerName: this.playerName}
 
-    //Attemp to progress the game
     progress(this.table);
+    return 0;
+};
+
+Player.prototype.applyBet = function(bet) {
+    this.chips -= bet;
+    this.bet += bet;
+    this.talked = true;
+    if (this.chips === 0) {
+        this.allIn = true;
+    }
 };
 
 // Returns amount bet. If this.chips < (parameter) bet, return value will be this.chips.
@@ -1175,18 +1123,8 @@ Player.prototype.Bet = function(bet) {
     if (bet < 0) {
         return 0;
     }
-    var i;
-    if (this.chips > bet) {
-        for (i = 0; i < this.table.players.length; i += 1) {
-            if (this === this.table.players[i]) {
-                this.table.game.bets[i] += bet;
-                this.table.players[i].chips -= bet;
-                this.talked = true;
-            }
-        }
-
-        //Attempt to progress the game
-        this.turnBet = {action: "bet", playerName: this.playerName, amount: bet}
+    if (this.bet + this.chips > bet) {
+        this.applyBet(bet);
         progress(this.table);
         return bet;
     } else {
@@ -1198,51 +1136,9 @@ Player.prototype.Bet = function(bet) {
 /**
  * @return {number} Amount bet
  */
-Player.prototype.Call = function() {
-    var maxBet, i;
-    maxBet = getMaxBet(this.table.game.bets);
-    if (this.chips > maxBet) {
-        //Match the highest bet
-        for (i = 0; i < this.table.players.length; i += 1) {
-            if (this === this.table.players[i]) {
-                if (this.table.game.bets[i] >= 0) {
-                    this.chips += this.table.game.bets[i];
-                }
-                this.chips -= maxBet;
-                this.table.game.bets[i] = maxBet;
-                this.talked = true;
-            }
-        }
-        //Attemp to progress the game
-        this.turnBet = {action: "call", playerName: this.playerName, amount: maxBet}
-        progress(this.table);
-        return maxBet;
-    } else {
-        console.log('You don\'t have enought chips --> ALL IN !!!');
-        return this.AllIn();
-    }
-};
-
-/**
- * @return {number} Amount bet
- */
 Player.prototype.AllIn = function() {
-    var i, allInValue=0;
-    for (i = 0; i < this.table.players.length; i += 1) {
-        if (this === this.table.players[i]) {
-            if (this.table.players[i].chips !== 0) {
-              allInValue = this.table.players[i].chips;
-                this.table.game.bets[i] += this.table.players[i].chips;
-                this.table.players[i].chips = 0;
-
-                this.allIn = true;
-                this.talked = true;
-            }
-        }
-    }
-
-    //Attemp to progress the game
-    this.turnBet = {action: "allin", playerName: this.playerName, amount: allInValue}
+    const allInValue = this.chips;
+    this.applyBet(allInValue);
     progress(this.table);
     return allInValue;
 };
