@@ -17,6 +17,44 @@ let host = document.getElementById('host'),
     minBet = document.getElementById('min-bet');
     // standup = document.getElementById('standup-btn');
 
+
+//resize page (to fit)
+
+var $el = $("#page-contents");
+var elHeight = $el.outerHeight();
+var elWidth = $el.outerWidth();
+
+var $wrapper = $("#scaleable-wrapper");
+
+$wrapper.resizable({
+  resize: doResize
+});
+
+function doResize(event, ui) {
+  
+  var scale, origin;
+    
+  scale = Math.min(
+    ui.size.width / elWidth,    
+    ui.size.height / elHeight
+  );
+  
+  $el.css({
+    transform: "translate(-50%, -50%) " + "scale(" + scale + ")"
+  });
+  
+}
+
+var starterData = { 
+  size: {
+    width: $wrapper.width(),
+    height: $wrapper.height()
+  }
+}
+doResize(null, starterData);
+
+
+
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
     let buyinInfo = $('#buyin-info');
@@ -56,6 +94,7 @@ const logIn = () => {
 };
 
 $('#buyin-btn').on('click', () => {
+    console.log('here!');
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
@@ -788,7 +827,7 @@ function createHands() {
 }
 
 function distributeHands(firstRender) {
-    var radius = 200;
+    var radius = 210;
     let fields = $('.field'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -833,7 +872,7 @@ function createBets() {
 }
 
 function distributeBets() {
-    var radius = 175;
+    var radius = 180;
     let betFields = $('.player-bet'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -844,7 +883,7 @@ function distributeBets() {
     betFields.each(function () {
         // note consider changing width/455 to 2.5
         var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
-        var y = Math.round(height / 2 + radius * (1 * Math.sin(angle)) - $(this).height() / 2) - 10;
+        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 20;
         // if (window.console) {
         //     console.log($(this).text(), x, y);
         // }
@@ -865,4 +904,11 @@ $(window).resize(function () {
     // createHands();
     distributeHands(false);
     distributeBets();
+    let resizeData = {
+        size: {
+            width: $wrapper.width(),
+            height: $wrapper.height()
+        }
+    }
+    doResize(null, resizeData);
 });

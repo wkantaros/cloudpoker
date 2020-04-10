@@ -124,7 +124,7 @@ router.route('/:id').get((req, res) => {
         }
         io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
         // highlight cards of player in action seat and get available buttons for players
-        renderActionSeatAndPlayerActions(sid);
+        // renderActionSeatAndPlayerActions(sid);
 
         // chatroom features
         // send a message in the chatroom
@@ -253,7 +253,9 @@ router.route('/:id').get((req, res) => {
                 }, 250);
                 setTimeout(() => {
                     // notify player its their action with sound
-                    io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                    if (s.getPlayerId(sid, s.getNameByActionSeat(sid))){
+                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                    }
                 }, 500);
             }
         });
@@ -350,9 +352,7 @@ router.route('/:id').get((req, res) => {
     
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
-        let table = s.getTableById(sid).table;
         let playerSeatsAllInBool = s.getAllIns(sid);
-        // console.log(table);
         let data = s.checkwin(sid);
         // SHOWDOWN CASE
         if (s.getRoundName(sid) === 'showdown') {
@@ -456,8 +456,6 @@ router.route('/:id').get((req, res) => {
                 
             }, (3000));
         } else if (prev_round !== s.getRoundName(sid)) {
-            // console.log("ALL IN");
-            // console.log(s.getTableById(sid).table);
             io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
             io.sockets.to(sid).emit('render-board', {
                 street: s.getRoundName(sid),

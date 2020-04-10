@@ -1,23 +1,21 @@
 <div class="actions">    
     <div class="row">
-        <button class="button-primary collapse" id="fold">Fold</button>
-        <button class="button-primary collapse" id="check">Check</button>
-        <button class="button-primary collapse" id="call">Call</button>
-        <button class="button-primary collapse" id="min-bet">Min Bet</button>
+        <button class="button-primary action-btn collapse" id="fold">Fold<span class="key-shrtct" id="fold-shortcut">F</span></button>
+        <button class="button-primary action-btn collapse" id="check">Check<span class="key-shrtct" id="check-shortcut">K</span></button>
+        <button class="button-primary action-btn collapse" id="call">Call<span class="key-shrtct" id="call-shortcut">c</span></button>
+        <button class="button-primary action-btn collapse" id="min-bet">Min Bet<span class="key-shrtct">c</span></button>
         <div id="betting-abilities">
-            <button class="button-primary collapse" id="bet">Bet
-            </button>
+            <button class="button-primary action-btn collapse" id="bet">Bet<span class="key-shrtct" id="raise-shortcut">R</span></button>
             <span class="popuptext1" id="myPopup1">
                 <input class="u-full-width" type="number" value="<%= bigBlind %>" id="bet-amount">
             </span>
         </div> 
         <div id="raising-abilities">
-            <button class="button-primary collapse" id="raise">Raise
-            </button>
+            <button class="button-primary action-btn collapse" id="raise">Raise<span class="key-shrtct" id="raise-shortcut">R</span></button>
             <span class="popuptext1" id="myPopup2">
                 <input class="u-full-width" type="number" value="<%= bigBlind %>" min="0" id="raise-amount">
             </span>
         </div> 
-        <button class="button-primary collapse" id="start">Start Game</button>
+        <button class="button-primary action-btn collapse" id="start">Start Game</button>
     </div>
 </div>
