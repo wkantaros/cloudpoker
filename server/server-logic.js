@@ -451,7 +451,7 @@ let getAvailableActions = (sid, playerid) => {
         // cases where it's the player's action and game is in progress
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
-            if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind) {
+            if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
                 actions['check'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;

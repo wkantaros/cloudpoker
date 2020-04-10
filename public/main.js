@@ -94,6 +94,7 @@ const logIn = () => {
 };
 
 $('#buyin-btn').on('click', () => {
+    console.log('here!');
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
@@ -826,7 +827,7 @@ function createHands() {
 }
 
 function distributeHands(firstRender) {
-    var radius = 200;
+    var radius = 210;
     let fields = $('.field'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -871,7 +872,7 @@ function createBets() {
 }
 
 function distributeBets() {
-    var radius = 175;
+    var radius = 180;
     let betFields = $('.player-bet'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -882,7 +883,7 @@ function distributeBets() {
     betFields.each(function () {
         // note consider changing width/455 to 2.5
         var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
-        var y = Math.round(height / 2 + radius * (1 * Math.sin(angle)) - $(this).height() / 2) - 10;
+        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 20;
         // if (window.console) {
         //     console.log($(this).text(), x, y);
         // }
