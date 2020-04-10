@@ -437,7 +437,8 @@ let getAvailableActions = (sid, playerid) => {
         'fold': false,
         'call': false,
         'start': false,
-        'check': false
+        'check': false,
+        'your-action': false
     };
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
@@ -455,12 +456,14 @@ let getAvailableActions = (sid, playerid) => {
                 actions['check'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
             // bet on table
             else if (getMaxBet(sid)){
                 actions['call'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
             // no bets yet
             else {
@@ -468,6 +471,7 @@ let getAvailableActions = (sid, playerid) => {
                 actions['bet'] = true;
                 actions['min-bet'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
         }
     }

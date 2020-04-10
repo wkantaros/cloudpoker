@@ -393,6 +393,49 @@ h3 {
     color: white;
 }
 
+@-webkit-keyframes pulse {
+    0% {
+        box-shadow: 0 0 8px #ea4c89, inset 0 0 8px #ea4c89;
+    }
+
+    50% {
+        box-shadow: 0 0 16px #ea4c89, inset 0 0 14px #ea4c89;
+    }
+
+    100% {
+        box-shadow: 0 0 8px #ea4c89, inset 0 0 8px #ea4c89;
+    }
+}
+
+.inner {
+    display: inline-block;
+    background-color: transparent;
+    width: 25px;
+    height: 25px;
+    border-radius: 50px;
+    box-shadow: 0 0 8px #ea4c89, inset 0 0 8px #ea4c89;
+    -webkit-animation: pulse 2s linear 1s infinite;
+}
+
+.to-you {
+    display: inline-block;
+    text-align: center;
+    line-height: 100px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 100;
+    font-size: 24px;
+    color: #ea4c89;
+    text-shadow: 0 0 4px #ea4c89;
+    margin-left: 10px;
+}
+
+.your-action {
+    position: absolute;
+    right: 0;
+    bottom: 6.3em;
+}
+
+
 .actions > .row > button {
     float: right;
     position: relative;
@@ -412,10 +455,13 @@ h3 {
 .action-btn {
     border-radius: 13px;
     font-size: 2rem;
-    font-family: 'Raleway',
-    sans-serif;
+    font-family: 'Raleway', sans-serif;
     text-align: center;
     /* padding: 0; */
+}
+
+.action-btn .number {
+    font-family: 'Lato', sans-serif;
 }
 
 .key-shrtct {

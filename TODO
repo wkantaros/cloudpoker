@@ -42,17 +42,16 @@ FRONTEND EDITS:
     [*] fix join game button to work when it should work and not when it shouldnt
     [*] update bet/check/fold/call/raise buttons / abilities depending on action
     [ ] fix sounds to work when they sould
-    [ ] keyboard shortcuts
+    [*] keyboard shortcuts
     [ ] slider, added bet/raise features
     [ ] have all in render properly 
 
 FOR TOMORROW
-    [ ] display "check" bet if player checks
+    [*] display "check" bet if player checks
     [ ] physical your action ping
     [ ] improve message board style
-    [ ] make bet buttons larger / add letters to border
+    [*] make bet buttons larger / add letters to border
     [ ] total number of won hands
-    [ ] make bet button bigger / color darker
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
