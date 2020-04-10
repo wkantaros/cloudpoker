@@ -146,7 +146,7 @@ const isActivePlayerId = (sid, playerid) => {
 
 let getPlayerById = (sid, pid) => {
     // let t = tables[sid].table;
-    for (name in playerids[sid]){
+    for (let name in playerids[sid]){
         if (playerids[sid][name].playerid == pid){
             return name;
         }
@@ -211,11 +211,10 @@ let playersInfo = (sid) => {
 
 const getBet = (sid, playerName) => {
     if (!gameInProgress(sid)) return 0;
-    
     let table = getTableById(sid).table;
     for (let i = 0; i < table.players.length; i++){
-        if (table.players[i].playerName == playerName){
-            return table.game.bets[i];
+        if (table.players[i].playerName === playerName){
+            return table.players[i].bet;
         }
     }
     return 0;
@@ -300,7 +299,7 @@ let getDeal = (sid) => {
 let call = (sid, playerName) => {
     // tables[sid].table.call(tables[sid].table.getCurrentPlayer());
     console.log(tables[sid].table);
-    tables[sid].table.call(playerName);
+    return tables[sid].table.call(playerName);
 }
 
 let check = (sid, playerName) => {
@@ -323,14 +322,13 @@ let bet = (sid, playerName, betAmount) => {
 // (such that node-poker doenst have him bet that number + his previous bet)
 let raise = (sid, playerName, betAmount) => {
     // console.log(tables[sid]);
-    console.log(tables[sid].table.game);
     let betIndex = 0;
     for (let i = 0; i < getPlayerSeat(sid, playerName); i++){
         if (tables[sid].seatsTaken[i]){
             betIndex++;
         }
     }
-    let playersLastBet = tables[sid].table.game.bets[betIndex];
+    let playersLastBet = tables[sid].table.players[betIndex].bet;
     let realBetAmount = betAmount - playersLastBet; 
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
@@ -343,9 +341,8 @@ let getWinnings = (sid, prev_round) => {
     let winnings = tables[sid].table.game.pot;
     if (prev_round === 'deal') {
         //basically check if any bets are still on the table and add them to the pot (for big blind, etc)
-        for (let i = 0; i < tables[sid].table.game.bets.length; i++) {
-            let bet = tables[sid].table.game.bets[i];
-            winnings += bet;
+        for (let i = 0; i < tables[sid].table.players.length; i++) {
+            winnings += tables[sid].table.players[i].bet;
         }
     }
     return winnings;
@@ -356,19 +353,12 @@ let updateStack = (sid, playerName, winnings) => {
 }
 
 let getMaxBet = (sid) => {
-    let maxBet = 0;
-    let bets = tables[sid].table.game.bets;
-    for (let i = 0; i < bets.length; i ++) {
-        if (bets[i] > maxBet) {
-            maxBet = bets[i];
-        }
-    }
-    return maxBet;
-}
+    return tables[sid].table.getMaxBet();
+};
 
 let getNameByActionSeat = (sid) => {
     let seat = getActionSeat(sid);
-    for (name in playerids[sid]) {
+    for (let name in playerids[sid]) {
         if (playerids[sid][name].seat == seat) {
             return name;
         }
@@ -379,7 +369,7 @@ let getNameByActionSeat = (sid) => {
 // return an array of seat, bet objects
 // may lead to a bug down the line still unsure
 let getInitialBets = (sid) => {
-    let bets = tables[sid].table.game.bets;
+    let bets = tables[sid].table.players.map(x => x.bet);
     let toReturn = [];
     for (let i = 0; i < bets.length; i++){
         let obj = {
