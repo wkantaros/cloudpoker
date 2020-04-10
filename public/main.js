@@ -17,6 +17,44 @@ let host = document.getElementById('host'),
     minBet = document.getElementById('min-bet');
     // standup = document.getElementById('standup-btn');
 
+
+//resize page (to fit)
+
+var $el = $("#page-contents");
+var elHeight = $el.outerHeight();
+var elWidth = $el.outerWidth();
+
+var $wrapper = $("#scaleable-wrapper");
+
+$wrapper.resizable({
+  resize: doResize
+});
+
+function doResize(event, ui) {
+  
+  var scale, origin;
+    
+  scale = Math.min(
+    ui.size.width / elWidth,    
+    ui.size.height / elHeight
+  );
+  
+  $el.css({
+    transform: "translate(-50%, -50%) " + "scale(" + scale + ")"
+  });
+  
+}
+
+var starterData = { 
+  size: {
+    width: $wrapper.width(),
+    height: $wrapper.height()
+  }
+}
+doResize(null, starterData);
+
+
+
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
     let buyinInfo = $('#buyin-info');
@@ -865,4 +903,11 @@ $(window).resize(function () {
     // createHands();
     distributeHands(false);
     distributeBets();
+    let resizeData = {
+        size: {
+            width: $wrapper.width(),
+            height: $wrapper.height()
+        }
+    }
+    doResize(null, resizeData);
 });

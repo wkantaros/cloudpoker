@@ -61,16 +61,16 @@ let buyin = (sessionid, playerName, playerid, stack) => {
 let removePlayer = (sessionid, playerName) => {
     console.log('table:', tables[sessionid].table);
     tables[sessionid].table.removePlayer(playerName);
-    // console.log(tables[sessionid])
     tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
-    // console.log(tables[sessionid])
-    // console.log(playerids);
     delete playerids[sessionid][playerName];
-    // console.log(playerids);
     if (playerName === tables[sessionid].hostName){
         // transfer host name / abilities to next player
         transferHost(sessionid, '');
     }
+    // if (getTableById(sessionid).seatsTaken.length - getTableById(sessionid).leavingGame.length < 2) {
+    //     tables[sessionid].gameInProgress = false;
+    // }
+    // console.log(tables[sessionid]);
 }
 
 let transferHost = (sid, newHostName) => {
@@ -125,7 +125,12 @@ let getLosers = (sid) => {
 
 let getTableById = (id) => tables[id];
 
-let getPlayerId = (sid, playerName) => playerids[sid][playerName].playerid;
+let getPlayerId = (sid, playerName) => {
+    if (Object.keys(playerids[sid]).includes(playerName))
+        return playerids[sid][playerName].playerid;
+    else
+        return undefined;
+}
 
 let getModId = (sid) => {
     if (tables[sid].hostName != null){
@@ -163,8 +168,10 @@ let getPlayerBySeat = (sid, seat) => {
 let getPlayerSeat = (sid, playerName) => {
     if (playerids[sid][playerName])
         return playerids[sid][playerName].seat;
-    else 
+    else {
+        console.log('no seat for', playerName);
         return -1;
+    }
 };
 
 let updatePlayerId = (sid, playerName, playerid) => playerids[sid][playerName].playerid = playerid;
@@ -245,7 +252,7 @@ let getCardsByPlayerName = (sid, playerName) => tables[sid].table.getHandForPlay
 let getActionSeat = (sid) => {
     if (gameInProgress(sid)){
         let name = tables[sid].table.getCurrentPlayer();
-        return playerids[sid][name].seat;
+        return getPlayerSeat(sid, name);
     } else {
         return -1;
     }
