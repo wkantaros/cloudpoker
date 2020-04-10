@@ -740,46 +740,33 @@ function progress(table) {
             } else if (table.game.roundName === 'Turn') {
                 console.log('effective turn');
                 table.game.roundName = 'River';
-                table.game.deck.pop(); //Burn a card
-                table.game.board.push(table.game.deck.pop()); //Turn a card
-                //table.game.bets.splice(0,table.game.bets.length-1);
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 1);
             } else if (table.game.roundName === 'Flop') {
                 console.log('effective flop');
                 table.game.roundName = 'Turn';
-                table.game.deck.pop(); //Burn a card
-                table.game.board.push(table.game.deck.pop()); //Turn a card
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 1);
             } else if (table.game.roundName === 'Deal') {
                 console.log('effective deal');
                 table.game.roundName = 'Flop';
-                table.game.deck.pop(); //Burn a card
-                for (i = 0; i < 3; i += 1) { //Turn three cards
-                    table.game.board.push(table.game.deck.pop());
-                }
-                //table.game.bets.splice(0,table.game.bets.length-1);
-                for (i = 0; i < table.game.bets.length; i += 1) {
-                    table.game.bets[i] = 0;
-                }
-                for (i = 0; i < table.players.length; i += 1) {
-                    table.players[i].talked = false;
-                }
-                table.eventEmitter.emit( "deal" );
+                turnCards(table, 3);
             }
         }
     }
+}
+
+// count is the amount of cards to turn.for flop, should be 3. for turn and river, 1.
+function turnCards(table, count) {
+    table.game.deck.pop(); //Burn a card
+    for (let i = 0; i < count; i += 1) { //Turn a card <count> times
+        table.game.board.push(table.game.deck.pop());
+    }
+    for (let i = 0; i < table.game.bets.length; i += 1) {
+        table.game.bets[i] = 0;
+    }
+    for (let i = 0; i < table.players.length; i += 1) {
+        table.players[i].talked = false;
+    }
+    table.eventEmitter.emit( "deal" );
 }
 
 function Game(smallBlind, bigBlind) {
@@ -829,6 +816,11 @@ Table.prototype.getCurrentPlayer = function(){
 Table.prototype.getPreviousPlayerAction = function(){
   return this.turnBet;
 };
+
+Table.prototype.callBlind = function(playerName) {
+
+};
+
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
 Table.prototype.check = function( playerName ){
   var currentPlayer = this.currentPlayer;
@@ -836,6 +828,7 @@ Table.prototype.check = function( playerName ){
   let cancheck = true;
   for (let v = 0; v < this.game.bets.length; v++) {
       //essentially wrapping this check as a call
+      // if (this.game.roundName === 'Deal' && currentPlayer === v && (this.game.bets[v] === this.bigBlind || this.players[v].allIn)){
       if (this.game.roundName === 'Deal' && this.game.bets[v] === this.bigBlind && currentPlayer === v){
           if (playerName === this.players[currentPlayer].playerName) {
               this.players[currentPlayer].Call();
@@ -1097,21 +1090,14 @@ Table.prototype.NewRound = function() {
       this.game.roundBets[i] = 0;
   }
   //Identify Small and Big Blind player indexes
-  smallBlind = this.dealer + 1;
-  if (smallBlind >= this.players.length) {
-      smallBlind = 0;
-  }
-  bigBlind = this.dealer + 2;
-  if (bigBlind >= this.players.length) {
-      bigBlind -= this.players.length;
-  }
+  smallBlind = (this.dealer + 1) % this.players.length;
+  bigBlind = (this.dealer + 2) % this.players.length;
   //Force Blind Bets
   // TODO: the next two lines can give players negative stacks. must check that this doesn't happen.
   //  force them all-in if their balance <= their bland.
-  this.players[smallBlind].chips -= this.smallBlind;
-  this.players[bigBlind].chips -= this.bigBlind;
-  this.game.bets[smallBlind] = this.smallBlind;
-  this.game.bets[bigBlind] = this.bigBlind;
+  // Bet amounts are less than blinds if player goes all in
+  this.game.bets[smallBlind] = this.players[smallBlind].PostBlind(this.smallBlind);
+  this.game.bets[bigBlind] = this.players[bigBlind].PostBlind(this.bigBlind);
 
   // get currentPlayer
   this.currentPlayer = (this.dealer + 3) % this.players.length;
@@ -1121,6 +1107,12 @@ Table.prototype.NewRound = function() {
 
 Player.prototype.GetChips = function(cash) {
     this.chips += cash;
+};
+
+// TODO: PostBlind
+Player.prototype.PostBlind = function(blindAmount) {
+    this.chips -= blindAmount;
+    return blindAmount
 };
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
