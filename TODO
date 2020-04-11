@@ -48,7 +48,7 @@ FRONTEND EDITS:
 
 FOR TOMORROW
     [*] display "check" bet if player checks
-    [ ] physical your action ping
+    [*] physical your action ping
     [ ] improve message board style
     [*] make bet buttons larger / add letters to border
     [ ] total number of won hands

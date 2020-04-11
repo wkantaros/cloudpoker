@@ -371,6 +371,15 @@ router.route('/:id').get((req, res) => {
                 for (let i = 0; i < losers.length; i++){
                     handlePlayerExit(losers[i].playerName, true, 0);
                 }
+
+                for (let i = 0; i < winners.length; i++){
+                    // update client's stack size
+                    io.sockets.to(sid).emit('update-stack', {
+                        seat: s.getPlayerSeat(sid, winners[i].playerName),
+                        stack: s.getStack(sid, winners[i].playerName)
+                    });
+                }
+
                 // start new round
                 startNextRoundOrWaitingForPlayers()
             }, (3000));
@@ -433,7 +442,7 @@ router.route('/:id').get((req, res) => {
                 console.log(`Player has ${s.getStack(sid, data.winner.playerName)}`);
                 console.log('Updating player\'s stack on the server...');
                 s.updateStack(sid, data.winner.playerName, winnings);
-                console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`)
+                console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`);
 
                 // next round
                 startNextRoundOrWaitingForPlayers();

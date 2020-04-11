@@ -397,11 +397,9 @@ h3 {
     0% {
         box-shadow: 0 0 8px #ea4c89, inset 0 0 8px #ea4c89;
     }
-
     50% {
         box-shadow: 0 0 16px #ea4c89, inset 0 0 14px #ea4c89;
     }
-
     100% {
         box-shadow: 0 0 8px #ea4c89, inset 0 0 8px #ea4c89;
     }

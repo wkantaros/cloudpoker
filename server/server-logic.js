@@ -59,7 +59,6 @@ let buyin = (sessionid, playerName, playerid, stack) => {
 }
 
 let removePlayer = (sessionid, playerName) => {
-    console.log('table:', tables[sessionid].table);
     tables[sessionid].table.removePlayer(playerName);
     tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
     delete playerids[sessionid][playerName];
@@ -67,10 +66,6 @@ let removePlayer = (sessionid, playerName) => {
         // transfer host name / abilities to next player
         transferHost(sessionid, '');
     }
-    // if (getTableById(sessionid).seatsTaken.length - getTableById(sessionid).leavingGame.length < 2) {
-    //     tables[sessionid].gameInProgress = false;
-    // }
-    // console.log(tables[sessionid]);
 }
 
 let transferHost = (sid, newHostName) => {
@@ -145,8 +140,11 @@ const isActivePlayerId = (sid, playerid) => {
 };
 
 let getPlayerById = (sid, pid) => {
+    console.log('here fuck');
+    console.log(playerids);
     // let t = tables[sid].table;
-    for (let name in playerids[sid]){
+    for (let name of Object.keys(playerids[sid])){
+        console.log('name', name);
         if (playerids[sid][name].playerid == pid){
             return name;
         }
