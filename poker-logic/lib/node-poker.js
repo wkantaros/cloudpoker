@@ -798,6 +798,17 @@ function maxSkippingIndices(arr, ...ind) {
     return m;
 }
 
+/**
+ * Calculates the maximum that a player can bet (total) as limited
+ * by his going all in or making everyone else at the table go all in
+ * if he has the biggest stack
+ * @param playerInd Index of player in this.players
+ */
+Table.prototype.maxBetPossible = function(playerInd) {
+    const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
+    return Math.min(this.players[playerInd].bet + this.players[playerInd].chips);
+};
+
 Table.prototype.callBlind = function(playerName) {
     let currentPlayer = this.currentPlayer;
     const p = this.players[this.currentPlayer];
@@ -916,6 +927,41 @@ Table.prototype.bet = function( playerName, amt ){
     progress(this);
     return betAmount;
 };
+
+Table.prototype.canStraddle = function(playerName) {
+    const p = this.currentPlayer;
+    if( playerName !== p.playerName ) {
+        console.log("wrong user has made a move, tried to straddle");
+        return false;
+    }
+    if (this.players.length <= 2) {
+        console.log("must have at least three players to straddle");
+        return false;
+    }
+    // Straddling is over if everyone including the dealer has already
+    // straddled or the previous player didn't
+    const previousPlayer = (this.currentPlayer - 1) % this.players.length;
+    if (p.chips < 2 * this.players[previousPlayer].bet) {
+        console.log("player does not have enough to straddle");
+        return false;
+    }
+    // Straddling is over if everyone including the dealer has already
+    // straddled or the previous player didn't
+    return !(previousPlayer === this.dealer || this.players[previousPlayer].talked);
+};
+Table.prototype.straddle = function(playerName) {
+    if (!this.canStraddle(playerName)) {
+        return -1
+    }
+    const previousPlayer = (this.currentPlayer - 1) % this.players.length;
+    const betAmount = 2 * this.players[previousPlayer].bet;
+    this.players[this.currentPlayer].Bet(betAmount);
+    this.players[this.currentPlayer].talked = false;
+    // Increment currentPlayer to maintain behavior of checkForEndOfRound
+    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+    return betAmount;
+};
+
 Table.prototype.getWinners = function(){
   return this.gameWinners;
 };
@@ -1017,20 +1063,10 @@ Table.prototype.removePlayer = function (playerName){
     }
   }
 }
-Table.prototype.NewRound = function() {
-  // Add players in waiting list
-    // EDITED
-    // make sure its all in order (note this works bc numbers can only be between 0 and 9)
-    if (this.playersToRemove.length > 0) {
-        this.playersToRemove.sort();
-    }
-    console.log('sorted toRemove:');
-    console.log(this.playersToRemove);
-    // done editing
-    console.log('init players', JSON.stringify(this.players));
-    console.log('to add players', JSON.stringify(this.playersToAdd));
-  for(let i = 0; i < this.playersToAdd.length; i++){
-    // new
+
+Table.prototype.flushPlayersToAdd = function () {
+    for(let i = 0; i < this.playersToAdd.length; i++){
+        // new
         let seat = this.playersToAdd[i].seat;
         if (seat < this.players.length){
             this.players.splice(seat, 0, this.playersToAdd[i]);
@@ -1052,44 +1088,57 @@ Table.prototype.NewRound = function() {
             this.players.push(this.playersToAdd[i]);
         }
     }
-  console.log('p to add', JSON.stringify(this.players));
-  // Remove players
-  // EDITED
-  for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
-      let indexval = parseInt(this.playersToRemove[removeIndex]);
-      this.players.splice(this.playersToRemove[removeIndex], 1);
-      // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
-      for (let q = removeIndex + 1; q < this.playersToRemove.length; q++){
-          let oldIndex = parseInt(this.playersToRemove[q]);
-          let newIndex = oldIndex - 1;
-          this.playersToRemove[q] = `${newIndex}`;
-      }
-      console.log('index val:' + indexval);
-      console.log(`OLD DEALER SPOT: ${this.dealer}`);
-      if (indexval < this.dealer){
-          this.dealer--;
-          console.log('696969')
-      }
-      else if (indexval == this.dealer){
+};
+
+Table.prototype.flushPlayersToRemove = function() {
+    for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
+        let indexval = parseInt(this.playersToRemove[removeIndex]);
+        this.players.splice(this.playersToRemove[removeIndex], 1);
+        // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
+        for (let q = removeIndex + 1; q < this.playersToRemove.length; q++){
+            let oldIndex = parseInt(this.playersToRemove[q]);
+            let newIndex = oldIndex - 1;
+            this.playersToRemove[q] = `${newIndex}`;
+        }
+        console.log('index val:' + indexval);
+        console.log(`OLD DEALER SPOT: ${this.dealer}`);
+        if (indexval < this.dealer){
+            this.dealer--;
+            console.log('696969')
+        }
+        else if (indexval == this.dealer){
             let playersLength = this.players.length;
             if (indexval = playersLength){
                 this.dealer--;
-            } 
-      } 
-      console.log(`NEW DEALER SPOT: ${this.dealer}`);
-  }
-  //done editing
-  this.playersToRemove = [];
-  this.playersToAdd = [];
-  this.gameWinners = [];
-  this.gameLosers = [];
+            }
+        }
+        console.log(`NEW DEALER SPOT: ${this.dealer}`);
+    }
+}
 
-  // EDITED
-  if (this.players.length < 2){
+Table.prototype.NewRound = function() {
+  // Add players in waiting list
+    // EDITED
+    // make sure its all in order (note this works bc numbers can only be between 0 and 9)
+    if (this.playersToRemove.length > 0) {
+        this.playersToRemove.sort();
+    }
+    this.flushPlayersToAdd();
+    // Remove players
+    // EDITED
+    this.flushPlayersToRemove();
+    //done editing
+    this.playersToRemove = [];
+    this.playersToAdd = [];
+    this.gameWinners = [];
+    this.gameLosers = [];
+
+    // EDITED
+    if (this.players.length < 2){
       console.log('not enough players :(');
       this.game = null;
       return;
-  }
+    }
 
   let i, smallBlind, bigBlind;
   //Deal 2 cards to each player
@@ -1103,14 +1152,11 @@ Table.prototype.NewRound = function() {
   smallBlind = (this.dealer + 1) % this.players.length;
   bigBlind = (this.dealer + 2) % this.players.length;
   //Force Blind Bets
-    // TODO: the next lines can give players negative stacks. must check that this doesn't happen.
-    //  force them all-in if their balance <= their bland.
     this.currentPlayer = smallBlind;
     this.postBlind(this.smallBlind);
     this.currentPlayer = bigBlind;
     this.postBlind(this.bigBlind);
 
-  // get currentPlayer
   this.currentPlayer = (this.dealer + 3) % this.players.length;
 
   this.eventEmitter.emit( "newRound" );

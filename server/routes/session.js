@@ -275,7 +275,9 @@ router.route('/:id').get((req, res) => {
                 return -1;
             }
             let actualBetAmount = 0;
-            if (data.action === 'bet') {
+            if (data.action === 'straddle') {
+                actualBetAmount = s.straddle(sid, playerName);
+            } else if (data.action === 'bet') {
                 actualBetAmount = s.bet(sid, playerName, data.amount);
             } else if (data.action === 'raise') {
                 actualBetAmount = s.raise(sid, playerName, data.amount);

@@ -659,6 +659,16 @@ socket.on('bet', (data) => {
     showBet(data.seat, data.amount + prevAmount);
 });
 
+socket.on('straddle', (data) => {
+    outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
+    // TODO: do we want a different sound effect for straddle?
+    playSoundIfVolumeOn('bet');
+    // prevAmount != 0 if player is small blind or big blind
+    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    console.log(`prev amount: ${prevAmount}`);
+    showBet(data.seat, data.amount + prevAmount);
+});
+
 function hideAllBets() {
     $('.player-bet').html(0);
     $('.player-bet').addClass('hidden');

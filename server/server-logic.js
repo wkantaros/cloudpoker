@@ -321,6 +321,10 @@ let bet = (sid, playerName, betAmount) => {
     return tables[sid].table.bet(playerName, betAmount);
 }
 
+let straddle = (sid, playerName) => {
+    return tables[sid].table.straddle(playerName);
+}
+
 
 // allows user to raise to a number 
 // (such that node-poker doenst have him bet that number + his previous bet)
@@ -554,6 +558,7 @@ module.exports.check = check;
 module.exports.fold = fold;
 module.exports.bet = bet;
 module.exports.raise = raise;
+module.exports.straddle = straddle;
 module.exports.checkwin = checkwin;
 module.exports.getWinnings = getWinnings;
 module.exports.updateStack = updateStack;
