@@ -900,16 +900,16 @@ Table.prototype.call = function( playerName ){
 /**
  * @param playerName Player betting
  * @param amt Amount to bet
- * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y = 0 if amt < 0 or it is not user's turn.
+ * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y =-1 if amt < 0 or it is not user's turn.
  */
 Table.prototype.bet = function( playerName, amt ){
     if (amt < 0) {
         console.log(`${playerName} tried to bet ${amt}`);
-        return 0;
+        return -1;
     }
     if( playerName !== this.players[ this.currentPlayer ].playerName ) {
         console.log("wrong user has made a move");
-        return 0;
+        return -1;
     }
     console.log(`${playerName} bet ${amt}`);
     const betAmount = this.players[ this.currentPlayer ].Bet( amt );
@@ -1160,11 +1160,12 @@ Player.prototype.applyBet = function(bet) {
 // Returns amount bet. If this.chips < (parameter) bet, return value will be this.chips.
 /**
  * @param bet Amount to bet
- * @return {number|*} Amount actually bet
+ * @return {number|*} Amount actually bet.
+ *          bet if player has enough chips. this.chips if player must go all in. -1 if bet is invalid (< 0).
  */
 Player.prototype.Bet = function(bet) {
     if (bet < 0) {
-        return 0;
+        return -1;
     }
     if (this.bet + this.chips > bet) {
         this.applyBet(bet);
