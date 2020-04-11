@@ -483,6 +483,10 @@ h3 {
     top: -1.5em;
 }
 
+#straddle .key-shrtct {
+    top: -1.5em;
+}
+
 #min-bet .key-shrtct {
     left: 65%;
 }
@@ -516,6 +520,22 @@ h3 {
 }
 
 #call:hover {
+    background-color: #5BBA6F;
+    color: white;
+}
+
+/* #straddle is temporarily an exact copy of #call */
+#straddle {
+    background-color: transparent;
+    border: 2px solid #5BBA6F;
+    color: #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#straddle:hover {
     background-color: #5BBA6F;
     color: white;
 }

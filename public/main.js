@@ -15,6 +15,7 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet');
+    straddle = document.getElementById('straddle');
     // standup = document.getElementById('standup-btn');
 
 
@@ -293,6 +294,15 @@ minBet.addEventListener('click', () => {
     });
 });
 
+straddle.addEventListener('click', () => {
+    console.log('straddle');
+    console.log(parseInt($('#straddle').html()));
+    socket.emit('action', {
+        amount: parseInt($('#straddle').html()),
+        action: 'straddle'
+    })
+});
+
 // keyboard shortcuts for all events
 $(document).keydown(function (event) {
     // m key
@@ -311,6 +321,10 @@ $(document).keydown(function (event) {
     // c key (min bet)
     if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
         minBet.click();
+    }
+    // p key (straddle)
+    if (event.keyCode === 80 && !$('#straddle').hasClass('collapse')){
+        straddle.click();
     }
     // r key (raise)
     if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
@@ -657,6 +671,11 @@ socket.on('bet', (data) => {
     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
     console.log(`prev amount: ${prevAmount}`);
     showBet(data.seat, data.amount + prevAmount);
+});
+
+socket.on('straddle', (data) => {
+    outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
+    playSoundIfVolumeOn('bet');
 });
 
 function hideAllBets() {
