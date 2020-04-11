@@ -434,6 +434,7 @@ let getAvailableActions = (sid, playerid) => {
     let actions = {
         'min-bet': false,
         'bet': false,
+        'straddle': false,
         'raise': false,
         'fold': false,
         'call': false,
@@ -454,6 +455,7 @@ let getAvailableActions = (sid, playerid) => {
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
             if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
+                actions['straddle'] = getTableById(sid).canStraddle(getPlayerById(sid, playerid));
                 actions['check'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
