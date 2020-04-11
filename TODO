@@ -42,9 +42,16 @@ FRONTEND EDITS:
     [*] fix join game button to work when it should work and not when it shouldnt
     [*] update bet/check/fold/call/raise buttons / abilities depending on action
     [ ] fix sounds to work when they sould
-    [ ] keyboard shortcuts
+    [*] keyboard shortcuts
     [ ] slider, added bet/raise features
     [ ] have all in render properly 
+
+FOR TOMORROW
+    [*] display "check" bet if player checks
+    [*] physical your action ping
+    [ ] improve message board style
+    [*] make bet buttons larger / add letters to border
+    [ ] total number of won hands
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -89,20 +96,10 @@ GAME FEATURES TO ADD:
 MOD PAGE:
     [ ] ability to kick players
     [ ] timer function (to act)
+    [ ] buyins for each player at the table
     [ ] adjust blinds
     [ ] bomb pots/tokyo/game variation approval
     [ ] transfer mod
 
 Error checks:
     [*] on create game bb/sb and stacks cant be decimals (need to be numbers)
-
-
-//-------------------------------------------------------------------------------------------------
-Handling all in's
-    if a player goes all in and loses
-        kick him from table
-            have the remove the quit button from page
-            add the buyin button again
-
-
-when player goes all in and the game ends

@@ -17,6 +17,44 @@ let host = document.getElementById('host'),
     minBet = document.getElementById('min-bet');
     // standup = document.getElementById('standup-btn');
 
+
+//resize page (to fit)
+
+var $el = $("#page-contents");
+var elHeight = $el.outerHeight();
+var elWidth = $el.outerWidth();
+
+var $wrapper = $("#scaleable-wrapper");
+
+$wrapper.resizable({
+  resize: doResize
+});
+
+function doResize(event, ui) {
+  
+  var scale, origin;
+    
+  scale = Math.min(
+    ui.size.width / elWidth,    
+    ui.size.height / elHeight
+  );
+  
+  $el.css({
+    transform: "translate(-50%, -50%) " + "scale(" + scale + ")"
+  });
+  
+}
+
+var starterData = { 
+  size: {
+    width: $wrapper.width(),
+    height: $wrapper.height()
+  }
+}
+doResize(null, starterData);
+
+
+
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
     let buyinInfo = $('#buyin-info');
@@ -55,7 +93,14 @@ const logIn = () => {
     $('#buyin').addClass('collapse');
 };
 
+const logOut = () => {
+    loggedIn = false;
+    $('#quit-btn').addClass('collapse');
+    $('#buyin').removeClass('collapse');
+}
+
 $('#buyin-btn').on('click', () => {
+    console.log('here!');
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
@@ -79,14 +124,16 @@ $('#buyin-btn').on('click', () => {
     }
 })
 
+$('#buyin-info').keydown(function (e){
+    e.stopPropagation();
+})
+
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {
         amount: 0
     });
-    $('#quit-btn').addClass('collapse');
-    $('#buyin').removeClass('collapse');
-    loggedIn = false;
-})
+    logOut();
+});
 
 let copyLink = () => {
     copyStringToClipboard(window.location.href);
@@ -120,9 +167,13 @@ function copyStringToClipboard(str) {
 //action buttons ---------------------------------------------------------------------------------
 $('#bet').on('click', () => {
     $('#myPopup1').toggleClass('show');
+    if ($('#myPopup1').hasClass('show')) {
+        $('#bet-amount').select();
+    }
 })
 
-$('#bet-amount').keyup(function (e) {
+$('#bet-amount').keydown(function (e) {
+    e.stopPropagation();
     if (e.keyCode == 13) {
         console.log('bet');
         let betAmount = parseInt($('#bet-amount').val());
@@ -152,9 +203,13 @@ $('#raise').on('click', () => {
     // $('#raise-amount').val(minRaiseAmount);
     // $('#raise-amount').min(minRaiseAmount);
     $('#myPopup2').toggleClass('show');
+    if ($('#myPopup2').hasClass('show')){
+        $('#raise-amount').select();
+    }
 })
 
-$('#raise-amount').keyup(function (e) {
+$('#raise-amount').keydown(function (e) {
+    e.stopPropagation()
     if (e.keyCode == 13) {
         console.log('raise');
         let raiseAmount = parseInt($('#raise-amount').val());
@@ -238,6 +293,41 @@ minBet.addEventListener('click', () => {
     });
 });
 
+// keyboard shortcuts for all events
+$(document).keydown(function (event) {
+    // m key
+    if (event.keyCode === 77) {
+        event.preventDefault();
+        message.select();
+    }
+    // k key (check)
+    if (event.keyCode === 75 && !$('#check').hasClass('collapse')){
+        check.click();
+    }
+    // c key (call)
+    if (event.keyCode === 67 && !$('#call').hasClass('collapse')){
+        call.click();
+    }
+    // c key (min bet)
+    if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
+        minBet.click();
+    }
+    // r key (raise)
+    if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
+        raise.click();
+    }
+    // r key (bet)
+    if (event.keyCode === 82 && !$('#bet').hasClass('collapse')){
+        bet.click();
+        bet
+    }
+    // f key (fold)
+    if (event.keyCode === 70 && !$('#fold').hasClass('collapse')){
+        console.log('here!!');
+        fold.click();
+    }
+});
+
 function isVolumeOn() {
     return $('.volume').hasClass('on');
 }
@@ -271,10 +361,12 @@ send_btn.addEventListener('click', () => {
 });
 
 //allow user to send message with enter key
-message.addEventListener("keyup", (event) => {
+message.addEventListener("keydown", (event) => {
     // Number 13 is the "Enter" key on the keyboard
+    event.stopPropagation()
     if (event.keyCode === 13) {
         if (message.value) {
+            $('#message').blur();
             event.preventDefault();
             send_btn.click();
         }
@@ -295,10 +387,17 @@ socket.on('add-mod-abilities', (data) => {
     $('#bomb-pot').removeClass('collapse');
 });
 
+socket.on('bust', (data) => {
+    logOut();
+    // remove additional abilities for mod when mod leaves
+    if (data.removeModAbilities) {
+        $('#bomb-pot').addClass('collapse');
+        $('#start').addClass('collapse');
+    }
+});
+
 // remove additional abilities for mod when mod leaves
 socket.on('remove-mod-abilities', (data) => {
-    $('#quit-btn').addClass('collapse');
-    $('#buyin').removeClass('collapse');
     $('#bomb-pot').addClass('collapse');
     $('#start').addClass('collapse');
 });
@@ -523,6 +622,12 @@ socket.on('call', (data) => {
 socket.on('check', (data) => {
     outputEmphasizedMessage(data.username + ' checks');
     playSoundIfVolumeOn('check');
+    if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
+        console.log('big blind player closing action');
+    }
+    else {
+        showBet(data.seat, 'check');
+    }
 });
 
 // fold
@@ -639,6 +744,15 @@ const loadSounds = () => {
 loadSounds();
 
 const displayButtons = (availableActions) => {
+    let maxBetAmount = parseInt($('#bb').html());
+
+    $('.player-bet').each(function () {
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html());
+            maxBetAmount = Math.max(maxBetAmount, bet);
+        }
+    });
+    $('#call .number').html(maxBetAmount);
     for (let key of Object.keys(availableActions)) {
         if (availableActions[key]){
             $(`#${key}`).removeClass('collapse');
@@ -788,7 +902,7 @@ function createHands() {
 }
 
 function distributeHands(firstRender) {
-    var radius = 200;
+    var radius = 210;
     let fields = $('.field'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -827,13 +941,13 @@ function createBets() {
     for (var i = 0; i < 10; i++) {
         $('<div/>', {
             'class': 'player-bet hidden',
-            'text': 0
+            'text': 'check'
         }).appendTo(table);
     }
 }
 
 function distributeBets() {
-    var radius = 175;
+    var radius = 180;
     let betFields = $('.player-bet'),
         table = $('.ovalparent'),
         width = table.width(),
@@ -844,7 +958,7 @@ function distributeBets() {
     betFields.each(function () {
         // note consider changing width/455 to 2.5
         var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
-        var y = Math.round(height / 2 + radius * (1 * Math.sin(angle)) - $(this).height() / 2) - 10;
+        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 20;
         // if (window.console) {
         //     console.log($(this).text(), x, y);
         // }
@@ -865,4 +979,11 @@ $(window).resize(function () {
     // createHands();
     distributeHands(false);
     distributeBets();
+    let resizeData = {
+        size: {
+            width: $wrapper.width(),
+            height: $wrapper.height()
+        }
+    }
+    doResize(null, resizeData);
 });

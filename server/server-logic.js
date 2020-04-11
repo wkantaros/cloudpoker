@@ -59,14 +59,9 @@ let buyin = (sessionid, playerName, playerid, stack) => {
 }
 
 let removePlayer = (sessionid, playerName) => {
-    console.log('table:', tables[sessionid].table);
     tables[sessionid].table.removePlayer(playerName);
-    // console.log(tables[sessionid])
     tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
-    // console.log(tables[sessionid])
-    // console.log(playerids);
     delete playerids[sessionid][playerName];
-    // console.log(playerids);
     if (playerName === tables[sessionid].hostName){
         // transfer host name / abilities to next player
         transferHost(sessionid, '');
@@ -128,7 +123,12 @@ let getLosers = (sid) => {
 
 let getTableById = (id) => tables[id];
 
-let getPlayerId = (sid, playerName) => playerids[sid][playerName].playerid;
+let getPlayerId = (sid, playerName) => {
+    if (Object.keys(playerids[sid]).includes(playerName))
+        return playerids[sid][playerName].playerid;
+    else
+        return undefined;
+}
 
 let getModId = (sid) => {
     if (tables[sid].hostName != null){
@@ -143,8 +143,11 @@ const isActivePlayerId = (sid, playerid) => {
 };
 
 let getPlayerById = (sid, pid) => {
+    console.log('here fuck');
+    console.log(playerids);
     // let t = tables[sid].table;
-    for (name in playerids[sid]){
+    for (let name of Object.keys(playerids[sid])){
+        console.log('name', name);
         if (playerids[sid][name].playerid == pid){
             return name;
         }
@@ -166,8 +169,10 @@ let getPlayerBySeat = (sid, seat) => {
 let getPlayerSeat = (sid, playerName) => {
     if (playerids[sid][playerName])
         return playerids[sid][playerName].seat;
-    else 
+    else {
+        console.log('no seat for', playerName);
         return -1;
+    }
 };
 
 let updatePlayerId = (sid, playerName, playerid) => playerids[sid][playerName].playerid = playerid;
@@ -207,11 +212,10 @@ let playersInfo = (sid) => {
 
 const getBet = (sid, playerName) => {
     if (!gameInProgress(sid)) return 0;
-    
     let table = getTableById(sid).table;
     for (let i = 0; i < table.players.length; i++){
-        if (table.players[i].playerName == playerName){
-            return table.game.bets[i];
+        if (table.players[i].playerName === playerName){
+            return table.players[i].bet;
         }
     }
     return 0;
@@ -248,7 +252,7 @@ let getCardsByPlayerName = (sid, playerName) => tables[sid].table.getHandForPlay
 let getActionSeat = (sid) => {
     if (gameInProgress(sid)){
         let name = tables[sid].table.getCurrentPlayer();
-        return playerids[sid][name].seat;
+        return getPlayerSeat(sid, name);
     } else {
         return -1;
     }
@@ -323,14 +327,13 @@ let bet = (sid, playerName, betAmount) => {
 // (such that node-poker doenst have him bet that number + his previous bet)
 let raise = (sid, playerName, betAmount) => {
     // console.log(tables[sid]);
-    console.log(tables[sid].table.game);
     let betIndex = 0;
     for (let i = 0; i < getPlayerSeat(sid, playerName); i++){
         if (tables[sid].seatsTaken[i]){
             betIndex++;
         }
     }
-    let playersLastBet = tables[sid].table.game.bets[betIndex];
+    let playersLastBet = tables[sid].table.players[betIndex].bet;
     let realBetAmount = betAmount - playersLastBet; 
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
@@ -343,9 +346,8 @@ let getWinnings = (sid, prev_round) => {
     let winnings = tables[sid].table.game.pot;
     if (prev_round === 'deal') {
         //basically check if any bets are still on the table and add them to the pot (for big blind, etc)
-        for (let i = 0; i < tables[sid].table.game.bets.length; i++) {
-            let bet = tables[sid].table.game.bets[i];
-            winnings += bet;
+        for (let i = 0; i < tables[sid].table.players.length; i++) {
+            winnings += tables[sid].table.players[i].bet;
         }
     }
     return winnings;
@@ -356,19 +358,15 @@ let updateStack = (sid, playerName, winnings) => {
 }
 
 let getMaxBet = (sid) => {
-    let maxBet = 0;
-    let bets = tables[sid].table.game.bets;
-    for (let i = 0; i < bets.length; i ++) {
-        if (bets[i] > maxBet) {
-            maxBet = bets[i];
-        }
-    }
-    return maxBet;
-}
+    if (gameInProgress(sid))
+        return getTableById(sid).table.getMaxBet();
+    else 
+        return getTableById(sid).bigBlind;
+};
 
 let getNameByActionSeat = (sid) => {
     let seat = getActionSeat(sid);
-    for (name in playerids[sid]) {
+    for (let name in playerids[sid]) {
         if (playerids[sid][name].seat == seat) {
             return name;
         }
@@ -379,7 +377,7 @@ let getNameByActionSeat = (sid) => {
 // return an array of seat, bet objects
 // may lead to a bug down the line still unsure
 let getInitialBets = (sid) => {
-    let bets = tables[sid].table.game.bets;
+    let bets = tables[sid].table.players.map(x => x.bet);
     let toReturn = [];
     for (let i = 0; i < bets.length; i++){
         let obj = {
@@ -437,7 +435,8 @@ let getAvailableActions = (sid, playerid) => {
         'fold': false,
         'call': false,
         'start': false,
-        'check': false
+        'check': false,
+        'your-action': false
     };
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
@@ -451,16 +450,18 @@ let getAvailableActions = (sid, playerid) => {
         // cases where it's the player's action and game is in progress
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
-            if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind) {
+            if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
                 actions['check'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
             // bet on table
             else if (getMaxBet(sid)){
                 actions['call'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
             // no bets yet
             else {
@@ -468,6 +469,7 @@ let getAvailableActions = (sid, playerid) => {
                 actions['bet'] = true;
                 actions['min-bet'] = true;
                 actions['fold'] = true;
+                actions['your-action'] = true;
             }
         }
     }
