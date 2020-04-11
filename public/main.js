@@ -93,6 +93,12 @@ const logIn = () => {
     $('#buyin').addClass('collapse');
 };
 
+const logOut = () => {
+    loggedIn = false;
+    $('#quit-btn').addClass('collapse');
+    $('#buyin').removeClass('collapse');
+}
+
 $('#buyin-btn').on('click', () => {
     console.log('here!');
     regex = RegExp(/^\w+(?:\s+\w+)*$/);
@@ -126,10 +132,8 @@ quit.addEventListener('click', () => {
     socket.emit('leave-game', {
         amount: 0
     });
-    $('#quit-btn').addClass('collapse');
-    $('#buyin').removeClass('collapse');
-    loggedIn = false;
-})
+    logOut();
+});
 
 let copyLink = () => {
     copyStringToClipboard(window.location.href);
@@ -383,10 +387,17 @@ socket.on('add-mod-abilities', (data) => {
     $('#bomb-pot').removeClass('collapse');
 });
 
+socket.on('bust', (data) => {
+    logOut();
+    // remove additional abilities for mod when mod leaves
+    if (data.removeModAbilities) {
+        $('#bomb-pot').addClass('collapse');
+        $('#start').addClass('collapse');
+    }
+});
+
 // remove additional abilities for mod when mod leaves
 socket.on('remove-mod-abilities', (data) => {
-    $('#quit-btn').addClass('collapse');
-    $('#buyin').removeClass('collapse');
     $('#bomb-pot').addClass('collapse');
     $('#start').addClass('collapse');
 });
