@@ -438,7 +438,6 @@ h3 {
     float: right;
     position: relative;
     margin: 3em 2px 0;
-    height: 80px;
     /* width: 120px; */
 }
 
@@ -446,11 +445,11 @@ h3 {
     position: relative;
     float: right;
     margin: 4em 2px 0;
-    height: 80px;
     /* width: 120px; */
 }
 
 .action-btn {
+    height: 80px;
     border-radius: 10px;
     font-size: 2rem;
     font-family: 'Raleway', sans-serif;
@@ -516,6 +515,21 @@ h3 {
 }
 
 #call:hover {
+    background-color: #5BBA6F;
+    color: white;
+}
+
+#back {
+    background-color: transparent;
+    border: 2px solid #5BBA6F;
+    color: #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#back:hover {
     background-color: #5BBA6F;
     color: white;
 }
@@ -748,4 +762,112 @@ main p {
     background: #272932;
     height: 100%;
     width: 98vw;
+}
+
+.slidecontainer {
+    width: 80%;
+    /* display: inline-block; */
+    float: left;
+    /* width: 45%; */
+    /* Width of the outside container */
+}
+
+.input-val {
+    float: left;
+    /* height: 80px; */
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#bet-input-val {
+    height: 80px;
+    width: 20%;
+    background-color: inherit;
+    border-radius: 10px;
+    font-size: 3rem;
+    text-align: center;
+    color: white;
+}
+
+#raise-input-val {
+    height: 80px;
+    width: 20%;
+    background-color: inherit;
+    border-radius: 10px;
+    font-size: 3rem;
+    text-align: center;
+    color: white;
+}
+
+
+.betraise {
+    float: right;
+    width: 75%;
+    margin-top: -5px;
+}
+
+.qwe {
+    width: 14.8%;
+}
+
+/* The slider itself */
+.slider {
+    /* float: right; */
+    -webkit-appearance: none;
+    /* Override default CSS styles */
+    appearance: none;
+    width: 71.5%;
+    /* Full-width */
+    height: 15px;
+    border-radius: 5px;
+    /* Specified height */
+    background: #dadada;
+    /* background: #fff; */
+    /* Grey background */
+    outline: none;
+    /* Remove outline */
+    opacity: 1;
+    /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s;
+    /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 0.8;
+    /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    /* Override default look */
+    appearance: none;
+    width: 25px;
+    /* Set a specific slider handle width */
+    height: 25px;
+    border-radius: 50%;
+    /* Slider handle height */
+    background: #ADFCF9;
+    /* Green background */
+    cursor: pointer;
+    /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    /* Set a specific slider handle width */
+    height: 25px;
+    /* Slider handle height */
+    /* circle */
+    border-radius: 50%;
+    background: #ADFCF9;
+    /* Green background */
+    cursor: pointer;
+    /* Cursor on hover */
 }
