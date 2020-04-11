@@ -143,11 +143,10 @@ const isActivePlayerId = (sid, playerid) => {
 };
 
 let getPlayerById = (sid, pid) => {
-    console.log('here fuck');
-    console.log(playerids);
+    // console.log(playerids);
     // let t = tables[sid].table;
     for (let name of Object.keys(playerids[sid])){
-        console.log('name', name);
+        // console.log('name', name);
         if (playerids[sid][name].playerid == pid){
             return name;
         }
@@ -303,7 +302,7 @@ const callBlind = (sid, playerName) => {
 
 let call = (sid, playerName) => {
     // tables[sid].table.call(tables[sid].table.getCurrentPlayer());
-    console.log(tables[sid].table);
+    // console.log(tables[sid].table);
     return tables[sid].table.call(playerName);
 }
 
@@ -532,6 +531,7 @@ module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
 module.exports.isActivePlayerId = isActivePlayerId;
+module.exports.getBet = getBet;
 module.exports.getPlayerBySeat = getPlayerBySeat;
 // need to change name to getSeatByPlayer eventually
 module.exports.getPlayerSeat = getPlayerSeat;

@@ -789,36 +789,36 @@ Table.prototype.getCurrentPlayer = function(){
   return this.players[ this.currentPlayer ].playerName;
 };
 
-Table.prototype.maximumPossibleBet = function() {
-    let m = 0;
-    for (let i = 0; i < this.players.length; i++) {
-        m = Math.max(m, this.players[i].chips + this.game.bets[i])
+function maxSkippingIndices(arr, ...ind) {
+    let m = Number.NEGATIVE_INFINITY;
+    for (let i = 0; i < arr.length; i++) {
+        if (ind.includes(i)) continue;
+        m = Math.max(m, arr[i])
     }
     return m;
 }
 
 Table.prototype.callBlind = function(playerName) {
     let currentPlayer = this.currentPlayer;
-    if ( playerName !== this.players[ currentPlayer ].playerName ) {
+    const p = this.players[this.currentPlayer];
+    if ( playerName !== p.playerName ) {
         console.log("wrong user has made a move");
         return -1;
     }
-    console.log(`${playerName} calls`);
-    const maxBet = this.getMaxBet();
-    const availableToBet = this.game.bets[currentPlayer] + this.players[currentPlayer].chips;
+    console.log(`${playerName} calls blind`);
 
-    // if can't call
-    if (availableToBet <= maxBet || (availableToBet <= this.bigBlind && currentPlayer !== this.players.length -1)) {
-        return this.players[currentPlayer].AllIn();
+    const maxBet = this.getMaxBet();
+    const bigBlindIndex = (this.dealer + 2) % this.players.length;
+    const isBigBlind = currentPlayer === bigBlindIndex;
+    if (isBigBlind || maxBet >= this.bigBlind) {
+        return p.Bet(Math.min(p.chips + p.bet, maxBet) - p.bet)
     }
-    // bet big blind if there is a following player with balance >= bigBlind
-    // TODO: if the "following player" folds, and all other players are all in,
-    //   return extra chips to currentPlayer. need side pot functionality
-    if (currentPlayer !== this.players.length -1) {
-        return this.players[currentPlayer].Bet(Math.min(this.maximumPossibleBet(), this.bigBlind));
-    }
-    // call maxBet (possibly < bigBlind if everyone else went all in)
-    return this.players[currentPlayer].Call();
+
+    const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), currentPlayer);
+    // bet bigBlind if following players have a stack >= bigBlind
+    // bet < bigBlind if no other player has a stack >= bigBlind
+    let callAmount = Math.min(otherPlayersMaxStack, this.bigBlind, p.bet + p.chips);
+    return this.players[currentPlayer].Bet(callAmount - p.bet);
 };
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
@@ -833,7 +833,6 @@ Table.prototype.check = function( playerName ){
           if (playerName === this.players[currentPlayer].playerName) {
               //
               this.players[currentPlayer].Bet(0);
-              console.log(`${playerName} calls`);
               progress(this);
               return true;
           } else {
@@ -856,7 +855,7 @@ Table.prototype.check = function( playerName ){
         console.log(`${playerName} unable to check`);
         return false;
       }
-    } else{
+    } else {
     // todo: check if something went wrong ( not enough money or things )
     console.log("wrong user has made a move abcd");
     return false;
@@ -879,7 +878,8 @@ Table.prototype.call = function( playerName ){
   let p = this.players[this.currentPlayer];
   if( playerName === p.playerName ) {
       const maxBet = this.getMaxBet();
-      if (p.chips + p.bet > maxBet) {
+      console.log(`${playerName} calls`);
+      if (p.chips > maxBet) {
           console.log(`${playerName} calls`);
           // treat call as bet
           const betAmount = p.Bet(maxBet - p.bet);
@@ -899,7 +899,7 @@ Table.prototype.call = function( playerName ){
 
 /**
  * @param playerName Player betting
- * @param amt Amount to bet
+ * @param amt Amount to bet (on top of current bet)
  * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y =-1 if amt < 0 or it is not user's turn.
  */
 Table.prototype.bet = function( playerName, amt ){
@@ -995,8 +995,8 @@ Table.prototype.AddPlayer = function (playerName, chips, seat) {
 //   }
 };
 Table.prototype.getMaxBet = function() {
-    console.log('pls', JSON.stringify(this.players));
-    console.log('plstadd', JSON.stringify(this.playersToAdd));
+    // console.log('pls', JSON.stringify(this.players));
+    // console.log('plstadd', JSON.stringify(this.playersToAdd));
     return Math.max(...this.players.map(x => x.bet));
 };
 Table.prototype.removePlayer = function (playerName){
@@ -1106,9 +1106,9 @@ Table.prototype.NewRound = function() {
     // TODO: the next lines can give players negative stacks. must check that this doesn't happen.
     //  force them all-in if their balance <= their bland.
     this.currentPlayer = smallBlind;
-  this.players[smallBlind].Bet(this.smallBlind);
-  this.currentPlayer = bigBlind;
-  this.players[bigBlind].Bet(this.bigBlind);
+    this.postBlind(this.smallBlind);
+    this.currentPlayer = bigBlind;
+    this.postBlind(this.bigBlind);
 
   // get currentPlayer
   this.currentPlayer = (this.dealer + 3) % this.players.length;
@@ -1116,19 +1116,13 @@ Table.prototype.NewRound = function() {
   this.eventEmitter.emit( "newRound" );
 };
 
-Player.prototype.postSmallBlind = function(amount) {
-    if (this.chips <= amount) {
-        let betAmount = this.chips;
-        return this.AllIn();
-    } else {
-
-    }
-}
-
-// TODO: PostBlind
-Player.prototype.PostBlind = function(blindAmount) {
-    this.chips -= blindAmount;
-    return blindAmount
+Table.prototype.postBlind = function(blindAmount) {
+    const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), this.currentPlayer);
+    const p = this.players[this.currentPlayer];
+    let betAmount = Math.min(otherPlayersMaxStack, blindAmount, p.bet + p.chips);
+    betAmount = p.Bet(betAmount);
+    p.talked = false;
+    return betAmount;
 };
 
 Player.prototype.GetChips = function(cash) {
@@ -1167,7 +1161,7 @@ Player.prototype.Bet = function(bet) {
     if (bet < 0) {
         return -1;
     }
-    if (this.bet + this.chips > bet) {
+    if (this.chips > bet) {
         this.applyBet(bet);
         return bet;
     } else {

@@ -615,7 +615,8 @@ socket.on('nobody-waiting', (data) => {
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
     playSoundIfVolumeOn('bet');
-    showBet(data.seat, data.amount);
+    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    showBet(data.seat, data.amount + prevAmount);
 });
 
 // check
@@ -625,9 +626,10 @@ socket.on('check', (data) => {
     if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
         console.log('big blind player closing action');
     }
-    else {
-        showBet(data.seat, 'check');
-    }
+    // else {
+    //     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+    //     showBet(data.seat, prevAmount);
+    // }
 });
 
 // fold
