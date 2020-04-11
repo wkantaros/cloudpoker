@@ -58,6 +58,9 @@ router.route('/').post((req, res) => {
 // TODO: delete sid from tSM when table finishes
 const tableSocketMap = new Map();
 
+// hacky fix
+const socket_ids = {};
+
 router.route('/:id').get((req, res) => {
     let sid = req.params.id;
     let t = s.getTableById(sid);
@@ -97,11 +100,25 @@ router.route('/:id').get((req, res) => {
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid),
+        callAmount: s.getMaxBet(sid)
     });
 
+    // hacky
+    let socket_id = [];
     const io = req.app.get('socketio');
     io.once('connection', function (socket) {
         console.log('socket id!:', socket.id, 'player id', playerId);
+
+        if (!socket_ids[socket.id]) {
+            socket_id.push(socket.id);
+            // rm connection listener for any subsequent connections with the same ID
+            if (socket_id[0] === socket.id) {
+                io.removeAllListeners('connection');
+            }
+            console.log('a user connected at', socket.id);
+
+            // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
+            socket_ids[socket_id[0]] = true;
         
         tableSocketMap.get(sid).set(playerId, socket.id);
 
@@ -182,10 +199,10 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('leave-game', (data) => {
-            if (!s.isActivePlayerId(playerId)) {
-                console.log(`error: ${playerId} is inactive but received leave-game.`);
-                return;
-            }
+            // if (!s.isActivePlayerId(playerId)) {
+            //     console.log(`error: ${playerId} is inactive but received leave-game.`);
+            //     return;
+            // }
             if (!s.gameInProgress(sid)){
                 let playerName = s.getPlayerById(sid, playerId);
                 handlePlayerExit(playerName);
@@ -322,6 +339,11 @@ router.route('/:id').get((req, res) => {
                 console.log(`not ${playerName}'s action`);
             }
         });
+
+        // this if else statement is a nonsense fix need to find a better one
+        } else {
+            console.log('already connected');
+        }
     });
 
     const handlePlayerExit = function(playerName, gameInProgress, stack) {

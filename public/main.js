@@ -744,6 +744,15 @@ const loadSounds = () => {
 loadSounds();
 
 const displayButtons = (availableActions) => {
+    let maxBetAmount = parseInt($('#bb').html());
+
+    $('.player-bet').each(function () {
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html());
+            maxBetAmount = Math.max(maxBetAmount, bet);
+        }
+    });
+    $('#call .number').html(maxBetAmount);
     for (let key of Object.keys(availableActions)) {
         if (availableActions[key]){
             $(`#${key}`).removeClass('collapse');

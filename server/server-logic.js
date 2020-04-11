@@ -351,7 +351,10 @@ let updateStack = (sid, playerName, winnings) => {
 }
 
 let getMaxBet = (sid) => {
-    return tables[sid].table.getMaxBet();
+    if (gameInProgress(sid))
+        return getTableById(sid).table.getMaxBet();
+    else 
+        return getTableById(sid).bigBlind;
 };
 
 let getNameByActionSeat = (sid) => {
