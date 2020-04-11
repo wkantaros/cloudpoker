@@ -827,10 +827,10 @@ socket.on('check', (data) => {
     if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
         console.log('big blind player closing action');
     }
-    // else {
-    //     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    //     showBet(data.seat, prevAmount);
-    // }
+    else {
+        // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+        showBet(data.seat, 'check');
+    }
 });
 
 // fold
