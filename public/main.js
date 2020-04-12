@@ -53,6 +53,18 @@ var starterData = {
 }
 doResize(null, starterData);
 
+//helper function
+const getMaxRoundBet = () => {
+    let maxBetAmount = 0;
+
+    $('.player-bet').each(function () {
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html()) || 0;
+            maxBetAmount = Math.max(maxBetAmount, bet);
+        }
+    });
+    return maxBetAmount;
+}
 
 
 //header functions--------------------------------------------------------------------------------
@@ -64,16 +76,6 @@ $(document).mouseup(function (e) {
     // if the target of the click isn't the container nor a descendant of the container
     if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
         buyinInfo.removeClass('show');
-    }
-
-    // if the target of the click isn't the container nor a descendant of the container
-    if (!betConsole.is(e.target) && betConsole.has(e.target).length === 0) {
-        betConsole.removeClass('show');
-    }
-
-    // if the target of the click isn't the container nor a descendant of the container
-    if (!raiseConsole.is(e.target) && raiseConsole.has(e.target).length === 0) {
-        raiseConsole.removeClass('show');
     }
 });
 
@@ -164,7 +166,15 @@ function copyStringToClipboard(str) {
     document.body.removeChild(el);
 }
 
-//action buttons ---------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
 $('#bet').on('click', () => {
     let submit = !$('#bet-actions').hasClass('collapse');
     if (submit) {
@@ -491,7 +501,90 @@ minBet.addEventListener('click', () => {
     });
 });
 
-// keyboard shortcuts for all events
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+
+// have to do it this way bc of safari (super annoying)
+$('#pm-check').on('click', (e) => {
+    if ($('#pm-check').hasClass('pm')){
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-check').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-call').on('click', (e) => {
+    if ($('#pm-call').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-call').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-checkfold').on('click', (e) => {
+    if ($('#pm-checkfold').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-checkfold').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-fold').on('click', (e) => {
+    if ($('#pm-fold').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-fold').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+const checkForPremoves = () => {
+    if ($('#pm-fold').hasClass('pm')){
+        return '#fold';
+    }
+    if ($('#pm-call').hasClass('pm')){
+        return '#call';
+    }
+    if ($('#pm-check').hasClass('pm')){
+        return '#check';
+    }
+    if ($('#pm-checkfold').hasClass('pm')){
+        return '#check';
+    }
+    return undefined;
+}
+
+
+// keyboard shortcuts for all events ------------------------------------------------------------------------------------------------
 $(document).keydown(function (event) {
     // m key
     if (event.keyCode === 77) {
@@ -502,13 +595,25 @@ $(document).keydown(function (event) {
     if (event.keyCode === 75 && !$('#check').hasClass('collapse')){
         check.click();
     }
+    // k key (premove check)
+    if (event.keyCode === 75 && !$('#pm-check').hasClass('collapse')){
+        $('#pm-check').click();
+    }
     // c key (call)
     if (event.keyCode === 67 && !$('#call').hasClass('collapse')){
         call.click();
     }
+    // c key (premove call)
+    if (event.keyCode === 67 && !$('#pm-call').hasClass('collapse')){
+        $('#pm-call').click();
+    }
     // c key (min bet)
     if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
         minBet.click();
+    }
+    // i key (premove check/fold)
+    if (event.keyCode === 73 && !$('#pm-checkfold').hasClass('collapse')){
+        $('#pm-checkfold').click();
     }
     // r key (raise)
     if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
@@ -524,8 +629,11 @@ $(document).keydown(function (event) {
     }
     // f key (fold)
     if (event.keyCode === 70 && !$('#fold').hasClass('collapse')){
-        console.log('here!!');
         fold.click();
+    }
+    // f key (premove fold)
+    if (event.keyCode === 70 && !$('#pm-fold').hasClass('collapse')){
+        $('#pm-fold').click();
     }
 });
 
@@ -714,6 +822,7 @@ const hideBoardPreFlop = () => {
 // when the players joins in the middle of a hand
 // data: {street, board, sound}
 socket.on('sync-board', (data) => {
+    $('.pm-btn').removeClass('pm');
     logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
@@ -727,6 +836,7 @@ socket.on('sync-board', (data) => {
 
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
+    $('.pm-btn').removeClass('pm');
     hideAllBets();
     if (data.street == 'deal'){
         hideBoardPreFlop();
@@ -789,14 +899,9 @@ socket.on('action', (data) => {
 
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
-    displayButtons(data.availableActions);
+    console.log('here we are lets go', data);
+    displayButtons(data);
 })
-
-
-// changes that person to the person who has the action
-socket.on('available-actions', (data) => {
-    displayButtons(data.availableActions);
-});
 
 // adds dealer chip to seat of dealer
 socket.on('new-dealer', (data) => {
@@ -812,6 +917,7 @@ socket.on('nobody-waiting', (data) => {
     inHand();
 });
 
+// ---------------------------------action buttons --------------------------------------------------------
 // calls
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
@@ -847,7 +953,6 @@ function outputMessage(s) {
 }
 
 function outputEmphasizedMessage(s) {
-    // feedback\.innerHTML\s*=\s*['"]['"];\s*message_output\.innerHTML\s*\+=\s*['"]<p><em>['"]\s*\+(.+?)\+\s*['"]<\/em><\/p>['"];\s*\$\(['"]#chat-window['"]\)\.scrollTop\(\$\(['"]#chat-window['"]\)\[0\]\.scrollHeight\);
     outputMessage('<em>' + s + '</em>');
 }
 
@@ -946,22 +1051,68 @@ const loadSounds = () => {
 };
 loadSounds();
 
-const displayButtons = (availableActions) => {
-    let maxBetAmount = parseInt($('#bb').html());
+const displayButtons = (data) => {
+    let premove = undefined;
+    if (data.canPerformPremoves) {
+        $('#pm-fold').removeClass('collapse');
+        if (getMaxRoundBet()) {
+            $('#pm-check').removeClass('pm');
+            $('#pm-check').addClass('collapse');
 
-    $('.player-bet').each(function () {
-        if (!$(this).hasClass('hidden')) {
-            let bet = parseInt($(this).html());
-            maxBetAmount = Math.max(maxBetAmount, bet);
+            if ($('#pm-checkfold').hasClass('pm')) {
+                $('#pm-checkfold').removeClass('pm');
+                $('#pm-fold').click();
+            }
+            $('#pm-checkfold').addClass('collapse');
+
+            let oldNum = $('#pm-call > .number').html();
+            $('#pm-call > .number').html(getMaxRoundBet());
+            let newNum = $('#pm-call > .number').html();
+            if (oldNum != newNum){
+                $('#pm-call').removeClass('pm');
+            }
+            $('#pm-call').removeClass('collapse');
+        } else {
+            $('#pm-check').removeClass('collapse');
+            $('#pm-checkfold').removeClass('collapse');
+            $('#pm-call').addClass('collapse');
         }
-    });
+    }
+    else {
+        // remove call if bet changes
+        let oldNum = $('#pm-call > .number').html();
+        $('#pm-call > .number').html(getMaxRoundBet());
+        let newNum = $('#pm-call > .number').html();
+        if (oldNum != newNum) {
+            $('#pm-call').removeClass('pm');
+        }
+        // if checkfold was clicked and there is a bet its now fold
+        if (getMaxRoundBet()){
+            if ($('#pm-checkfold').hasClass('pm')){
+                $('#pm-checkfold').removeClass('pm');
+                $('#pm-fold').click();
+            }
+        }
+        premove = checkForPremoves();
+        $('.pm-btn').removeClass('pm')
+        $('.pm-btn').addClass('collapse');
+    }
+    let maxBetAmount = getMaxRoundBet();
+    
+    // active player keys
     $('#call .number').html(maxBetAmount);
-    for (let key of Object.keys(availableActions)) {
-        if (availableActions[key]){
+    for (let key of Object.keys(data.availableActions)) {
+        if (data.availableActions[key]){
             $(`#${key}`).removeClass('collapse');
         } else {
             $(`#${key}`).addClass('collapse');
         }
+    }
+    console.log('checked for premove', premove);
+    if (premove) {
+        setTimeout(() => {
+            $(`${premove}`).click();
+        }, 650);
     }
 }
 
@@ -1103,7 +1254,18 @@ const getPotSize = () => {
     return pot;
 }
 
-//add hands (for sure a cleaner way to do but will work for now) ---------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
 function createHands() {
     $('.field').remove();
     var table = $('#table');

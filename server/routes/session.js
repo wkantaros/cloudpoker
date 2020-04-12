@@ -141,7 +141,7 @@ router.route('/:id').get((req, res) => {
         }
         io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
         // highlight cards of player in action seat and get available buttons for players
-        // renderActionSeatAndPlayerActions(sid);
+        renderActionSeatAndPlayerActions(sid);
 
         // chatroom features
         // send a message in the chatroom
@@ -326,14 +326,20 @@ router.route('/:id').get((req, res) => {
                         console.log('ACTION ON ALL IN PLAYER');
                     }
                     // highlight cards of player in action seat and get available buttons for players
-                    renderActionSeatAndPlayerActions(sid);
+                    let everyoneFolded = s.checkwin(sid).everyoneFolded
+                    if (!everyoneFolded) 
+                        renderActionSeatAndPlayerActions(sid);
+                    else
+                        io.sockets.to(sid).emit('action', { seat: -1 });
+
                     setTimeout(()=>{
                         // check if round has ended
                         check_round(prev_round);
                     }, 250);
                     setTimeout(()=>{
                         // notify player its their action with sound
-                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                        if (!everyoneFolded)
+                            io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -496,7 +502,7 @@ router.route('/:id').get((req, res) => {
                 io.sockets.to(sid).emit('new-dealer', {seat: -1});
                 io.sockets.to(sid).emit('update-pot', {amount: 0});
                 io.sockets.to(sid).emit('clear-earnings', {});
-                io.sockets.to(sid).emit('available-actions', {availableActions: s.getAvailableActions(sid)});
+                io.sockets.to(sid).emit('render-action-buttons', s.getAvailableActions(sid));
                 console.log('waiting for more players to rejoin!');
             }
     }
@@ -541,9 +547,7 @@ router.route('/:id').get((req, res) => {
         let playerIds = s.getPlayerIds(sid);
         for (let i = 0; i < playerIds.length; i++){
             let pid = playerIds[i];
-            io.to(getSocketId(`${pid}`)).emit('render-action-buttons', {
-                availableActions: s.getAvailableActions(sid, pid)
-            });
+            io.to(getSocketId(`${pid}`)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
         }
     }
 });

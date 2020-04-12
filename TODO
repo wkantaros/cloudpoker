@@ -50,14 +50,15 @@ FOR TOMORROW
     [*] display "check" bet if player checks
     [*] physical your action ping
     [*] make bet buttons larger / add letters to border
-    [ ] game log
+    [*] improve bet button to have increased functionality w/slider (min bet, 1/2 pot, 3/4, pot, all in) - bet, back
+    [*] improve raise button to have increased functionality w/slider (min raise, 1/2 pot, 3/4, pot, all in) - raise, back
     [ ] premove abilities
-    [ ] improve bet button to have increased functionality w/slider (min bet, 1/2 pot, 3/4, pot, all in) - bet, back
-    [ ] improve raise button to have increased functionality w/slider (min raise, 1/2 pot, 3/4, pot, all in) - raise, back
+    [ ] game log
 
 FOR SUNDAY
     [ ] track buyins for each player at the table (next to log)
     [ ] standup feature / restructure design of hands (more similar to pokernow)
+    [ ] improve way buyin looks
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -106,3 +107,7 @@ DISTINGUISHING FEATURES FROM COMPETITORS:
 GAME FEATURES TO ADD:
     [ ] implement tokyo
     [ ] implement the game of games
+
+Bugs:
+    [ ] on refresh players who folded appear to be back in
+    [ ] players who are waitng have premoves

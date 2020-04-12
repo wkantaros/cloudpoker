@@ -765,7 +765,7 @@ main p {
 }
 
 .slidecontainer {
-    width: 80%;
+    width: 70%;
     /* display: inline-block; */
     float: left;
     /* width: 45%; */
@@ -811,7 +811,7 @@ input::-webkit-inner-spin-button {
 }
 
 .qwe {
-    width: 14.8%;
+    width: 15.2%;
 }
 
 /* The slider itself */
@@ -870,4 +870,90 @@ input::-webkit-inner-spin-button {
     /* Green background */
     cursor: pointer;
     /* Cursor on hover */
+}
+
+.pm-btn {
+    opacity: .4;
+}
+
+.pm-btn:hover {
+    opacity: 1;
+}
+
+#pm-fold {
+    background-color: transparent;
+    border: 2px solid #E71D36;
+    color: #E71D36;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-fold.pm {
+    background-color: #E71D36;
+    color: white;
+}
+
+#pm-fold.pm .key-shrtct {
+    /* background-color: #FBF2C0; */
+    color: #E71D36;
+}
+
+#pm-check {
+    background-color: transparent;
+    border: 2px solid #FBF2C0;
+    color: #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-check.pm {
+    background-color: #FBF2C0;
+    color: #555;
+}
+
+#pm-check.pm .key-shrtct {
+    color: #FBF2C0;
+}
+
+#pm-checkfold {
+    background-color: transparent;
+    border: 2px solid #fff;
+    color: #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-checkfold.pm {
+    background-color: #fff;
+    color: #555;
+}
+
+#pm-checkfold.pm .key-shrtct {
+    /* background-color: #FBF2C0; */
+    color: #FBF2C0;
+}
+
+#pm-call {
+    background-color: transparent;
+    border: 2px solid #5BBA6F;
+    color: #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-call.pm {
+    background-color: #5BBA6F;
+    color: white;
+}
+
+#pm-call.pm .key-shrtct {
+    color: #5BBA6F;
 }

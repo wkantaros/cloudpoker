@@ -427,7 +427,7 @@ let getBigBlindSeat = (sid) => {
 }
 
 let getAvailableActions = (sid, playerid) => {
-    let actions = {
+    let availableActions = {
         'min-bet': false,
         'bet': false,
         'raise': false,
@@ -437,6 +437,8 @@ let getAvailableActions = (sid, playerid) => {
         'check': false,
         'your-action': false
     };
+
+    let canPerformPremoves = false;
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
         console.log('player at table');
@@ -444,35 +446,44 @@ let getAvailableActions = (sid, playerid) => {
         let seatsTaken = getTableById(sid).seatsTaken.filter(isTaken => isTaken).length;
         if (!gameInProgress(sid) && (getModId(sid) == playerid) && seatsTaken >= 2) {
             console.log('game can start');
-            actions['start'] = true;
+            availableActions['start'] = true;
         }
         // cases where it's the player's action and game is in progress
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
             if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
-                actions['check'] = true;
-                actions['raise'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['check'] = true;
+                availableActions['raise'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
             }
             // bet on table
             else if (getMaxBet(sid)){
-                actions['call'] = true;
-                actions['raise'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['call'] = true;
+                availableActions['raise'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
             }
             // no bets yet
             else {
-                actions['check'] = true;
-                actions['bet'] = true;
-                actions['min-bet'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['check'] = true;
+                availableActions['bet'] = true;
+                availableActions['min-bet'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
+            }
+        }
+        // cases where its not the players action and game is in progress
+        else if (gameInProgress(sid)) {
+            let playerName = getPlayerById(sid, playerid);
+            let playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
+            let playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+            if (!playerFolded && !playerAllIn){
+                canPerformPremoves = true;
             }
         }
     }
-    return actions;
+    return {availableActions, canPerformPremoves};
 }
 
 // if thats the case, just call and move forward with game
