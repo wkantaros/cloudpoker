@@ -1,7 +1,7 @@
 LOGIC/NODE-POKER EDITS:
     [*] make host login
     [*] make login so users can join
-    [ ] all-in's where has < or = bb
+    [*] all-in's where has < or = bb
     [*] handle players leaving game (really works, tested extensively)
     [*] handle players joining game (works well, more tests to be certain, currently dealer stays in same spot on occaision)
     [*] delays (for frontend, sounds, winner page, etc)
@@ -42,8 +42,8 @@ FRONTEND EDITS:
     [*] fix join game button to work when it should work and not when it shouldnt
     [*] update bet/check/fold/call/raise buttons / abilities depending on action
     [*] keyboard shortcuts
+    [*] slider, added bet/raise features
     [ ] fix sounds to work when they sould
-    [ ] slider, added bet/raise features
     [ ] have all in render properly 
 
 FOR TOMORROW
@@ -52,13 +52,14 @@ FOR TOMORROW
     [*] make bet buttons larger / add letters to border
     [*] improve bet button to have increased functionality w/slider (min bet, 1/2 pot, 3/4, pot, all in) - bet, back
     [*] improve raise button to have increased functionality w/slider (min raise, 1/2 pot, 3/4, pot, all in) - raise, back
-    [ ] premove abilities
-    [ ] game log
+    [*] premove abilities
 
 FOR SUNDAY
+    [ ] game log
     [ ] track buyins for each player at the table (next to log)
-    [ ] standup feature / restructure design of hands (more similar to pokernow)
     [ ] improve way buyin looks
+    [ ] update message board to look better
+    [ ] standup feature / restructure design of hands (more similar to pokernow)
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -88,7 +89,6 @@ DOWN THE LINE CODE:
     [ ] have num hands won logged as badge
     [ ] update your stack on your own (rebuy/etc)
     [ ] probably should have a proper database at some point (not essential but a good idea)
-    [ ] update message board to look better 
     [ ] have messages appear under players name for a few seconds
 
 MOD PAGE:
@@ -103,11 +103,12 @@ DISTINGUISHING FEATURES FROM COMPETITORS:
     [ ] bomb pots
     [ ] straddles (double straddle, etc)
     [ ] on all ins, show odds of winning (preflop, post flop, turn)
+    [ ] ability to run it twice
 
 GAME FEATURES TO ADD:
     [ ] implement tokyo
     [ ] implement the game of games
 
 Bugs:
-    [ ] on refresh players who folded appear to be back in
+    [ ] on refresh players who folded appear to be back in / cards are faceup (general errors all around)
     [ ] players who are waitng have premoves

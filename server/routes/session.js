@@ -296,6 +296,11 @@ router.route('/:id').get((req, res) => {
             }
             return actualBetAmount;
         }
+
+        socket.on('get-buyin-info', () => {
+            console.log('here!mf');
+            io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts(sid));
+        })
         
         socket.on('action', (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
@@ -379,6 +384,7 @@ router.route('/:id').get((req, res) => {
                 seat: seat
             });
         }
+        s.addBuyOut(sid, playerName, playerId, stack);
     };
     
     //checks if round has ended (reveals next card)

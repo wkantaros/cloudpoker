@@ -589,7 +589,7 @@ $(document).keydown(function (event) {
     // m key
     if (event.keyCode === 77) {
         event.preventDefault();
-        message.select();
+        message.focus();
     }
     // k key (check)
     if (event.keyCode === 75 && !$('#check').hasClass('collapse')){
@@ -1363,3 +1363,35 @@ $(window).resize(function () {
     }
     doResize(null, resizeData);
 });
+
+//---------------------------------------------------------
+//------------open and close gamelog features--------------
+
+function openBuyin() {
+    socket.emit('get-buyin-info');
+    document.getElementById("buyin-log").style.width = "100%";
+}
+
+socket.on('get-buyin-info', (data) => {
+    $('#buyins').empty();
+    for (let i = 0; i < data.length; i++) {
+        let time = `<span class='info'>${data[i].time} ~</span>`;
+        let datastr = `${time} ${data[i].playerName} (id: ${data[i].playerid}) buy-in: ${data[i].buyin}`
+        if (data[i].buyout != null){
+            datastr += ` buy-out: ${data[i].buyout}`
+        }
+        $('#buyins').prepend(`<p>${datastr}</p>`);
+    }
+})
+
+function closeBuyin() {
+    document.getElementById("buyin-log").style.width = "0%";
+}
+
+function openLog() {
+    document.getElementById("game-log").style.width = "100%";
+}
+
+function closeLog() {
+    document.getElementById("game-log").style.width = "0%";
+}

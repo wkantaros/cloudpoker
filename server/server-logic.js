@@ -11,6 +11,10 @@ let tables = {};
 // maps sessionid -> playerName -> { playerid, seat }
 let playerids = {}
 
+//track buyins/buyouts
+// maps sessionid -> {[playerName, playerid, buyin, buyout]}
+let trackBuyins = {}
+
 let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, playerid) => {
     let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000);
     tables[sessionid] = {
@@ -26,6 +30,7 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, play
     };
     table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid));
     addToPlayerIds(sessionid, hostName, playerid);
+    addToBuyins(sessionid, hostName, playerid, hostStack);
 }
 
 let addToPlayerIds = (sessionid, playerName, playerid) => {
@@ -38,12 +43,67 @@ let addToPlayerIds = (sessionid, playerName, playerid) => {
     tables[sessionid].seatsTaken[getAvailableSeat(sessionid)] = true;
 }
 
+let addToBuyins = (sessionid, playerName, playerid, playerStack) => {
+    let obj = {
+        playerName: playerName,
+        playerid: playerid,
+        buyin: playerStack,
+        time: null,
+        buyout: null
+    }
+    let date = new Date;
+    let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+    let time = `${date.getHours()}:${minutes}`;
+    obj.time = time;
+
+    if (!Object.keys(trackBuyins).includes(sessionid)){
+        trackBuyins[sessionid] = [];
+    }
+
+    let playerAlreadyInDb = false;
+    for (let i = 0; i < trackBuyins[sessionid].length; i++) {
+        if (trackBuyins[sessionid][i].playerName == playerName && trackBuyins[sessionid][i].playerid == playerid) {
+            trackBuyins[sessionid][i].buyin = parseInt(trackBuyins[sessionid][i].buyin) + parseInt(playerStack);
+            trackBuyins[sessionid][i].time = time;
+            playerAlreadyInDb = true;
+        }
+    }
+    if (!playerAlreadyInDb){
+        trackBuyins[sessionid].push(obj);
+    }
+}
+
+let addBuyOut = (sessionid, playerName, playerid, buyOutStack) => {
+    let date = new Date;
+    let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+    let time = `${date.getHours()}:${minutes}`;
+    for (let i = 0; i < trackBuyins[sessionid].length; i++) {
+        if (trackBuyins[sessionid][i].playerName == playerName && trackBuyins[sessionid][i].playerid == playerid) {
+            if (buyOutStack == undefined){
+                buyOutStack = tables[sessionid].table.getPlayer(playerName).chips || trackBuyins[sessionid][i].buyin;
+            }
+            if (trackBuyins[sessionid][i].buyout != null){
+                trackBuyins[sessionid][i].buyout = parseInt(buyOutStack) + parseInt(trackBuyins[sessionid][i].buyout);
+            }
+            else {
+                trackBuyins[sessionid][i].buyout = buyOutStack;
+            }
+            trackBuyins[sessionid][i].time = time;
+        }
+    }
+}
+
+let getBuyinBuyouts = (sid) => {
+    return trackBuyins[sid];
+}
+
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
 let buyin = (sessionid, playerName, playerid, stack) => {
     let seat = getAvailableSeat(sessionid);
     if (getAvailableSeat(sessionid) > -1){
         addToPlayerIds(sessionid, playerName, playerid);
+        addToBuyins(sessionid, playerName, playerid, stack);
         // console.log(tables[sessionid]);
         tables[sessionid].table.AddPlayer(playerName, stack, seat);
         console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
@@ -101,16 +161,12 @@ let makeEmptySeats = (sid) => {
 
 // returns the seats of all all in players
 let getAllIns = (sid) => {
-    // tables[sid].table.players
-    //     .filter(p => getPlayerSeat(p.playerName) !== -1)
-    //     .forEach(p => tables[sid].allIn[getPlayerSeat(sid, p.playerName)] = p.allIn);
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
         if (getPlayerSeat(sid, players[i].playerName) != -1){
             tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
         }
     }
-    // console.log(tables[sid].allIn);
     return tables[sid].allIn;
 }
 
@@ -174,7 +230,15 @@ let getPlayerSeat = (sid, playerName) => {
     }
 };
 
-let updatePlayerId = (sid, playerName, playerid) => playerids[sid][playerName].playerid = playerid;
+let updatePlayerId = (sid, playerName, playerid) => {
+    let oldplayerid = playerids[sid][playerName].playerid;
+    for (let i = 0; i < trackBuyins[sid].length; i++) {
+        if (trackBuyins[sid][i].playerName == playerName && trackBuyins[sid][i].playerid == oldplayerid){
+            trackBuyins[sid][i].playerid = playerid;
+        }
+    }
+    playerids[sid][playerName].playerid = playerid;
+}
 
 let getAvailableSeat = (sid) => {
     for (let i = 0; i < tables[sid].seatsTaken.length; i++){
@@ -579,3 +643,5 @@ module.exports.getAvailableActions = getAvailableActions;
 module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
 module.exports.everyoneAllIn = everyoneAllIn;
 module.exports.getPlayerIds = getPlayerIds;
+module.exports.getBuyinBuyouts = getBuyinBuyouts;
+module.exports.addBuyOut = addBuyOut;
