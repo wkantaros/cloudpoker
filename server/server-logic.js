@@ -11,8 +11,8 @@ let tables = {};
 // maps sessionid -> playerName -> { playerid, seat }
 let playerids = {}
 
-let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, playerid) => {
-    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000);
+let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
+    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
     tables[sessionid] = {
         table: table,
         hostName: hostName,
@@ -24,9 +24,9 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, play
         allIn: [false, false, false, false, false, false, false, false, false, false],
         gameInProgress: false 
     };
-    table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid));
+    table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid), hostIsStraddling);
     addToPlayerIds(sessionid, hostName, playerid);
-}
+};
 
 let addToPlayerIds = (sessionid, playerName, playerid) => {
     let tempObj = playerids[sessionid] || {};
@@ -40,12 +40,12 @@ let addToPlayerIds = (sessionid, playerName, playerid) => {
 
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
-let buyin = (sessionid, playerName, playerid, stack) => {
+let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
     let seat = getAvailableSeat(sessionid);
     if (getAvailableSeat(sessionid) > -1){
         addToPlayerIds(sessionid, playerName, playerid);
         // console.log(tables[sessionid]);
-        tables[sessionid].table.AddPlayer(playerName, stack, seat);
+        tables[sessionid].table.AddPlayer(playerName, stack, seat, isStraddling);
         console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
         if (getTableById(sessionid).hostName === null){
             console.log(`transferring host to ${playerName} (pid: ${playerid})`);
@@ -321,10 +321,6 @@ let bet = (sid, playerName, betAmount) => {
     return tables[sid].table.bet(playerName, betAmount);
 }
 
-let straddle = (sid, playerName) => {
-    return tables[sid].table.straddle(playerName);
-}
-
 
 // allows user to raise to a number 
 // (such that node-poker doenst have him bet that number + his previous bet)
@@ -434,7 +430,6 @@ let getAvailableActions = (sid, playerid) => {
     let actions = {
         'min-bet': false,
         'bet': false,
-        'straddle': false,
         'raise': false,
         'fold': false,
         'call': false,
@@ -455,7 +450,6 @@ let getAvailableActions = (sid, playerid) => {
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
             if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
-                actions['straddle'] = getTableById(sid).canStraddle(getPlayerById(sid, playerid));
                 actions['check'] = true;
                 actions['raise'] = true;
                 actions['fold'] = true;
@@ -560,7 +554,6 @@ module.exports.check = check;
 module.exports.fold = fold;
 module.exports.bet = bet;
 module.exports.raise = raise;
-module.exports.straddle = straddle;
 module.exports.checkwin = checkwin;
 module.exports.getWinnings = getWinnings;
 module.exports.updateStack = updateStack;

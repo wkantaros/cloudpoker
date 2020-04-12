@@ -17,7 +17,8 @@ router.route('/').post((req, res) => {
         username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
         bigBlind: Joi.number().integer().min(0),
-        stack: Joi.number().integer().min(1)
+        stack: Joi.number().integer().min(1),
+        straddleLimit: Joi.number().integer().min(-1)
     });
     if (process.env.DEBUG === 'true') {
         req.body.name = req.body.name || 'debugName';
@@ -29,7 +30,8 @@ router.route('/').post((req, res) => {
         username: req.body.name,
         smallBlind: req.body.smallBlind,
         bigBlind: req.body.bigBlind,
-        stack: req.body.stack
+        stack: req.body.stack,
+        straddleLimit: req.body.straddleLimit,
     });
     if (error) {
         res.status(422);
@@ -48,7 +50,7 @@ router.route('/').post((req, res) => {
         req.body.isValid = true;
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
-        s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, 6969);
+        s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
         tableSocketMap.set(sid, new TwoWayMap());
     }
 });
@@ -100,8 +102,7 @@ router.route('/:id').get((req, res) => {
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid),
-        callAmount: s.getMaxBet(sid),
-        straddleAmount: table.bigBlind * 2
+        callAmount: s.getMaxBet(sid)
     });
 
     // hacky
@@ -189,7 +190,7 @@ router.route('/:id').get((req, res) => {
         }
 
         socket.on('buy-in', (data) => {
-            s.buyin(sid, data.playerName, playerId, data.stack);
+            s.buyin(sid, data.playerName, playerId, data.stack, data.isStraddling === true);
             if (s.getModId(sid) === playerId) {
                 io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
             }
@@ -276,9 +277,7 @@ router.route('/:id').get((req, res) => {
                 return -1;
             }
             let actualBetAmount = 0;
-            if (data.action === 'straddle') {
-                actualBetAmount = s.straddle(sid, playerName);
-            } else if (data.action === 'bet') {
+            if (data.action === 'bet') {
                 actualBetAmount = s.bet(sid, playerName, data.amount);
             } else if (data.action === 'raise') {
                 actualBetAmount = s.raise(sid, playerName, data.amount);

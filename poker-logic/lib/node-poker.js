@@ -2,7 +2,14 @@ var events = require('events');
 
 //Note: methods I've changed/created have been commented: EDITED
 
-function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn) {
+// straddleLimit values:
+// -1: unlimited straddles (last player who can straddle is the dealer)
+// 0: no straddling allowed
+// 1: only player after big blind can straddle
+// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+//      the same behavior as -1 occurs.
+// x > players.length - 2: same behavior as -1 occurs.
+function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
     this.minPlayers = minPlayers;
@@ -16,6 +23,7 @@ function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn)
     this.eventEmitter = new events.EventEmitter();
     this.gameWinners = [];
     this.gameLosers = [];
+    this.straddleLimit = straddleLimit;
 
     //Validate acceptable value ranges.
     var err;
@@ -32,7 +40,14 @@ function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn)
     }
 }
 
-function Player(playerName, chips, table) {
+/**
+ * Constructs a Player object for use with Table.
+ * @param playerName Name of the player as it should appear on the front end
+ * @param chips The player's initial chip stack
+ * @param isStraddling If the player wants to straddle
+ * @constructor
+ */
+function Player(playerName, chips, isStraddling) {
     this.playerName = playerName;
     this.chips = chips;
     this.folded = false;
@@ -41,6 +56,7 @@ function Player(playerName, chips, table) {
     // this.table = table; //Circular reference to allow reference back to parent object.
     this.cards = [];
     this.bet = 0;
+    this.isStraddling = straddling;
 }
 
 function fillDeck(deck) {
@@ -928,43 +944,6 @@ Table.prototype.bet = function( playerName, amt ){
     return betAmount;
 };
 
-Table.prototype.canStraddle = function(playerName) {
-    // if (this.game.roundName !== 'deal') {
-    //     return false;
-    // }
-    const p = this.currentPlayer;
-    if( playerName !== p.playerName ) {
-        console.log("wrong user has made a move, tried to straddle");
-        return false;
-    }
-    if (this.players.length <= 2) {
-        console.log("must have at least three players to straddle");
-        return false;
-    }
-    // Straddling is over if everyone including the dealer has already
-    // straddled or the previous player didn't
-    const previousPlayer = (this.currentPlayer - 1) % this.players.length;
-    if (p.chips < 2 * this.players[previousPlayer].bet) {
-        console.log("player does not have enough to straddle");
-        return false;
-    }
-    // Straddling is over if everyone including the dealer has already
-    // straddled or the previous player didn't
-    return !(previousPlayer === this.dealer || this.players[previousPlayer].talked);
-};
-Table.prototype.straddle = function(playerName) {
-    if (!this.canStraddle(playerName)) {
-        return -1
-    }
-    const previousPlayer = (this.currentPlayer - 1) % this.players.length;
-    const betAmount = 2 * this.players[previousPlayer].bet;
-    this.players[this.currentPlayer].Bet(betAmount);
-    this.players[this.currentPlayer].talked = false;
-    // Increment currentPlayer to maintain behavior of checkForEndOfRound
-    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-    return betAmount;
-};
-
 Table.prototype.getWinners = function(){
   return this.gameWinners;
 };
@@ -1031,10 +1010,10 @@ Table.prototype.StartGame = function () {
 //  }
 // }
 // EDITED
-Table.prototype.AddPlayer = function (playerName, chips, seat) {
+Table.prototype.AddPlayer = function (playerName, chips, seat, isStraddling) {
     console.log(`adding player ${playerName}`);
   if ( chips >= this.minBuyIn && chips <= this.maxBuyIn) {
-    var player = new Player(playerName, chips, this);
+    var player = new Player(playerName, chips, isStraddling);
     player.seat = seat;
     this.playersToAdd.push( player );
   }
@@ -1143,26 +1122,66 @@ Table.prototype.NewRound = function() {
       return;
     }
 
-  let i, smallBlind, bigBlind;
   //Deal 2 cards to each player
-  for (i = 0; i < this.players.length; i += 1) {
+  for (let i = 0; i < this.players.length; i += 1) {
       this.players[i].cards.push(this.game.deck.pop());
       this.players[i].cards.push(this.game.deck.pop());
       this.players[i].bet = 0;
       this.game.roundBets[i] = 0;
   }
-  //Identify Small and Big Blind player indexes
-  smallBlind = (this.dealer + 1) % this.players.length;
-  bigBlind = (this.dealer + 2) % this.players.length;
-  //Force Blind Bets
+  this.initializeBlinds();
+
+  this.currentPlayer = (this.dealer + 3) % this.players.length;
+
+  this.eventEmitter.emit( "newRound" );
+};
+
+// straddleLimit values:
+// -1: unlimited straddles (last player who can straddle is the dealer)
+// 0: no straddling allowed
+// 1: only player after big blind can straddle
+// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+//      the same behavior as -1 occurs.
+// x > players.length - 2: same behavior as -1 occurs.
+// Up to this.players.length -2 players can straddle because
+//      the last player that is able to is the dealer
+Table.prototype.maxStraddles = function() {
+    if (this.players.length <= 2) return 0;
+    if (this.straddleLimit >= 0 && this.straddleLimit <= this.players.length -2) {
+        return this.straddleLimit;
+    }
+    if (this.straddleLimit === -1 || this.straddleLimit > this.players.length -2) {
+        return this.players.length - 2;
+    }
+    // straddleLimit < -1
+    console.log(`Invalid straddleLimit value ${this.straddleLimit}`);
+    return 0;
+};
+
+Table.prototype.initializeBlinds = function() {
+    // Small and Big Blind player indexes
+    let smallBlind = (this.dealer + 1) % this.players.length;
+    let bigBlind = (this.dealer + 2) % this.players.length;
+
+    // Force Blind Bets
     this.currentPlayer = smallBlind;
     this.postBlind(this.smallBlind);
     this.currentPlayer = bigBlind;
     this.postBlind(this.bigBlind);
 
-  this.currentPlayer = (this.dealer + 3) % this.players.length;
-
-  this.eventEmitter.emit( "newRound" );
+    const maxStraddles = this.maxStraddles();
+    for (let i = 0; i < maxStraddles; i++) {
+        const nextPlayer = (this.currentPlayer + 1) % this.players.length;
+        if (!this.players[nextPlayer].isStraddling) { break; }
+        const straddleAmount = this.bigBlind * Math.pow(2, i + 1); // bigBlind * 2^(i+1)
+        if (this.players[nextPlayer].chips < straddleAmount) {
+            console.log(`${this.players[nextPlayer]} does not have enough to straddle`);
+            break;
+        }
+        this.currentPlayer = nextPlayer;
+        this.postBlind(straddleAmount);
+    }
+    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
 };
 
 Table.prototype.postBlind = function(blindAmount) {

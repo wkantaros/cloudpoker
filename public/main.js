@@ -294,14 +294,14 @@ minBet.addEventListener('click', () => {
     });
 });
 
-straddle.addEventListener('click', () => {
-    console.log('straddle');
-    console.log(parseInt($('#straddle').html()));
-    socket.emit('action', {
-        amount: parseInt($('#straddle').html()),
-        action: 'straddle'
-    })
-});
+// straddle.addEventListener('click', () => {
+//     console.log('straddle');
+//     console.log(parseInt($('#straddle').html()));
+//     socket.emit('action', {
+//         amount: parseInt($('#straddle').html()),
+//         action: 'straddle'
+//     })
+// });
 
 // keyboard shortcuts for all events
 $(document).keydown(function (event) {
@@ -322,10 +322,10 @@ $(document).keydown(function (event) {
     if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
         minBet.click();
     }
-    // p key (straddle)
-    if (event.keyCode === 80 && !$('#straddle').hasClass('collapse')){
-        straddle.click();
-    }
+    // // p key (straddle)
+    // if (event.keyCode === 80 && !$('#straddle').hasClass('collapse')){
+    //     straddle.click();
+    // }
     // r key (raise)
     if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
         raise.click();
@@ -673,15 +673,15 @@ socket.on('bet', (data) => {
     showBet(data.seat, data.amount + prevAmount);
 });
 
-socket.on('straddle', (data) => {
-    outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
-    // TODO: do we want a different sound effect for straddle?
-    playSoundIfVolumeOn('bet');
-    // prevAmount != 0 if player is small blind or big blind
-    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    console.log(`prev amount: ${prevAmount}`);
-    showBet(data.seat, data.amount + prevAmount);
-});
+// socket.on('straddle', (data) => {
+//     outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
+//     // TODO: do we want a different sound effect for straddle?
+//     playSoundIfVolumeOn('bet');
+//     // prevAmount != 0 if player is small blind or big blind
+//     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+//     console.log(`prev amount: ${prevAmount}`);
+//     showBet(data.seat, data.amount + prevAmount);
+// });
 
 function hideAllBets() {
     $('.player-bet').html(0);
