@@ -200,6 +200,10 @@ router.route('/:id').get((req, res) => {
             renderActionSeatAndPlayerActions(sid);
         });
 
+        socket.on('straddle-switch', (data) => {
+            s.setPlayerStraddling(sid, playerId, data.isStraddling)
+        });
+
         socket.on('leave-game', (data) => {
             // if (!s.isActivePlayerId(playerId)) {
             //     console.log(`error: ${playerId} is inactive but received leave-game.`);
@@ -284,6 +288,7 @@ router.route('/:id').get((req, res) => {
             } else if (data.action === 'call') {
                 if (s.getRoundName(sid) === 'deal') {
                     actualBetAmount = s.callBlind(sid, playerName);
+                    console.log('aba', actualBetAmount);
                 } else {
                     actualBetAmount = s.call(sid, playerName);
                 }
@@ -306,6 +311,7 @@ router.route('/:id').get((req, res) => {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
                 prev_round = s.getRoundName(sid);
+                console.log('action data', JSON.stringify(data));
 
                 let actualBetAmount = performAction(playerName, data);
                 let canPerformAction = actualBetAmount >= 0;
@@ -514,7 +520,7 @@ router.route('/:id').get((req, res) => {
         // io.sockets.to(sid).emit('hide-hands', {});
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
-        console.log('d', data);
+        // console.log('d', data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
             io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {

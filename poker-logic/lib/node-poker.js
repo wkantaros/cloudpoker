@@ -793,7 +793,7 @@ Table.prototype.getPlayer = function( playerName ){
       return this.players[i];
     }
   }
-  return [];
+  return null;
 };
 Table.prototype.getDeal = function(){
   return this.game.board;
@@ -837,6 +837,7 @@ Table.prototype.callBlind = function(playerName) {
     const maxBet = this.getMaxBet();
     const bigBlindIndex = (this.dealer + 2) % this.players.length;
     const isBigBlind = currentPlayer === bigBlindIndex;
+    console.log('bb', this.bigBlind, 'mb', maxBet, 'ibb', isBigBlind, 'p', JSON.stringify(p));
     if (isBigBlind || maxBet >= this.bigBlind) {
         return p.Bet(Math.min(p.chips + p.bet, maxBet) - p.bet)
     }
@@ -845,6 +846,7 @@ Table.prototype.callBlind = function(playerName) {
     // bet bigBlind if following players have a stack >= bigBlind
     // bet < bigBlind if no other player has a stack >= bigBlind
     let callAmount = Math.min(otherPlayersMaxStack, this.bigBlind, p.bet + p.chips);
+    console.log('opms', otherPlayersMaxStack);
     return this.players[currentPlayer].Bet(callAmount - p.bet);
 };
 

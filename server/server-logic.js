@@ -58,6 +58,13 @@ let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
     }
 }
 
+function setPlayerStraddling(sid, playerid, isStraddling) {
+    const player = tables[sid].table.getPlayer(getPlayerById(sid, playerid));
+    if (player) {
+        player.isStraddling = isStraddling;
+    }
+}
+
 let removePlayer = (sessionid, playerName) => {
     tables[sessionid].table.removePlayer(playerName);
     tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
@@ -297,7 +304,7 @@ let getDeal = (sid) => {
 }
 
 const callBlind = (sid, playerName) => {
-    tables[sid].table.callBlind(playerName);
+    return tables[sid].table.callBlind(playerName);
 };
 
 let call = (sid, playerName) => {
@@ -435,7 +442,8 @@ let getAvailableActions = (sid, playerid) => {
         'call': false,
         'start': false,
         'check': false,
-        'your-action': false
+        'your-action': false,
+        'straddle-switch': getTableById(sid).table.straddleLimit !== 0,
     };
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
@@ -568,3 +576,4 @@ module.exports.getAvailableActions = getAvailableActions;
 module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
 module.exports.everyoneAllIn = everyoneAllIn;
 module.exports.getPlayerIds = getPlayerIds;
+module.exports.setPlayerStraddling = setPlayerStraddling;

@@ -15,7 +15,7 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet');
-    straddle = document.getElementById('straddle');
+    straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
 
@@ -294,14 +294,19 @@ minBet.addEventListener('click', () => {
     });
 });
 
-// straddle.addEventListener('click', () => {
-//     console.log('straddle');
-//     console.log(parseInt($('#straddle').html()));
-//     socket.emit('action', {
-//         amount: parseInt($('#straddle').html()),
-//         action: 'straddle'
-//     })
-// });
+let isStraddling = false;
+straddleSwitch.addEventListener('click', () => {
+    isStraddling = !isStraddling;
+    console.log(`straddle enabled: ${isStraddling}`);
+    if (isStraddling) {
+        $('#straddle-switch').html('Enable Straddling');
+    } else {
+        $('#straddle-switch').html('Disable Straddling');
+    }
+    socket.emit('straddle-switch', {
+        isStraddling: isStraddling
+    });
+});
 
 // keyboard shortcuts for all events
 $(document).keydown(function (event) {
