@@ -436,7 +436,6 @@ let placeRaise = () => {
     if (raiseAmount == maxRaiseAmount && maxRaiseAmount < minRaiseAmount) {
         console.log('all in player');
         socket.emit('action', {
-            id: socket.id,
             amount: raiseAmount,
             action: 'call'
         });
@@ -446,14 +445,12 @@ let placeRaise = () => {
     } else if (raiseAmount == maxRaiseAmount) { // player is going all in
         console.log('all in mothafucka');
         socket.emit('action', {
-            id: socket.id,
             amount: raiseAmount,
             action: 'bet'
         });
         return true;
     } else {
         socket.emit('action', {
-            id: socket.id,
             amount: raiseAmount,
             action: 'raise'
         });
@@ -700,7 +697,7 @@ message.addEventListener("keydown", (event) => {
 
 //let the server know somebody is typing a message
 message.addEventListener('keypress', () => {
-    socket.emit('typing', socket.id);
+    socket.emit('typing');
 });
 
 //Listen for events--------------------------------------------------------------------------------
