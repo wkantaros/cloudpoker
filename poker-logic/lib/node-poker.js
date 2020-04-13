@@ -722,7 +722,7 @@ function progress(table) {
                 console.log('effective flop');
                 table.game.roundName = 'Turn';
                 turnCards(table, 1);
-            } else if (table.game.roundName === 'Deal') {
+            } else if (table.game.roundName === 'deal') {
                 console.log('effective deal');
                 table.game.roundName = 'Flop';
                 turnCards(table, 3);
@@ -748,7 +748,7 @@ function Game(smallBlind, bigBlind) {
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
     this.pot = 0;
-    this.roundName = 'Deal'; //Start the first round
+    this.roundName = 'deal'; //Start the first round
     this.betName = 'bet'; //bet,raise,re-raise,cap
     this.bets = [];
     this.roundBets = [];
@@ -829,7 +829,7 @@ Table.prototype.check = function( playerName ){
 
   for (let v = 0; v < this.players.length; v++) {
       //essentially wrapping this check as a call
-      if (this.game.roundName === 'Deal' && this.players[v].bet === this.bigBlind && currentPlayer === v){
+      if (this.game.roundName === 'deal' && this.players[v].bet === this.bigBlind && currentPlayer === v){
           if (playerName === this.players[currentPlayer].playerName) {
               //
               this.players[currentPlayer].Bet(0);
@@ -941,7 +941,7 @@ Table.prototype.initNewRound = function () {
         this.dealer = 0;
     }
     this.game.pot = 0;
-    this.game.roundName = 'Deal'; //Start the first round
+    this.game.roundName = 'deal'; //Start the first round
     this.game.betName = 'bet'; //bet,raise,re-raise,cap
     this.game.deck.splice(0, this.game.deck.length);
     this.game.board.splice(0, this.game.board.length);

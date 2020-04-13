@@ -361,7 +361,7 @@ let getDeal = (sid) => {
 }
 
 const callBlind = (sid, playerName) => {
-    tables[sid].table.callBlind(playerName);
+    return tables[sid].table.callBlind(playerName);
 };
 
 let call = (sid, playerName) => {
