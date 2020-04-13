@@ -306,9 +306,9 @@ const placeBet = () => {
     let minBetAmount = parseInt($('#bb').html());
     let maxBetAmount = parseInt($('.action > .stack').html());
     if (betAmount > maxBetAmount) {
+        // If player is going all in
         betAmount = maxBetAmount;
-    }
-    if (!betAmount || betAmount < minBetAmount) {
+    } else if (!betAmount || betAmount < minBetAmount) {
         alert(`minimum bet size is ${minBetAmount}`);
     } else {
         socket.emit('action', {
