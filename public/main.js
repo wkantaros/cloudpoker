@@ -684,7 +684,7 @@ message.addEventListener("keydown", (event) => {
 
 //let the server know somebody is typing a message
 message.addEventListener('keypress', () => {
-    socket.emit('typing', {});
+    socket.emit('typing');
 });
 
 //Listen for events--------------------------------------------------------------------------------
