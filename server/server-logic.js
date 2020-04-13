@@ -15,8 +15,8 @@ let playerids = {}
 // maps sessionid -> {[playerName, playerid, buyin, buyout]}
 let trackBuyins = {}
 
-let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, playerid) => {
-    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000);
+let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
+    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
     tables[sessionid] = {
         table: table,
         hostName: hostName,
@@ -28,10 +28,10 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, play
         allIn: [false, false, false, false, false, false, false, false, false, false],
         gameInProgress: false 
     };
-    table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid));
+    table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid), hostIsStraddling);
     addToPlayerIds(sessionid, hostName, playerid);
     addToBuyins(sessionid, hostName, playerid, hostStack);
-}
+};
 
 let addToPlayerIds = (sessionid, playerName, playerid) => {
     let tempObj = playerids[sessionid] || {};
@@ -99,13 +99,13 @@ let getBuyinBuyouts = (sid) => {
 
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
-let buyin = (sessionid, playerName, playerid, stack) => {
+let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
     let seat = getAvailableSeat(sessionid);
     if (getAvailableSeat(sessionid) > -1){
         addToPlayerIds(sessionid, playerName, playerid);
         addToBuyins(sessionid, playerName, playerid, stack);
         // console.log(tables[sessionid]);
-        tables[sessionid].table.AddPlayer(playerName, stack, seat);
+        tables[sessionid].table.AddPlayer(playerName, stack, seat, isStraddling);
         console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
         if (getTableById(sessionid).hostName === null){
             console.log(`transferring host to ${playerName} (pid: ${playerid})`);
@@ -115,6 +115,13 @@ let buyin = (sessionid, playerName, playerid, stack) => {
     } else {
         console.log('no seats available');
         return false;
+    }
+}
+
+function setPlayerStraddling(sid, playerid, isStraddling) {
+    const player = tables[sid].table.getPlayer(getPlayerById(sid, playerid));
+    if (player) {
+        player.isStraddling = isStraddling;
     }
 }
 
@@ -178,6 +185,10 @@ let getLosers = (sid) => {
 }
 
 let getTableById = (id) => tables[id];
+
+function getStraddleLimit(sid) {
+    return tables[sid].table.straddleLimit;
+};
 
 let getPlayerId = (sid, playerName) => {
     if (Object.keys(playerids[sid]).includes(playerName))
@@ -269,7 +280,7 @@ let playersInfo = (sid) => {
             betAmount: getBet(sid, name), // amount that name bet so far in this street
         })
     }
-    console.log(info);
+    // console.log(info);
     return info;
 };
 
@@ -499,7 +510,8 @@ let getAvailableActions = (sid, playerid) => {
         'call': false,
         'start': false,
         'check': false,
-        'your-action': false
+        'your-action': false,
+        'straddle-switch': getStraddleLimit(sid) !== 0,
     };
 
     let canPerformPremoves = false;
@@ -643,5 +655,7 @@ module.exports.getAvailableActions = getAvailableActions;
 module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
 module.exports.everyoneAllIn = everyoneAllIn;
 module.exports.getPlayerIds = getPlayerIds;
+module.exports.setPlayerStraddling = setPlayerStraddling;
+module.exports.getStraddleLimit = getStraddleLimit;
 module.exports.getBuyinBuyouts = getBuyinBuyouts;
 module.exports.addBuyOut = addBuyOut;
