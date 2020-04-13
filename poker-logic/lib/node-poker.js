@@ -1133,8 +1133,6 @@ Table.prototype.NewRound = function() {
   }
   this.initializeBlinds();
 
-  this.currentPlayer = (this.dealer + 3) % this.players.length;
-
   this.eventEmitter.emit( "newRound" );
 };
 
