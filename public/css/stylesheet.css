@@ -30,19 +30,20 @@ h3 {
 
 #chat-room {
     border: 1px solid #ddd;
+    background-color: #424C55;
     box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
+    border-radius: 10px;
 }
 
 #chat-window {
     /* margin-top: 2rem; */
-    height: 10rem;
+    height: 8rem;
     /* height: 10.55rem; */
     overflow-y: auto;
     width: 100%;
     bottom: 0;
     /* background: #f9f9f9; */
-    border-top: 1px solid #999;
+    /* border-top: 1px solid #999; */
     overflow-wrap: break-word;
 }
 
@@ -83,9 +84,9 @@ h3 {
     /* background-color: blue; */
 }
 
-.header {
+/* .header {
     margin-top: 2rem;
-}
+} */
 
 .pad {
     /* padding: 10px 20px 0px; */
@@ -114,17 +115,12 @@ h3 {
 .c {
     float: left;
     width: 30em;
-    background-color: #59656F;
-    background-color: #424C55;
+    /* background-color: #59656F; */
+    /*  */
+    border-radius: 10px;
     /* margin-left: 0; */
     /* background-color: #424C55; */
 }
-
-/* .actions {
-    float: left;
-    margin: 0;
-    padding: 0;
-} */
 
 .oval-parent {
     margin: 2rem auto;
@@ -438,7 +434,6 @@ h3 {
     float: right;
     position: relative;
     margin: 3em 2px 0;
-    height: 80px;
     /* width: 120px; */
 }
 
@@ -446,11 +441,11 @@ h3 {
     position: relative;
     float: right;
     margin: 4em 2px 0;
-    height: 80px;
     /* width: 120px; */
 }
 
 .action-btn {
+    height: 80px;
     border-radius: 10px;
     font-size: 2rem;
     font-family: 'Raleway', sans-serif;
@@ -516,6 +511,21 @@ h3 {
 }
 
 #call:hover {
+    background-color: #5BBA6F;
+    color: white;
+}
+
+#back {
+    background-color: transparent;
+    border: 2px solid #5BBA6F;
+    color: #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#back:hover {
     background-color: #5BBA6F;
     color: white;
 }
@@ -748,4 +758,288 @@ main p {
     background: #272932;
     height: 100%;
     width: 98vw;
+}
+
+.slidecontainer {
+    width: 70%;
+    /* display: inline-block; */
+    float: left;
+    /* width: 45%; */
+    /* Width of the outside container */
+}
+
+.input-val {
+    float: left;
+    /* height: 80px; */
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#bet-input-val {
+    height: 80px;
+    width: 20%;
+    background-color: inherit;
+    border-radius: 10px;
+    font-size: 3rem;
+    text-align: center;
+    color: white;
+}
+
+#raise-input-val {
+    height: 80px;
+    width: 20%;
+    background-color: inherit;
+    border-radius: 10px;
+    font-size: 3rem;
+    text-align: center;
+    color: white;
+}
+
+
+.betraise {
+    float: right;
+    width: 75%;
+    margin-top: -5px;
+}
+
+.qwe {
+    width: 15.2%;
+}
+
+/* The slider itself */
+.slider {
+    /* float: right; */
+    -webkit-appearance: none;
+    /* Override default CSS styles */
+    appearance: none;
+    width: 71.5%;
+    /* Full-width */
+    height: 15px;
+    border-radius: 5px;
+    /* Specified height */
+    background: #dadada;
+    /* background: #fff; */
+    /* Grey background */
+    outline: none;
+    /* Remove outline */
+    opacity: 1;
+    /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s;
+    /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 0.8;
+    /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    /* Override default look */
+    appearance: none;
+    width: 25px;
+    /* Set a specific slider handle width */
+    height: 25px;
+    border-radius: 50%;
+    /* Slider handle height */
+    background: #ADFCF9;
+    /* Green background */
+    cursor: pointer;
+    /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    /* Set a specific slider handle width */
+    height: 25px;
+    /* Slider handle height */
+    /* circle */
+    border-radius: 50%;
+    background: #ADFCF9;
+    /* Green background */
+    cursor: pointer;
+    /* Cursor on hover */
+}
+
+.pm-btn {
+    opacity: .4;
+}
+
+.pm-btn:hover {
+    opacity: 1;
+}
+
+#pm-fold {
+    background-color: transparent;
+    border: 2px solid #E71D36;
+    color: #E71D36;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-fold.pm {
+    background-color: #E71D36;
+    color: white;
+}
+
+#pm-fold.pm .key-shrtct {
+    /* background-color: #FBF2C0; */
+    color: #E71D36;
+}
+
+#pm-check {
+    background-color: transparent;
+    border: 2px solid #FBF2C0;
+    color: #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-check.pm {
+    background-color: #FBF2C0;
+    color: #555;
+}
+
+#pm-check.pm .key-shrtct {
+    color: #FBF2C0;
+}
+
+#pm-checkfold {
+    background-color: transparent;
+    border: 2px solid #fff;
+    color: #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-checkfold.pm {
+    background-color: #fff;
+    color: #555;
+}
+
+#pm-checkfold.pm .key-shrtct {
+    /* background-color: #FBF2C0; */
+    color: #FBF2C0;
+}
+
+#pm-call {
+    background-color: transparent;
+    border: 2px solid #5BBA6F;
+    color: #5BBA6F;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#pm-call.pm {
+    background-color: #5BBA6F;
+    color: white;
+}
+
+#pm-call.pm .key-shrtct {
+    color: #5BBA6F;
+}
+
+#buttons-above-chatroom > a {
+    border-color: #33C3F0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#buttons-above-chatroom > a:hover {
+    background-color: #33C3F0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+.overlay {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    background-color: rgb(0, 0, 0);
+    background-color: rgba(0, 0, 0, 0.9);
+    overflow-x: hidden;
+    transition: 0.5s;
+}
+
+.overlay-content {
+    /* color: #818181; */
+    color: #f1f1f1;
+    position: relative;
+    top: 15%;
+    width: 100%;
+    text-align: center;
+    margin-top: 30px;
+}
+
+.overlay a {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 36px;
+    color: #818181;
+    display: block;
+    transition: 0.3s;
+}
+
+.overlay a:hover,
+.overlay a:focus {
+    color: #f1f1f1;
+}
+
+.overlay h2:hover,
+.overlay h2:focus {
+    color: #f1f1f1;
+}
+
+.overlay p:hover,
+.overlay p:focus {
+    color: #f1f1f1;
+}
+
+.overlay p {
+    margin-bottom: 5px;
+}
+
+.overlay .closebtn {
+    position: absolute;
+    top: 20px;
+    right: 45px;
+    font-size: 60px;
+}
+
+#buyins {
+    margin-bottom: 200px;
+}
+
+@media screen and (max-height: 450px) {
+    .overlay a {
+        font-size: 20px
+    }
+
+    .overlay .closebtn {
+        font-size: 40px;
+        top: 15px;
+        right: 35px;
+    }
 }

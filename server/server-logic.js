@@ -11,6 +11,10 @@ let tables = {};
 // maps sessionid -> playerName -> { playerid, seat }
 let playerids = {}
 
+//track buyins/buyouts
+// maps sessionid -> {[playerName, playerid, buyin, buyout]}
+let trackBuyins = {}
+
 let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
     let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
     tables[sessionid] = {
@@ -26,6 +30,7 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, host
     };
     table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid), hostIsStraddling);
     addToPlayerIds(sessionid, hostName, playerid);
+    addToBuyins(sessionid, hostName, playerid, hostStack);
 };
 
 let addToPlayerIds = (sessionid, playerName, playerid) => {
@@ -38,12 +43,67 @@ let addToPlayerIds = (sessionid, playerName, playerid) => {
     tables[sessionid].seatsTaken[getAvailableSeat(sessionid)] = true;
 }
 
+let addToBuyins = (sessionid, playerName, playerid, playerStack) => {
+    let obj = {
+        playerName: playerName,
+        playerid: playerid,
+        buyin: playerStack,
+        time: null,
+        buyout: null
+    }
+    let date = new Date;
+    let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+    let time = `${date.getHours()}:${minutes}`;
+    obj.time = time;
+
+    if (!Object.keys(trackBuyins).includes(sessionid)){
+        trackBuyins[sessionid] = [];
+    }
+
+    let playerAlreadyInDb = false;
+    for (let i = 0; i < trackBuyins[sessionid].length; i++) {
+        if (trackBuyins[sessionid][i].playerName == playerName && trackBuyins[sessionid][i].playerid == playerid) {
+            trackBuyins[sessionid][i].buyin = parseInt(trackBuyins[sessionid][i].buyin) + parseInt(playerStack);
+            trackBuyins[sessionid][i].time = time;
+            playerAlreadyInDb = true;
+        }
+    }
+    if (!playerAlreadyInDb){
+        trackBuyins[sessionid].push(obj);
+    }
+}
+
+let addBuyOut = (sessionid, playerName, playerid, buyOutStack) => {
+    let date = new Date;
+    let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+    let time = `${date.getHours()}:${minutes}`;
+    for (let i = 0; i < trackBuyins[sessionid].length; i++) {
+        if (trackBuyins[sessionid][i].playerName == playerName && trackBuyins[sessionid][i].playerid == playerid) {
+            if (buyOutStack == undefined){
+                buyOutStack = tables[sessionid].table.getPlayer(playerName).chips || trackBuyins[sessionid][i].buyin;
+            }
+            if (trackBuyins[sessionid][i].buyout != null){
+                trackBuyins[sessionid][i].buyout = parseInt(buyOutStack) + parseInt(trackBuyins[sessionid][i].buyout);
+            }
+            else {
+                trackBuyins[sessionid][i].buyout = buyOutStack;
+            }
+            trackBuyins[sessionid][i].time = time;
+        }
+    }
+}
+
+let getBuyinBuyouts = (sid) => {
+    return trackBuyins[sid];
+}
+
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
 let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
     let seat = getAvailableSeat(sessionid);
     if (getAvailableSeat(sessionid) > -1){
         addToPlayerIds(sessionid, playerName, playerid);
+        addToBuyins(sessionid, playerName, playerid, stack);
         // console.log(tables[sessionid]);
         tables[sessionid].table.AddPlayer(playerName, stack, seat, isStraddling);
         console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
@@ -108,16 +168,12 @@ let makeEmptySeats = (sid) => {
 
 // returns the seats of all all in players
 let getAllIns = (sid) => {
-    // tables[sid].table.players
-    //     .filter(p => getPlayerSeat(p.playerName) !== -1)
-    //     .forEach(p => tables[sid].allIn[getPlayerSeat(sid, p.playerName)] = p.allIn);
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
         if (getPlayerSeat(sid, players[i].playerName) != -1){
             tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
         }
     }
-    // console.log(tables[sid].allIn);
     return tables[sid].allIn;
 }
 
@@ -185,7 +241,15 @@ let getPlayerSeat = (sid, playerName) => {
     }
 };
 
-let updatePlayerId = (sid, playerName, playerid) => playerids[sid][playerName].playerid = playerid;
+let updatePlayerId = (sid, playerName, playerid) => {
+    let oldplayerid = playerids[sid][playerName].playerid;
+    for (let i = 0; i < trackBuyins[sid].length; i++) {
+        if (trackBuyins[sid][i].playerName == playerName && trackBuyins[sid][i].playerid == oldplayerid){
+            trackBuyins[sid][i].playerid = playerid;
+        }
+    }
+    playerids[sid][playerName].playerid = playerid;
+}
 
 let getAvailableSeat = (sid) => {
     for (let i = 0; i < tables[sid].seatsTaken.length; i++){
@@ -438,7 +502,7 @@ let getBigBlindSeat = (sid) => {
 }
 
 let getAvailableActions = (sid, playerid) => {
-    let actions = {
+    let availableActions = {
         'min-bet': false,
         'bet': false,
         'raise': false,
@@ -449,6 +513,8 @@ let getAvailableActions = (sid, playerid) => {
         'your-action': false,
         'straddle-switch': getStraddleLimit(sid) !== 0,
     };
+
+    let canPerformPremoves = false;
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
         console.log('player at table');
@@ -456,35 +522,44 @@ let getAvailableActions = (sid, playerid) => {
         let seatsTaken = getTableById(sid).seatsTaken.filter(isTaken => isTaken).length;
         if (!gameInProgress(sid) && (getModId(sid) == playerid) && seatsTaken >= 2) {
             console.log('game can start');
-            actions['start'] = true;
+            availableActions['start'] = true;
         }
         // cases where it's the player's action and game is in progress
         else if (gameInProgress(sid) && (getActionSeat(sid) == getPlayerSeat(sid, getPlayerById(sid, playerid)))) {
             // player is in big blind
             if (getActionSeat(sid) == getBigBlindSeat(sid) && getMaxBet(sid) == getTableById(sid).bigBlind && getRoundName(sid) == 'deal') {
-                actions['check'] = true;
-                actions['raise'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['check'] = true;
+                availableActions['raise'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
             }
             // bet on table
             else if (getMaxBet(sid)){
-                actions['call'] = true;
-                actions['raise'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['call'] = true;
+                availableActions['raise'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
             }
             // no bets yet
             else {
-                actions['check'] = true;
-                actions['bet'] = true;
-                actions['min-bet'] = true;
-                actions['fold'] = true;
-                actions['your-action'] = true;
+                availableActions['check'] = true;
+                availableActions['bet'] = true;
+                availableActions['min-bet'] = true;
+                availableActions['fold'] = true;
+                availableActions['your-action'] = true;
+            }
+        }
+        // cases where its not the players action and game is in progress
+        else if (gameInProgress(sid)) {
+            let playerName = getPlayerById(sid, playerid);
+            let playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
+            let playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+            if (!playerFolded && !playerAllIn){
+                canPerformPremoves = true;
             }
         }
     }
-    return actions;
+    return {availableActions, canPerformPremoves};
 }
 
 // if thats the case, just call and move forward with game
@@ -582,3 +657,5 @@ module.exports.everyoneAllIn = everyoneAllIn;
 module.exports.getPlayerIds = getPlayerIds;
 module.exports.setPlayerStraddling = setPlayerStraddling;
 module.exports.getStraddleLimit = getStraddleLimit;
+module.exports.getBuyinBuyouts = getBuyinBuyouts;
+module.exports.addBuyOut = addBuyOut;

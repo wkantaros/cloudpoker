@@ -54,6 +54,18 @@ var starterData = {
 }
 doResize(null, starterData);
 
+//helper function
+const getMaxRoundBet = () => {
+    let maxBetAmount = 0;
+
+    $('.player-bet').each(function () {
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html()) || 0;
+            maxBetAmount = Math.max(maxBetAmount, bet);
+        }
+    });
+    return maxBetAmount;
+}
 
 
 //header functions--------------------------------------------------------------------------------
@@ -65,16 +77,6 @@ $(document).mouseup(function (e) {
     // if the target of the click isn't the container nor a descendant of the container
     if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
         buyinInfo.removeClass('show');
-    }
-
-    // if the target of the click isn't the container nor a descendant of the container
-    if (!betConsole.is(e.target) && betConsole.has(e.target).length === 0) {
-        betConsole.removeClass('show');
-    }
-
-    // if the target of the click isn't the container nor a descendant of the container
-    if (!raiseConsole.is(e.target) && raiseConsole.has(e.target).length === 0) {
-        raiseConsole.removeClass('show');
     }
 });
 
@@ -165,94 +167,300 @@ function copyStringToClipboard(str) {
     document.body.removeChild(el);
 }
 
-//action buttons ---------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
+//action buttons ------------------------------------------------------------------------------------------------------------
 $('#bet').on('click', () => {
-    $('#myPopup1').toggleClass('show');
-    if ($('#myPopup1').hasClass('show')) {
-        $('#bet-amount').select();
+    let submit = !$('#bet-actions').hasClass('collapse');
+    if (submit) {
+        placeBet();
+        $('#bet-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#fold').toggleClass('collapse');
+        $('#check').toggleClass('collapse');
+        $('#min-bet').toggleClass('collapse');
+        $('#c').toggleClass('collapse');
+    } else {
+        $('#bet-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#fold').toggleClass('collapse');
+        $('#check').toggleClass('collapse');
+        $('#min-bet').toggleClass('collapse');
+        $('#c').toggleClass('collapse');
+        let slider = document.getElementById("betRange");
+        let output = document.getElementById("bet-input-val");
+        slider.value = output.value;
+        output.focus();
+        output.value = parseInt($('#bb').html()); // Display the default slider value
+        slider.min = parseInt($('#bb').html());
+        slider.max = parseInt($('.action > .stack').html());
+        
+        // Update the current slider value (each time you drag the slider handle)
+        slider.oninput = function () {
+            output.value = this.value;
+            output.focus();
+        } 
     }
 })
 
-$('#bet-amount').keydown(function (e) {
-    e.stopPropagation();
-    if (e.keyCode == 13) {
-        console.log('bet');
-        let betAmount = parseInt($('#bet-amount').val());
-        let minBetAmount = parseInt($('#bb').html());
-        let maxBetAmount = parseInt($('.action > .stack').html());
-        if (betAmount > maxBetAmount){
-            betAmount = maxBetAmount;
-        }
-        if (!betAmount || betAmount < minBetAmount) {
-            alert(`minimum bet size is ${minBetAmount}`);
+$('#betplus').on('click', () => {
+    let output = document.getElementById("bet-input-val");
+    let bb = parseInt($('#bb').html());
+    let maxval = parseInt($('.action > .stack').html());
+    handleBetSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
+})
+
+$('#betminus').on('click', () => {
+    let output = document.getElementById("bet-input-val");
+    let bb = parseInt($('#bb').html());
+    handleBetSliderButtons(Math.max(parseInt(output.value) - bb, bb));
+
+})
+
+$('#bai').on('click', () => {
+    handleBetSliderButtons(parseInt($('.action > .stack').html()));
+})
+
+$('#bp').on('click', () => {
+    handleBetSliderButtons(getPotSize());
+})
+
+$('#btqp').on('click', () => {
+    handleBetSliderButtons(Math.floor(3 * getPotSize() / 4));
+})
+
+$('#bhp').on('click', () => {
+    handleBetSliderButtons(Math.floor(getPotSize() / 2));
+})
+
+$('#bqp').on('click', () => {
+    handleBetSliderButtons(Math.max(Math.floor(getPotSize() / 4), parseInt($('#bb').html())));
+})
+
+$('#mb').on('click', () => {
+    handleBetSliderButtons(parseInt($('#bb').html()));
+})
+
+let closingPreflopAction = false;
+$('#back').on('click', () => {
+    if (!$('#bet').hasClass('collapse')){
+        $('#fold').toggleClass('collapse');
+        $('#check').toggleClass('collapse');
+        $('#min-bet').toggleClass('collapse');
+        $('#bet-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#c').toggleClass('collapse');
+    }
+    else if (!$('#raise').hasClass('collapse')){
+        $('#fold').toggleClass('collapse');
+        // TODO
+        if (closingPreflopAction) {
+            $('#check').toggleClass('collapse')
         } else {
-            socket.emit('action', {
-                amount: betAmount,
-                action: 'bet'
-            });
+            $('#call').toggleClass('collapse');
+        }
+        $('#raise-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#c').toggleClass('collapse');
+    }
+})
+
+$('#bet-input-val').keydown(function (e) {
+    e.stopPropagation();
+    // enter key
+    if (e.keyCode == 13) {
+        if (placeBet()) {
             $('#bet').click();
         }
     }
+    // b key (back)
+    if (event.keyCode === 66 && !$('#back').hasClass('collapse')) {
+        $('#back').click();
+    }
 });
 
+const handleBetSliderButtons = (outputVal) => {
+    let slider = document.getElementById("betRange");
+    let output = document.getElementById("bet-input-val");
+    output.value = outputVal;
+    slider.value = output.value;
+    output.focus();
+}
+
+const handleRaiseSliderButtons = (outputVal) => {
+    let slider = document.getElementById("raiseRange");
+    let output = document.getElementById("raise-input-val");
+    output.value = outputVal;
+    slider.value = output.value;
+    output.focus();
+}
+
+const placeBet = () => {
+    console.log('bet');
+    let betAmount = parseInt($('#bet-input-val').val());
+    let minBetAmount = parseInt($('#bb').html());
+    let maxBetAmount = parseInt($('.action > .stack').html());
+    if (betAmount > maxBetAmount) {
+        betAmount = maxBetAmount;
+    }
+    if (!betAmount || betAmount < minBetAmount) {
+        alert(`minimum bet size is ${minBetAmount}`);
+    } else {
+        socket.emit('action', {
+            amount: betAmount,
+            action: 'bet'
+        });
+        return true;
+    }
+    return false;
+}
+
+// hacky global variable
 $('#raise').on('click', () => {
-    let minRaiseAmount = getMinRaiseAmount();
-    $('#raise-amount').attr({
-        "min": minRaiseAmount // values (or variables) here
-    });
-    $('#raise-amount').val(minRaiseAmount);
-    // $('#raise-amount').val(minRaiseAmount);
-    // $('#raise-amount').min(minRaiseAmount);
-    $('#myPopup2').toggleClass('show');
-    if ($('#myPopup2').hasClass('show')){
-        $('#raise-amount').select();
+    let submit = !$('#raise-actions').hasClass('collapse');
+    if (submit) {
+        placeRaise();
+        $('#raise-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#fold').toggleClass('collapse');
+        if (closingPreflopAction) {
+            $('#check').toggleClass('collapse')
+        } else {
+            $('#call').toggleClass('collapse');
+        }
+        $('#c').toggleClass('collapse');
+    } else {
+        $('#raise-actions').toggleClass('collapse');
+        $('#back').toggleClass('collapse');
+        $('#fold').toggleClass('collapse');
+        closingPreflopAction = !$('#check').hasClass('collapse');
+        if (closingPreflopAction) {
+            $('#check').toggleClass('collapse')
+        } else {
+            $('#call').toggleClass('collapse');
+        }
+        $('#c').toggleClass('collapse');
+        let slider = document.getElementById("raiseRange");
+        let output = document.getElementById("raise-input-val");
+        slider.value = output.value;
+        output.focus();
+        output.value = getMinRaiseAmount(); // Display the default slider value
+        slider.min = getMinRaiseAmount();
+        slider.max = parseInt($('.action > .stack').html());
+
+        // Update the current slider value (each time you drag the slider handle)
+        slider.oninput = function () {
+            output.value = this.value;
+            output.focus();
+        }
     }
 })
 
-$('#raise-amount').keydown(function (e) {
+$('#raiseplus').on('click', () => {
+    let output = document.getElementById("raise-input-val");
+    let bb = parseInt($('#bb').html());
+    let maxval = parseInt($('.action > .stack').html());
+    handleRaiseSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
+})
+
+$('#raiseminus').on('click', () => {
+    let output = document.getElementById("bet-input-val");
+    let bb = parseInt($('#bb').html());
+    handleRaiseSliderButtons(Math.max(parseInt(output.value) - bb, getMinRaiseAmount()));
+
+})
+
+$('#rai').on('click', () => {
+    handleRaiseSliderButtons(parseInt($('.action > .stack').html()));
+})
+
+$('#rthp').on('click', () => { 
+    let valormr = Math.max(Math.floor(3 * getPotSize()), getMinRaiseAmount());
+    let totalStack = parseInt($('.action > .stack').html());
+    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+})
+
+$('#rtp').on('click', () => {
+    let valormr = Math.max(Math.floor(2 * getPotSize()), getMinRaiseAmount());
+    let totalStack = parseInt($('.action > .stack').html());
+    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+})
+
+$('#rsqp').on('click', () => {
+    let valormr = Math.max(Math.floor(6 * getPotSize() / 4), getMinRaiseAmount());
+    let totalStack = parseInt($('.action > .stack').html());
+    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+})
+
+$('#rp').on('click', () => {
+    let valormr = Math.max(Math.floor(getPotSize()), getMinRaiseAmount());
+    let totalStack = parseInt($('.action > .stack').html());
+    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+})
+
+$('#mr').on('click', () => {
+    // min raise or all in
+    handleRaiseSliderButtons(Math.min(getMinRaiseAmount(), parseInt($('.action > .stack').html())));
+})
+
+$('#raise-input-val').keydown(function (e) {
     e.stopPropagation()
     if (e.keyCode == 13) {
-        console.log('raise');
-        let raiseAmount = parseInt($('#raise-amount').val());
-        console.log(raiseAmount);
-        let minRaiseAmount = getMinRaiseAmount();
-        let maxRaiseAmount = parseInt($('.action > .stack').html());
-        console.log(maxRaiseAmount);
-        if (raiseAmount > maxRaiseAmount) {
-            raiseAmount = maxRaiseAmount;
-        }
-
-        if (raiseAmount == maxRaiseAmount && maxRaiseAmount < minRaiseAmount) {
-            console.log('all in player');
-            socket.emit('action', {
-                id: socket.id,
-                amount: raiseAmount,
-                action: 'call'
-            });
-            $('#raise').click();
-        }
-        else if (!raiseAmount || raiseAmount < minRaiseAmount){
-            alert(`minimum raise amount is ${minRaiseAmount}`);
-        }
-        else if (raiseAmount == maxRaiseAmount){ // player is going all in
-            console.log('all in mothafucka');
-            socket.emit('action', {
-                id: socket.id,
-                amount: raiseAmount,
-                action: 'bet'
-            });
-            $('#raise').click();
-        }
-        else {
-            socket.emit('action', {
-                id: socket.id,
-                amount: raiseAmount,
-                action: 'raise'
-            });
+        if (placeRaise()) {
             $('#raise').click();
         }
     }
+    // b key (back)
+    if (event.keyCode === 66 && !$('#back').hasClass('collapse')) {
+        $('#back').click();
+    }
 });
+
+let placeRaise = () => {
+    console.log('raise');
+    let raiseAmount = parseInt($('#raise-input-val').val());
+    console.log(raiseAmount);
+    let minRaiseAmount = getMinRaiseAmount();
+    let maxRaiseAmount = parseInt($('.action > .stack').html());
+    console.log(maxRaiseAmount);
+    if (raiseAmount > maxRaiseAmount) {
+        raiseAmount = maxRaiseAmount;
+    }
+
+    if (raiseAmount == maxRaiseAmount && maxRaiseAmount < minRaiseAmount) {
+        console.log('all in player');
+        socket.emit('action', {
+            id: socket.id,
+            amount: raiseAmount,
+            action: 'call'
+        });
+        return true;
+    } else if (!raiseAmount || raiseAmount < minRaiseAmount) {
+        alert(`minimum raise amount is ${minRaiseAmount}`);
+    } else if (raiseAmount == maxRaiseAmount) { // player is going all in
+        console.log('all in mothafucka');
+        socket.emit('action', {
+            id: socket.id,
+            amount: raiseAmount,
+            action: 'bet'
+        });
+        return true;
+    } else {
+        socket.emit('action', {
+            id: socket.id,
+            amount: raiseAmount,
+            action: 'raise'
+        });
+        return true;
+    }
+    return false;
+}
 
 start_btn.addEventListener('click', () => {
     console.log('starting game');
@@ -309,28 +517,120 @@ straddleSwitch.addEventListener('click', () => {
 });
 
 // keyboard shortcuts for all events
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------PREMOVE ACTION BUTTONS--------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------
+
+// have to do it this way bc of safari (super annoying)
+$('#pm-check').on('click', (e) => {
+    if ($('#pm-check').hasClass('pm')){
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-check').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-call').on('click', (e) => {
+    if ($('#pm-call').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-call').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-checkfold').on('click', (e) => {
+    if ($('#pm-checkfold').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-checkfold').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+$('#pm-fold').on('click', (e) => {
+    if ($('#pm-fold').hasClass('pm')) {
+        $('.pm-btn').removeClass('pm');
+    } else {
+        $('.pm-btn').removeClass('pm');
+        $('#pm-fold').addClass('pm');
+    }
+    e.stopPropagation();
+})
+
+const checkForPremoves = () => {
+    if ($('#pm-fold').hasClass('pm')){
+        return '#fold';
+    }
+    if ($('#pm-call').hasClass('pm')){
+        return '#call';
+    }
+    if ($('#pm-check').hasClass('pm')){
+        return '#check';
+    }
+    if ($('#pm-checkfold').hasClass('pm')){
+        return '#check';
+    }
+    return undefined;
+}
+
+
+// keyboard shortcuts for all events ------------------------------------------------------------------------------------------------
 $(document).keydown(function (event) {
     // m key
     if (event.keyCode === 77) {
         event.preventDefault();
-        message.select();
+        message.focus();
     }
     // k key (check)
     if (event.keyCode === 75 && !$('#check').hasClass('collapse')){
         check.click();
     }
+    // k key (premove check)
+    if (event.keyCode === 75 && !$('#pm-check').hasClass('collapse')){
+        $('#pm-check').click();
+    }
     // c key (call)
     if (event.keyCode === 67 && !$('#call').hasClass('collapse')){
         call.click();
+    }
+    // c key (premove call)
+    if (event.keyCode === 67 && !$('#pm-call').hasClass('collapse')){
+        $('#pm-call').click();
     }
     // c key (min bet)
     if (event.keyCode === 67 && !$('#min-bet').hasClass('collapse')){
         minBet.click();
     }
-    // // p key (straddle)
-    // if (event.keyCode === 80 && !$('#straddle').hasClass('collapse')){
-    //     straddle.click();
-    // }
+    // i key (premove check/fold)
+    if (event.keyCode === 73 && !$('#pm-checkfold').hasClass('collapse')){
+        $('#pm-checkfold').click();
+    }
     // r key (raise)
     if (event.keyCode === 82 && !$('#raise').hasClass('collapse')){
         raise.click();
@@ -338,12 +638,18 @@ $(document).keydown(function (event) {
     // r key (bet)
     if (event.keyCode === 82 && !$('#bet').hasClass('collapse')){
         bet.click();
-        bet
+    }
+    // b key (back)
+    if (event.keyCode === 66 && !$('#back').hasClass('collapse')){
+        $('#back').click();
     }
     // f key (fold)
     if (event.keyCode === 70 && !$('#fold').hasClass('collapse')){
-        console.log('here!!');
         fold.click();
+    }
+    // f key (premove fold)
+    if (event.keyCode === 70 && !$('#pm-fold').hasClass('collapse')){
+        $('#pm-fold').click();
     }
 });
 
@@ -532,6 +838,7 @@ const hideBoardPreFlop = () => {
 // when the players joins in the middle of a hand
 // data: {street, board, sound}
 socket.on('sync-board', (data) => {
+    $('.pm-btn').removeClass('pm');
     logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
@@ -545,6 +852,7 @@ socket.on('sync-board', (data) => {
 
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
+    $('.pm-btn').removeClass('pm');
     hideAllBets();
     if (data.street == 'deal'){
         hideBoardPreFlop();
@@ -607,14 +915,9 @@ socket.on('action', (data) => {
 
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
-    displayButtons(data.availableActions);
+    console.log('here we are lets go', data);
+    displayButtons(data);
 })
-
-
-// changes that person to the person who has the action
-socket.on('available-actions', (data) => {
-    displayButtons(data.availableActions);
-});
 
 // adds dealer chip to seat of dealer
 socket.on('new-dealer', (data) => {
@@ -630,6 +933,7 @@ socket.on('nobody-waiting', (data) => {
     inHand();
 });
 
+// ---------------------------------action buttons --------------------------------------------------------
 // calls
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
@@ -645,10 +949,10 @@ socket.on('check', (data) => {
     if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
         console.log('big blind player closing action');
     }
-    // else {
-    //     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    //     showBet(data.seat, prevAmount);
-    // }
+    else {
+        // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+        showBet(data.seat, 'check');
+    }
 });
 
 // fold
@@ -665,7 +969,6 @@ function outputMessage(s) {
 }
 
 function outputEmphasizedMessage(s) {
-    // feedback\.innerHTML\s*=\s*['"]['"];\s*message_output\.innerHTML\s*\+=\s*['"]<p><em>['"]\s*\+(.+?)\+\s*['"]<\/em><\/p>['"];\s*\$\(['"]#chat-window['"]\)\.scrollTop\(\$\(['"]#chat-window['"]\)\[0\]\.scrollHeight\);
     outputMessage('<em>' + s + '</em>');
 }
 
@@ -774,22 +1077,68 @@ const loadSounds = () => {
 };
 loadSounds();
 
-const displayButtons = (availableActions) => {
-    let maxBetAmount = parseInt($('#bb').html());
+const displayButtons = (data) => {
+    let premove = undefined;
+    if (data.canPerformPremoves) {
+        $('#pm-fold').removeClass('collapse');
+        if (getMaxRoundBet()) {
+            $('#pm-check').removeClass('pm');
+            $('#pm-check').addClass('collapse');
 
-    $('.player-bet').each(function () {
-        if (!$(this).hasClass('hidden')) {
-            let bet = parseInt($(this).html());
-            maxBetAmount = Math.max(maxBetAmount, bet);
+            if ($('#pm-checkfold').hasClass('pm')) {
+                $('#pm-checkfold').removeClass('pm');
+                $('#pm-fold').click();
+            }
+            $('#pm-checkfold').addClass('collapse');
+
+            let oldNum = $('#pm-call > .number').html();
+            $('#pm-call > .number').html(getMaxRoundBet());
+            let newNum = $('#pm-call > .number').html();
+            if (oldNum != newNum){
+                $('#pm-call').removeClass('pm');
+            }
+            $('#pm-call').removeClass('collapse');
+        } else {
+            $('#pm-check').removeClass('collapse');
+            $('#pm-checkfold').removeClass('collapse');
+            $('#pm-call').addClass('collapse');
         }
-    });
+    }
+    else {
+        // remove call if bet changes
+        let oldNum = $('#pm-call > .number').html();
+        $('#pm-call > .number').html(getMaxRoundBet());
+        let newNum = $('#pm-call > .number').html();
+        if (oldNum != newNum) {
+            $('#pm-call').removeClass('pm');
+        }
+        // if checkfold was clicked and there is a bet its now fold
+        if (getMaxRoundBet()){
+            if ($('#pm-checkfold').hasClass('pm')){
+                $('#pm-checkfold').removeClass('pm');
+                $('#pm-fold').click();
+            }
+        }
+        premove = checkForPremoves();
+        $('.pm-btn').removeClass('pm')
+        $('.pm-btn').addClass('collapse');
+    }
+    let maxBetAmount = getMaxRoundBet();
+    
+    // active player keys
     $('#call .number').html(maxBetAmount);
-    for (let key of Object.keys(availableActions)) {
-        if (availableActions[key]){
+    for (let key of Object.keys(data.availableActions)) {
+        if (data.availableActions[key]){
             $(`#${key}`).removeClass('collapse');
         } else {
             $(`#${key}`).addClass('collapse');
         }
+    }
+    console.log('checked for premove', premove);
+    if (premove) {
+        setTimeout(() => {
+            $(`${premove}`).click();
+        }, 650);
     }
 }
 
@@ -920,7 +1269,29 @@ const getMinRaiseAmount = () => {
     return minRaiseAmount;
 }
 
-//add hands (for sure a cleaner way to do but will work for now) ---------------------------------
+const getPotSize = () => {
+    let pot = parseInt($("#pot-amount").html()) || 0;
+    $('.player-bet').each(function () {
+        if (!$(this).hasClass('hidden')) {
+            let bet = parseInt($(this).html());
+            pot += bet;
+        }
+    });
+    return pot;
+}
+
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
+//add hands and bets to table --------------------------------------------------------------------------------
 function createHands() {
     $('.field').remove();
     var table = $('#table');
@@ -1018,3 +1389,35 @@ $(window).resize(function () {
     }
     doResize(null, resizeData);
 });
+
+//---------------------------------------------------------
+//------------open and close gamelog features--------------
+
+function openBuyin() {
+    socket.emit('get-buyin-info');
+    document.getElementById("buyin-log").style.width = "100%";
+}
+
+socket.on('get-buyin-info', (data) => {
+    $('#buyins').empty();
+    for (let i = 0; i < data.length; i++) {
+        let time = `<span class='info'>${data[i].time} ~</span>`;
+        let datastr = `${time} ${data[i].playerName} (id: ${data[i].playerid}) buy-in: ${data[i].buyin}`
+        if (data[i].buyout != null){
+            datastr += ` buy-out: ${data[i].buyout}`
+        }
+        $('#buyins').prepend(`<p>${datastr}</p>`);
+    }
+})
+
+function closeBuyin() {
+    document.getElementById("buyin-log").style.width = "0%";
+}
+
+function openLog() {
+    document.getElementById("game-log").style.width = "100%";
+}
+
+function closeLog() {
+    document.getElementById("game-log").style.width = "0%";
+}

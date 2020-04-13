@@ -836,17 +836,18 @@ Table.prototype.callBlind = function(playerName) {
     const maxBet = this.getMaxBet();
     const bigBlindIndex = (this.dealer + 2) % this.players.length;
     const isBigBlind = currentPlayer === bigBlindIndex;
-    console.log('bb', this.bigBlind, 'mb', maxBet, 'ibb', isBigBlind, 'p', JSON.stringify(p));
+    let callAmount;
     if (isBigBlind || maxBet >= this.bigBlind) {
-        return p.Bet(Math.min(p.chips + p.bet, maxBet) - p.bet)
+        callAmount = Math.min(p.chips + p.bet, maxBet) - p.bet;
+    } else {
+        const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), currentPlayer);
+        // bet bigBlind if following players have a stack >= bigBlind
+        // bet < bigBlind if no other player has a stack >= bigBlind
+        callAmount = Math.min(otherPlayersMaxStack, this.bigBlind, p.bet + p.chips) - p.bet;
     }
-
-    const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), currentPlayer);
-    // bet bigBlind if following players have a stack >= bigBlind
-    // bet < bigBlind if no other player has a stack >= bigBlind
-    let callAmount = Math.min(otherPlayersMaxStack, this.bigBlind, p.bet + p.chips);
-    console.log('opms', otherPlayersMaxStack);
-    return this.players[currentPlayer].Bet(callAmount - p.bet);
+    p.Bet(callAmount);
+    progress(this);
+    return callAmount;
 };
 
 // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
