@@ -179,6 +179,10 @@ let getLosers = (sid) => {
 
 let getTableById = (id) => tables[id];
 
+const isPlayerNameUsed = (sid, playerName) => {
+    return Object.keys(playerids[sid]).includes(playerName)
+};
+
 let getPlayerId = (sid, playerName) => {
     if (Object.keys(playerids[sid]).includes(playerName))
         return playerids[sid][playerName].playerid;
@@ -606,6 +610,7 @@ module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
 module.exports.isActivePlayerId = isActivePlayerId;
+module.exports.isPlayerNameUsed = isPlayerNameUsed;
 module.exports.getBet = getBet;
 module.exports.getPlayerBySeat = getPlayerBySeat;
 // need to change name to getSeatByPlayer eventually

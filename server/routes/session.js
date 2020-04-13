@@ -188,6 +188,11 @@ router.route('/:id').get((req, res) => {
         }
 
         socket.on('buy-in', (data) => {
+            if (s.isPlayerNameUsed(sid, data.playerName)) {
+                io.sockets.to(getSocketId(playerId)).emit('alert',
+                    {'message': `Player name ${data.playerName} is already taken.`});
+                return;
+            }
             s.buyin(sid, data.playerName, playerId, data.stack);
             if (s.getModId(sid) === playerId) {
                 io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');

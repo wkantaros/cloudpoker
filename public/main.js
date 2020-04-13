@@ -1034,6 +1034,10 @@ socket.on('initial-bets', function(data){
     }
 });
 
+socket.on('alert', function(data) {
+    alert(data.message);
+});
+
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
