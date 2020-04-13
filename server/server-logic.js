@@ -130,6 +130,10 @@ let getLosers = (sid) => {
 
 let getTableById = (id) => tables[id];
 
+function getStraddleLimit(sid) {
+    return tables[sid].table.straddleLimit;
+};
+
 let getPlayerId = (sid, playerName) => {
     if (Object.keys(playerids[sid]).includes(playerName))
         return playerids[sid][playerName].playerid;
@@ -212,7 +216,7 @@ let playersInfo = (sid) => {
             betAmount: getBet(sid, name), // amount that name bet so far in this street
         })
     }
-    console.log(info);
+    // console.log(info);
     return info;
 };
 
@@ -443,7 +447,7 @@ let getAvailableActions = (sid, playerid) => {
         'start': false,
         'check': false,
         'your-action': false,
-        'straddle-switch': getTableById(sid).table.straddleLimit !== 0,
+        'straddle-switch': getStraddleLimit(sid) !== 0,
     };
     // if player is at the table
     if (isActivePlayerId(sid, playerid)){
@@ -577,3 +581,4 @@ module.exports.actionOnAllInPlayer = actionOnAllInPlayer;
 module.exports.everyoneAllIn = everyoneAllIn;
 module.exports.getPlayerIds = getPlayerIds;
 module.exports.setPlayerStraddling = setPlayerStraddling;
+module.exports.getStraddleLimit = getStraddleLimit;

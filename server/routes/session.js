@@ -102,7 +102,8 @@ router.route('/:id').get((req, res) => {
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid),
-        callAmount: s.getMaxBet(sid)
+        callAmount: s.getMaxBet(sid),
+        straddlingEnabled: s.getStraddleLimit(sid) !== 0
     });
 
     // hacky
@@ -288,7 +289,6 @@ router.route('/:id').get((req, res) => {
             } else if (data.action === 'call') {
                 if (s.getRoundName(sid) === 'deal') {
                     actualBetAmount = s.callBlind(sid, playerName);
-                    console.log('aba', actualBetAmount);
                 } else {
                     actualBetAmount = s.call(sid, playerName);
                 }

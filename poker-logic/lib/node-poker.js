@@ -132,10 +132,13 @@ function checkForEndOfRound(table) {
     let counter = 1;
     let j = table.currentPlayer;
     while (counter <= table.players.length){
-        // console.log(`Current player: ${j}`);
+        console.log(`Current player: ${j}`);
         if (table.players[j].folded === false) {
+            console.log(`not folded: ${j}`);
             if (table.players[j].talked === false || table.players[j].bet !== maxBet) {
+                console.log(`not talked: ${j}`);
                 if (table.players[j].allIn === false) {
+                    console.log(`not allin: ${j}`);
                     table.currentPlayer = j;
                     endOfRound = false;
                     break;
