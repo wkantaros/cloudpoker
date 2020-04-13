@@ -299,9 +299,9 @@ straddleSwitch.addEventListener('click', () => {
     isStraddling = !isStraddling;
     console.log(`straddle enabled: ${isStraddling}`);
     if (isStraddling) {
-        $('#straddle-switch').html('Enable Straddling');
-    } else {
         $('#straddle-switch').html('Disable Straddling');
+    } else {
+        $('#straddle-switch').html('Enable Straddling');
     }
     socket.emit('straddle-switch', {
         isStraddling: isStraddling

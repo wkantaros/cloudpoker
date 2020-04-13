@@ -102,8 +102,7 @@ router.route('/:id').get((req, res) => {
         waiting: !s.gameInProgress(sid),
         pot: s.getPot(sid),
         roundName: s.getRoundName(sid),
-        callAmount: s.getMaxBet(sid),
-        straddlingEnabled: s.getStraddleLimit(sid) !== 0
+        callAmount: s.getMaxBet(sid)
     });
 
     // hacky
