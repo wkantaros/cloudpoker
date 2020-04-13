@@ -110,6 +110,7 @@ let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
         if (getTableById(sessionid).hostName === null){
             console.log(`transferring host to ${playerName} (pid: ${playerid})`);
             transferHost(sessionid, playerName);
+            tables[sessionid].hostStack = stack;
         }
         return true;
     } else {
