@@ -32,6 +32,14 @@
                     <input class="u-full-width" type="text" id="big-blind" name="big-blind" placeholder="Big Blind">
                 </div>
             </div>
+            <div class="row">
+                <input type="radio" id="no-straddle" name="straddle-type" value="0">
+                <label for="no-straddle">No Straddle</label><br>
+                <input type="radio" id="single-straddle" name="straddle-type" value="1">
+                <label for="single-straddle">Single Straddle</label><br>
+                <input type="radio" id="multi-straddle" name="straddle-type" value="-1">
+                <label for="other">Multiple Straddle</label>
+            </div>
             <button class="u-full-width button-primary">Create Game</button>
         </form>
     </main>

@@ -56,7 +56,7 @@ function Player(playerName, chips, isStraddling) {
     // this.table = table; //Circular reference to allow reference back to parent object.
     this.cards = [];
     this.bet = 0;
-    this.isStraddling = straddling;
+    this.isStraddling = isStraddling;
 }
 
 function fillDeck(deck) {
