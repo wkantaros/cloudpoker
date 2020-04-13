@@ -15,6 +15,7 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet');
+    straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
 
@@ -498,6 +499,21 @@ minBet.addEventListener('click', () => {
     });
 });
 
+let isStraddling = false;
+straddleSwitch.addEventListener('click', () => {
+    isStraddling = !isStraddling;
+    console.log(`straddle enabled: ${isStraddling}`);
+    if (isStraddling) {
+        $('#straddle-switch').html('Disable Straddling');
+    } else {
+        $('#straddle-switch').html('Enable Straddling');
+    }
+    socket.emit('straddle-switch', {
+        isStraddling: isStraddling
+    });
+});
+
+// keyboard shortcuts for all events
 // -------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------------------------
@@ -961,6 +977,16 @@ socket.on('bet', (data) => {
     console.log(`prev amount: ${prevAmount}`);
     showBet(data.seat, data.amount + prevAmount);
 });
+
+// socket.on('straddle', (data) => {
+//     outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
+//     // TODO: do we want a different sound effect for straddle?
+//     playSoundIfVolumeOn('bet');
+//     // prevAmount != 0 if player is small blind or big blind
+//     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
+//     console.log(`prev amount: ${prevAmount}`);
+//     showBet(data.seat, data.amount + prevAmount);
+// });
 
 function hideAllBets() {
     $('.player-bet').html(0);

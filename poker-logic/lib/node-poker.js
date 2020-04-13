@@ -3,7 +3,14 @@ const {fillDeck, rankHandInt, rankHand} = require('./deck');
 
 //Note: methods I've changed/created have been commented: EDITED
 
-function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn) {
+// straddleLimit values:
+// -1: unlimited straddles (last player who can straddle is the dealer)
+// 0: no straddling allowed
+// 1: only player after big blind can straddle
+// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+//      the same behavior as -1 occurs.
+// x > players.length - 2: same behavior as -1 occurs.
+function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
     this.minPlayers = minPlayers;
@@ -17,6 +24,7 @@ function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn)
     this.eventEmitter = new events.EventEmitter();
     this.gameWinners = [];
     this.gameLosers = [];
+    this.straddleLimit = straddleLimit;
 
     //Validate acceptable value ranges.
     var err;
@@ -33,7 +41,14 @@ function Table(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn)
     }
 }
 
-function Player(playerName, chips, table) {
+/**
+ * Constructs a Player object for use with Table.
+ * @param playerName Name of the player as it should appear on the front end
+ * @param chips The player's initial chip stack
+ * @param isStraddling If the player wants to straddle
+ * @constructor
+ */
+function Player(playerName, chips, isStraddling) {
     this.playerName = playerName;
     this.chips = chips;
     this.folded = false;
@@ -42,6 +57,7 @@ function Player(playerName, chips, table) {
     // this.table = table; //Circular reference to allow reference back to parent object.
     this.cards = [];
     this.bet = 0;
+    this.isStraddling = isStraddling;
 }
 
 function checkForEndOfRound(table) {
@@ -52,7 +68,6 @@ function checkForEndOfRound(table) {
     let counter = 1;
     let j = table.currentPlayer;
     while (counter <= table.players.length){
-        // console.log(`Current player: ${j}`);
         if (table.players[j].folded === false) {
             if (table.players[j].talked === false || table.players[j].bet !== maxBet) {
                 if (table.players[j].allIn === false) {
@@ -265,7 +280,7 @@ Table.prototype.getPlayer = function( playerName ){
       return this.players[i];
     }
   }
-  return [];
+  return null;
 };
 Table.prototype.getDeal = function(){
   return this.game.board;
@@ -285,6 +300,17 @@ function maxSkippingIndices(arr, ...ind) {
     }
     return m;
 }
+
+/**
+ * Calculates the maximum that a player can bet (total) as limited
+ * by his going all in or making everyone else at the table go all in
+ * if he has the biggest stack
+ * @param playerInd Index of player in this.players
+ */
+Table.prototype.maxBetPossible = function(playerInd) {
+    const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
+    return Math.min(this.players[playerInd].bet + this.players[playerInd].chips);
+};
 
 Table.prototype.callBlind = function(playerName) {
     let currentPlayer = this.currentPlayer;
@@ -407,6 +433,7 @@ Table.prototype.bet = function( playerName, amt ){
     progress(this);
     return betAmount;
 };
+
 Table.prototype.getWinners = function(){
   return this.gameWinners;
 };
@@ -473,10 +500,10 @@ Table.prototype.StartGame = function () {
 //  }
 // }
 // EDITED
-Table.prototype.AddPlayer = function (playerName, chips, seat) {
+Table.prototype.AddPlayer = function (playerName, chips, seat, isStraddling) {
     console.log(`adding player ${playerName}`);
   if ( chips >= this.minBuyIn && chips <= this.maxBuyIn) {
-    var player = new Player(playerName, chips, this);
+    var player = new Player(playerName, chips, isStraddling);
     player.seat = seat;
     this.playersToAdd.push( player );
   }
@@ -508,20 +535,10 @@ Table.prototype.removePlayer = function (playerName){
     }
   }
 }
-Table.prototype.NewRound = function() {
-  // Add players in waiting list
-    // EDITED
-    // make sure its all in order (note this works bc numbers can only be between 0 and 9)
-    if (this.playersToRemove.length > 0) {
-        this.playersToRemove.sort();
-    }
-    console.log('sorted toRemove:');
-    console.log(this.playersToRemove);
-    // done editing
-    console.log('init players', JSON.stringify(this.players));
-    console.log('to add players', JSON.stringify(this.playersToAdd));
-  for(let i = 0; i < this.playersToAdd.length; i++){
-    // new
+
+Table.prototype.flushPlayersToAdd = function () {
+    for(let i = 0; i < this.playersToAdd.length; i++){
+        // new
         let seat = this.playersToAdd[i].seat;
         if (seat < this.players.length){
             this.players.splice(seat, 0, this.playersToAdd[i]);
@@ -543,68 +560,116 @@ Table.prototype.NewRound = function() {
             this.players.push(this.playersToAdd[i]);
         }
     }
-  console.log('p to add', JSON.stringify(this.players));
-  // Remove players
-  // EDITED
-  for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
-      let indexval = parseInt(this.playersToRemove[removeIndex]);
-      this.players.splice(this.playersToRemove[removeIndex], 1);
-      // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
-      for (let q = removeIndex + 1; q < this.playersToRemove.length; q++){
-          let oldIndex = parseInt(this.playersToRemove[q]);
-          let newIndex = oldIndex - 1;
-          this.playersToRemove[q] = `${newIndex}`;
-      }
-      console.log('index val:' + indexval);
-      console.log(`OLD DEALER SPOT: ${this.dealer}`);
-      if (indexval < this.dealer){
-          this.dealer--;
-          console.log('696969')
-      }
-      else if (indexval == this.dealer){
+};
+
+Table.prototype.flushPlayersToRemove = function() {
+    for (let removeIndex = 0; removeIndex < this.playersToRemove.length; removeIndex++){
+        let indexval = parseInt(this.playersToRemove[removeIndex]);
+        this.players.splice(this.playersToRemove[removeIndex], 1);
+        // iterate rest of removeIndeces and subtract one from them (since length ahs decreased by one)
+        for (let q = removeIndex + 1; q < this.playersToRemove.length; q++){
+            let oldIndex = parseInt(this.playersToRemove[q]);
+            let newIndex = oldIndex - 1;
+            this.playersToRemove[q] = `${newIndex}`;
+        }
+        console.log('index val:' + indexval);
+        console.log(`OLD DEALER SPOT: ${this.dealer}`);
+        if (indexval < this.dealer){
+            this.dealer--;
+            console.log('696969')
+        }
+        else if (indexval == this.dealer){
             let playersLength = this.players.length;
             if (indexval = playersLength){
                 this.dealer--;
-            } 
-      } 
-      console.log(`NEW DEALER SPOT: ${this.dealer}`);
-  }
-  //done editing
-  this.playersToRemove = [];
-  this.playersToAdd = [];
-  this.gameWinners = [];
-  this.gameLosers = [];
+            }
+        }
+        console.log(`NEW DEALER SPOT: ${this.dealer}`);
+    }
+}
 
-  // EDITED
-  if (this.players.length < 2){
+Table.prototype.NewRound = function() {
+  // Add players in waiting list
+    // EDITED
+    // make sure its all in order (note this works bc numbers can only be between 0 and 9)
+    if (this.playersToRemove.length > 0) {
+        this.playersToRemove.sort();
+    }
+    this.flushPlayersToAdd();
+    // Remove players
+    // EDITED
+    this.flushPlayersToRemove();
+    //done editing
+    this.playersToRemove = [];
+    this.playersToAdd = [];
+    this.gameWinners = [];
+    this.gameLosers = [];
+
+    // EDITED
+    if (this.players.length < 2){
       console.log('not enough players :(');
       this.game = null;
       return;
-  }
+    }
 
-  let i, smallBlind, bigBlind;
   //Deal 2 cards to each player
-  for (i = 0; i < this.players.length; i += 1) {
+  for (let i = 0; i < this.players.length; i += 1) {
       this.players[i].cards.push(this.game.deck.pop());
       this.players[i].cards.push(this.game.deck.pop());
       this.players[i].bet = 0;
       this.game.roundBets[i] = 0;
   }
-  //Identify Small and Big Blind player indexes
-  smallBlind = (this.dealer + 1) % this.players.length;
-  bigBlind = (this.dealer + 2) % this.players.length;
-  //Force Blind Bets
-    // TODO: the next lines can give players negative stacks. must check that this doesn't happen.
-    //  force them all-in if their balance <= their bland.
+  this.initializeBlinds();
+
+  this.eventEmitter.emit( "newRound" );
+};
+
+// straddleLimit values:
+// -1: unlimited straddles (last player who can straddle is the dealer)
+// 0: no straddling allowed
+// 1: only player after big blind can straddle
+// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+//      the same behavior as -1 occurs.
+// x > players.length - 2: same behavior as -1 occurs.
+// Up to this.players.length -2 players can straddle because
+//      the last player that is able to is the dealer
+Table.prototype.maxStraddles = function() {
+    if (this.players.length <= 2) return 0;
+    if (this.straddleLimit >= 0 && this.straddleLimit <= this.players.length -2) {
+        return this.straddleLimit;
+    }
+    if (this.straddleLimit === -1 || this.straddleLimit > this.players.length -2) {
+        return this.players.length - 2;
+    }
+    // straddleLimit < -1
+    console.log(`Invalid straddleLimit value ${this.straddleLimit}`);
+    return 0;
+};
+
+Table.prototype.initializeBlinds = function() {
+    // Small and Big Blind player indexes
+    let smallBlind = (this.dealer + 1) % this.players.length;
+    let bigBlind = (this.dealer + 2) % this.players.length;
+
+    // Force Blind Bets
     this.currentPlayer = smallBlind;
     this.postBlind(this.smallBlind);
     this.currentPlayer = bigBlind;
     this.postBlind(this.bigBlind);
 
-  // get currentPlayer
-  this.currentPlayer = (this.dealer + 3) % this.players.length;
-
-  this.eventEmitter.emit( "newRound" );
+    const maxStraddles = this.maxStraddles();
+    for (let i = 0; i < maxStraddles; i++) {
+        const nextPlayer = (this.currentPlayer + 1) % this.players.length;
+        if (!this.players[nextPlayer].isStraddling) { break; }
+        const straddleAmount = this.bigBlind * Math.pow(2, i + 1); // bigBlind * 2^(i+1)
+        if (this.players[nextPlayer].chips < straddleAmount) {
+            console.log(`${this.players[nextPlayer]} does not have enough to straddle`);
+            break;
+        }
+        this.currentPlayer = nextPlayer;
+        this.postBlind(straddleAmount);
+    }
+    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
 };
 
 Table.prototype.postBlind = function(blindAmount) {

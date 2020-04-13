@@ -17,7 +17,8 @@ router.route('/').post((req, res) => {
         username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
         bigBlind: Joi.number().integer().min(0),
-        stack: Joi.number().integer().min(1)
+        stack: Joi.number().integer().min(1),
+        straddleLimit: Joi.number().integer().min(-1)
     });
     if (process.env.DEBUG === 'true') {
         req.body.name = req.body.name || 'debugName';
@@ -29,7 +30,8 @@ router.route('/').post((req, res) => {
         username: req.body.name,
         smallBlind: req.body.smallBlind,
         bigBlind: req.body.bigBlind,
-        stack: req.body.stack
+        stack: req.body.stack,
+        straddleLimit: req.body.straddleLimit,
     });
     if (error) {
         res.status(422);
@@ -48,7 +50,7 @@ router.route('/').post((req, res) => {
         req.body.isValid = true;
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
-        s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, 6969);
+        s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
         tableSocketMap.set(sid, new TwoWayMap());
     }
 });
@@ -193,7 +195,7 @@ router.route('/:id').get((req, res) => {
                     {'message': `Player name ${data.playerName} is already taken.`});
                 return;
             }
-            s.buyin(sid, data.playerName, playerId, data.stack);
+            s.buyin(sid, data.playerName, playerId, data.stack, data.isStraddling === true);
             if (s.getModId(sid) === playerId) {
                 io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
             }
@@ -201,6 +203,10 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
             // highlight cards of player in action seat and get available buttons for players
             renderActionSeatAndPlayerActions(sid);
+        });
+
+        socket.on('straddle-switch', (data) => {
+            s.setPlayerStraddling(sid, playerId, data.isStraddling)
         });
 
         socket.on('leave-game', (data) => {
@@ -314,6 +320,7 @@ router.route('/:id').get((req, res) => {
                 console.log('game hasn\'t started yet');
             } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
                 prev_round = s.getRoundName(sid);
+                console.log('action data', JSON.stringify(data));
 
                 let actualBetAmount = performAction(playerName, data);
                 let canPerformAction = actualBetAmount >= 0;
@@ -531,7 +538,7 @@ router.route('/:id').get((req, res) => {
         // io.sockets.to(sid).emit('hide-hands', {});
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
-        console.log('d', data);
+        // console.log('d', data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
             io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
