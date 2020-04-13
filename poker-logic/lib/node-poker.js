@@ -164,15 +164,6 @@ function Hand(cards) {
     this.cards = cards;
 }
 
-function sortNumber(a, b) {
-    return b - a;
-}
-
-function Result(rank, message) {
-    this.rank = rank;
-    this.message = message;
-}
-
 function progress(table) {
     table.eventEmitter.emit( "turn" );
     var i, j, cards, hand;

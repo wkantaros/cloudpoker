@@ -505,3 +505,13 @@ function rankHand(hand) {
     return hand;
 }
 module.exports.rankHand = rankHand;
+
+function sortNumber(a, b) {
+    return b - a;
+}
+
+function Result(rank, message) {
+    this.rank = rank;
+    this.message = message;
+}
+
