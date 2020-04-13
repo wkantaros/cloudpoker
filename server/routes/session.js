@@ -153,8 +153,8 @@ router.route('/:id').get((req, res) => {
         });
 
         // typing
-        socket.on('typing', (pid) => {
-            socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, pid));
+        socket.on('typing', () => {
+            socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, playerId));
         });
 
         if (!isNewPlayer && s.gameInProgress(sid)) {
@@ -336,15 +336,17 @@ router.route('/:id').get((req, res) => {
                         console.log('ACTION ON ALL IN PLAYER');
                     }
                     // highlight cards of player in action seat and get available buttons for players
-                    let everyoneFolded = s.checkwin(sid).everyoneFolded
-                    if (!everyoneFolded) 
-                        renderActionSeatAndPlayerActions(sid);
-                    else
-                        io.sockets.to(sid).emit('action', { seat: -1 });
+                    let everyoneFolded = s.checkwin(sid).everyoneFolded;
+                    check_round(prev_round);
 
                     setTimeout(()=>{
                         // check if round has ended
-                        check_round(prev_round);
+                        if (!everyoneFolded)
+                            renderActionSeatAndPlayerActions(sid);
+                        else
+                            io.sockets.to(sid).emit('action', {
+                                seat: -1
+                            });
                     }, 250);
                     setTimeout(()=>{
                         // notify player its their action with sound

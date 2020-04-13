@@ -851,7 +851,7 @@ socket.on('render-board', (data) => {
     }
     else if (data.street == 'river'){
         showRiver(data.board);
-        // playSoundIfVolumeOn('river');
+        playSoundIfVolumeOn('river');
     }
 });
 
@@ -1092,6 +1092,10 @@ const displayButtons = (data) => {
             if ($('#pm-checkfold').hasClass('pm')){
                 $('#pm-checkfold').removeClass('pm');
                 $('#pm-fold').click();
+            }
+            // if check was clicked and there is a bet remov premove
+            if ($('#pm-check').hasClass('pm')) {
+                $('.pm-btn').removeClass('pm');
             }
         }
         premove = checkForPremoves();
