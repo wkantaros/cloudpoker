@@ -53,13 +53,13 @@ FOR TOMORROW
     [*] improve bet button to have increased functionality w/slider (min bet, 1/2 pot, 3/4, pot, all in) - bet, back
     [*] improve raise button to have increased functionality w/slider (min raise, 1/2 pot, 3/4, pot, all in) - raise, back
     [*] premove abilities
+    [*] track buyins for each player at the table (next to log)
+    [*] update message board to look better
 
-FOR SUNDAY
+FOR WEDNESDAY
     [ ] game log
-    [ ] track buyins for each player at the table (next to log)
-    [ ] improve way buyin looks
-    [ ] update message board to look better
     [ ] standup feature / restructure design of hands (more similar to pokernow)
+    [ ] improve way buyin looks
 
 BACKEND:
     [*] make diff tables (so concurrent tables can be running on same server)
@@ -99,9 +99,9 @@ MOD PAGE:
     [ ] timer function (to act)
 
 DISTINGUISHING FEATURES FROM COMPETITORS:
-    [ ] have a page where users can see total buyins, automatically updated
-    [ ] bomb pots
+    [*] have a page where users can see total buyins, automatically updated
     [ ] straddles (double straddle, etc)
+    [ ] bomb pots
     [ ] on all ins, show odds of winning (preflop, post flop, turn)
     [ ] ability to run it twice
 
@@ -112,3 +112,8 @@ GAME FEATURES TO ADD:
 Bugs:
     [ ] on refresh players who folded appear to be back in / cards are faceup (general errors all around)
     [ ] players who are waitng have premoves
+    [ ] if a player starts a game, the game ends, he quits and then buys back for a different stack amount he shows up with stack he ended with
+    [ ] if player joins game when sitting in next round issues
+    [ ] infinite for loop somewhere in the code for sure 
+        [ ] if a player busts and game can still continue the game freezes
+    [ ] general bugs with all ins (and bet amounts)

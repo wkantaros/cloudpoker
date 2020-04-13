@@ -684,7 +684,7 @@ message.addEventListener("keydown", (event) => {
 
 //let the server know somebody is typing a message
 message.addEventListener('keypress', () => {
-    socket.emit('typing', socket.id);
+    socket.emit('typing', {});
 });
 
 //Listen for events--------------------------------------------------------------------------------
@@ -854,7 +854,7 @@ socket.on('render-board', (data) => {
     }
     else if (data.street == 'river'){
         showRiver(data.board);
-        // playSoundIfVolumeOn('river');
+        playSoundIfVolumeOn('river');
     }
 });
 
@@ -1091,6 +1091,10 @@ const displayButtons = (data) => {
             if ($('#pm-checkfold').hasClass('pm')){
                 $('#pm-checkfold').removeClass('pm');
                 $('#pm-fold').click();
+            }
+            // if check was clicked and there is a bet remov premove
+            if ($('#pm-check').hasClass('pm')) {
+                $('.pm-btn').removeClass('pm');
             }
         }
         premove = checkForPremoves();
