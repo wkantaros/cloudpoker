@@ -291,8 +291,8 @@ let getCardsByPlayerName = (sid, playerName) => tables[sid].table.getHandForPlay
 
 let getActionSeat = (sid) => {
     if (gameInProgress(sid)){
-        let name = tables[sid].table.getCurrentPlayer();
-        return getPlayerSeat(sid, name);
+        const t = tables[sid].table;
+        return t.players[t.currentPlayer].seat;
     } else {
         return -1;
     }
@@ -303,7 +303,8 @@ let getDealerSeat = (sid) => {
     // console.log(tables[sid].table);
     // console.log('----------');
     if (gameInProgress(sid)) {
-        return tables[sid].table.dealer;
+        const t = tables[sid].table;
+        return t.players[t.dealer].seat;
         // console.log(tables[sid].table.bets);
     } else {
         return -1;
@@ -423,7 +424,8 @@ let getWinners = (sid) => {
 }
 
 let getBigBlindSeat = (sid) => {
-    return (tables[sid].table.dealer + 2) % tables[sid].table.players.length;
+    const t = tables[sid].table;
+    return t.players[(t.dealer + 2) % t.players.length].seat;
 };
 
 let getAvailableActions = (sid, playerid) => {
