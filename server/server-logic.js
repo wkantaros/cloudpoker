@@ -37,7 +37,7 @@ let addToPlayerIds = (sessionid, playerName, playerid) => {
     let tempObj = playerids[sessionid] || {};
     tempObj[playerName] = {
         playerid: playerid,
-        seat: getAvailableSeat(sessionid)
+        seat: getPlayerSeat(sessionid, playerName)
     };
     playerids[sessionid] = tempObj;
 }
@@ -94,7 +94,7 @@ let addBuyOut = (sessionid, playerName, playerid, buyOutStack) => {
 
 let getBuyinBuyouts = (sid) => {
     return trackBuyins[sid];
-}
+};
 
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
@@ -444,7 +444,7 @@ let getAvailableActions = (sid, playerid) => {
     if (isActivePlayerId(sid, playerid)){
         console.log('player at table');
         // case where game hasnt started yet, player is mod and there are enough players
-        if (!gameInProgress(sid) && (getModId(sid) == playerid) && playersInNextHand(sid) >= 2) {
+        if (!gameInProgress(sid) && (getModId(sid) == playerid) && playersInNextHand(sid).length >= 2) {
             console.log('game can start');
             availableActions['start'] = true;
         }

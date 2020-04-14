@@ -262,7 +262,7 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('start-game', (data) => {
-            const playersInNextHand = s.playersInNextHand(sid);
+            const playersInNextHand = s.playersInNextHand(sid).length;
             console.log(`players in next hand: ${playersInNextHand}`);
             if (playersInNextHand >= 2 && playersInNextHand <= 10) {
                 s.startGame(sid);
@@ -513,7 +513,6 @@ router.route('/:id').get((req, res) => {
                 begin_round();
             } else {
                 io.sockets.to(sid).emit('waiting', {});
-                s.makeEmptySeats(sid);
                 io.sockets.to(sid).emit('remove-out-players', {});
                 io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
                 io.sockets.to(sid).emit('new-dealer', {seat: -1});
@@ -526,7 +525,6 @@ router.route('/:id').get((req, res) => {
 
     let begin_round = () => {
         io.sockets.to(sid).emit('render-board', {street: 'deal', sound: true});
-        s.makeEmptySeats(sid);
         io.sockets.to(sid).emit('remove-out-players', {});
         io.sockets.to(sid).emit('new-dealer', {seat: s.getDealerSeat(sid)});
         io.sockets.to(sid).emit('nobody-waiting', {});
@@ -535,7 +533,6 @@ router.route('/:id').get((req, res) => {
         // io.sockets.to(sid).emit('hide-hands', {});
         io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
         let data = s.playersInfo(sid);
-        // console.log('d', data);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
             io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
