@@ -508,19 +508,19 @@ router.route('/:id').get((req, res) => {
 
     let startNextRoundOrWaitingForPlayers = () => {
         // start new round
-            s.startRound(sid);
-            if (s.gameInProgress(sid)) {
-                begin_round();
-            } else {
-                io.sockets.to(sid).emit('waiting', {});
-                io.sockets.to(sid).emit('remove-out-players', {});
-                io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
-                io.sockets.to(sid).emit('new-dealer', {seat: -1});
-                io.sockets.to(sid).emit('update-pot', {amount: 0});
-                io.sockets.to(sid).emit('clear-earnings', {});
-                io.sockets.to(sid).emit('render-action-buttons', s.getAvailableActions(sid));
-                console.log('waiting for more players to rejoin!');
-            }
+        s.startRound(sid);
+        if (s.gameInProgress(sid)) {
+            begin_round();
+        } else {
+            io.sockets.to(sid).emit('waiting', {});
+            io.sockets.to(sid).emit('remove-out-players', {});
+            io.sockets.to(sid).emit('render-board', {street: 'deal', sound: false});
+            io.sockets.to(sid).emit('new-dealer', {seat: -1});
+            io.sockets.to(sid).emit('update-pot', {amount: 0});
+            io.sockets.to(sid).emit('clear-earnings', {});
+            io.sockets.to(sid).emit('render-action-buttons', s.getAvailableActions(sid));
+            console.log('waiting for more players to rejoin!');
+        }
     }
 
     let begin_round = () => {

@@ -29,6 +29,7 @@ class Table {
         this.gameWinners = [];
         this.gameLosers = [];
         this.straddleLimit = straddleLimit;
+        this.game = null;
 
         //Validate acceptable value ranges.
         let err;
@@ -57,6 +58,10 @@ class Table {
         return this.allPlayers.filter(p => p !== null && p.leavingGame)
     }
 
+    get gameInProgress() {
+        return this.game !== null && t.players.length >= 2;
+    }
+
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
         if (p !== null) return p.cards;
@@ -64,7 +69,7 @@ class Table {
     };
 
     getPlayer( playerName ){
-        const i = this.allPlayers.findIndex(elem => elem.playerName === playerName);
+        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
         if (i >= 0) return this.allPlayers[i];
         return null;
     };
@@ -230,6 +235,11 @@ class Table {
     };
 
     initNewRound () {
+        this.removeAndAddPlayers();
+        if (this.players.length < 2) {
+            this.game = null;
+            return;
+        }
         this.dealer = (this.dealer + 1) % this.players.length;
         this.game.pot = 0;
         this.game.roundName = 'deal'; //Start the first round
@@ -320,20 +330,23 @@ class Table {
                 this.dealer++;
             p.inHand = true;
         }
-        this.dealer = this.dealer % this.players.length;
+        if (this.players.length >= 2) {
+            this.dealer = this.dealer % this.players.length;
+        } else {
+            this.dealer = 0;
+        }
     }
 
     NewRound() {
         this.removeAndAddPlayers();
-        this.gameWinners = [];
-        this.gameLosers = [];
-
         // EDITED
         if (this.players.length < 2){
             console.log('not enough players :(');
             this.game = null;
             return;
         }
+        this.gameWinners = [];
+        this.gameLosers = [];
 
         //Deal 2 cards to each player
         for (let i = 0; i < this.players.length; i += 1) {
@@ -398,6 +411,7 @@ class Table {
     postBlind(blindAmount) {
         const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), this.currentPlayer);
         const p = this.players[this.currentPlayer];
+        console.log('t', this);
         let betAmount = Math.min(otherPlayersMaxStack, blindAmount, p.bet + p.chips);
         betAmount = p.Bet(betAmount);
         p.talked = false;

@@ -277,14 +277,12 @@ let getStack = (sid, playerName) => {
 }
 
 let startGame = (sid) => {
-    tables[sid].gameInProgress = true;
     tables[sid].table.StartGame();
 }
 
 let startRound = (sid) => {
-    tables[sid].table.initNewRound();
-    if (!tables[sid].table.game)
-        tables[sid].gameInProgress = false;
+    if (gameInProgress(sid))
+        tables[sid].table.initNewRound();
 }
 
 let getCardsByPlayerName = (sid, playerName) => tables[sid].table.getHandForPlayerName(playerName);
@@ -311,7 +309,7 @@ let getDealerSeat = (sid) => {
     }
 }
 
-let gameInProgress = (sid) => tables[sid].gameInProgress;
+let gameInProgress = (sid) => tables[sid].table.gameInProgress;
 
 let getPot = (sid) => gameInProgress(sid) ? tables[sid].table.game.pot : 0;
 
