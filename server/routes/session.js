@@ -174,7 +174,7 @@ router.route('/:id').get((req, res) => {
             // TODO: this doesn't work
             for (let i = 0; i < data.length; i++) {
                 if (data[i].playerid === playerId) {
-                    io.to(getSocketId(`${playerId}`)).emit('render-hand', {
+                    io.to(getSocketId(playerId)).emit('render-hand', {
                         cards: s.getCardsByPlayerName(sid, data[i].playerName),
                         seat: data[i].seat
                     });
@@ -567,7 +567,7 @@ router.route('/:id').get((req, res) => {
         let playerIds = s.getPlayerIds(sid);
         for (let i = 0; i < playerIds.length; i++){
             let pid = playerIds[i];
-            io.to(getSocketId(`${pid}`)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
+            io.to(getSocketId(pid)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
         }
     }
 });

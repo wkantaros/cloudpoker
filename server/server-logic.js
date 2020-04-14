@@ -274,8 +274,9 @@ let playersInfo = (sid) => {
     // console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
 
+    const waitingPlayerNames = getTableById(sid).table.playersToAdd.map(x => x.playerName);
     for (let name in playerids[sid]){
-        let isWaiting = getTableById(sid).table.playersToAdd.map(x => x.playerName).includes(name);
+        let isWaiting = waitingPlayerNames.includes(name);
         info.push({
             playerName: name,
             seat: playerids[sid][name].seat,
