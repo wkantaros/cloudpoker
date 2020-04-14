@@ -217,7 +217,6 @@ router.route('/:id').get((req, res) => {
             if (!s.gameInProgress(sid)){
                 let playerName = s.getPlayerById(sid, playerId);
                 handlePlayerExit(playerName);
-                s.makeEmptySeats(sid);
                 // highlight cards of player in action seat and get available buttons for players
                 renderActionSeatAndPlayerActions(sid);
                 console.log('waiting for more players to rejoin');
@@ -263,9 +262,7 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('start-game', (data) => {
-            let playersInNextHand = 0;
-            if (table.playersToAdd) playersInNextHand += table.playersToAdd.length;
-            if (table.players) playersInNextHand += table.players.length;
+            const playersInNextHand = s.playersInNextHand(sid);
             console.log(`players in next hand: ${playersInNextHand}`);
             if (playersInNextHand >= 2 && playersInNextHand <= 10) {
                 s.startGame(sid);
@@ -380,6 +377,7 @@ router.route('/:id').get((req, res) => {
         const seat = s.getPlayerSeat(sid, playerName);
         console.log(`${playerName} leaves game`);
 
+        s.addBuyOut(sid, playerName, playerId, stack);
         s.removePlayer(sid, playerName);
         if (modLeavingGame) {
             if (s.getModId(sid) != null){
@@ -398,7 +396,6 @@ router.route('/:id').get((req, res) => {
                 seat: seat
             });
         }
-        s.addBuyOut(sid, playerName, playerId, stack);
     };
     
     //checks if round has ended (reveals next card)

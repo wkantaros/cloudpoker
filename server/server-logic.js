@@ -5,7 +5,7 @@
 let poker = require('../poker-logic/lib/node-poker');
 
 // could probably make this a proper db at some point
-// maps sessionid -> {table, hostname, hoststack, seatsTaken, gameInProgress}
+// maps sessionid -> {table, hostname, hoststack, gameInProgress}
 let tables = {};
 
 // maps sessionid -> playerName -> { playerid, seat }
@@ -23,12 +23,12 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, host
         hostStack: hostStack,
         smallBlind: smallBlind,
         bigBlind: bigBlind,
-        seatsTaken: [false, false, false, false, false, false, false, false, false, false],
-        leavingGame: [false, false, false, false, false, false, false, false, false, false],
+        // seatsTaken: [false, false, false, false, false, false, false, false, false, false],
+        // leavingGame: [false, false, false, false, false, false, false, false, false, false],
         allIn: [false, false, false, false, false, false, false, false, false, false],
         gameInProgress: false 
     };
-    table.AddPlayer(hostName, hostStack, getAvailableSeat(sessionid), hostIsStraddling);
+    table.AddPlayer(hostName, hostStack, hostIsStraddling);
     addToPlayerIds(sessionid, hostName, playerid);
     addToBuyins(sessionid, hostName, playerid, hostStack);
 };
@@ -40,7 +40,6 @@ let addToPlayerIds = (sessionid, playerName, playerid) => {
         seat: getAvailableSeat(sessionid)
     };
     playerids[sessionid] = tempObj;
-    tables[sessionid].seatsTaken[getAvailableSeat(sessionid)] = true;
 }
 
 let addToBuyins = (sessionid, playerName, playerid, playerStack) => {
@@ -50,7 +49,7 @@ let addToBuyins = (sessionid, playerName, playerid, playerStack) => {
         buyin: playerStack,
         time: null,
         buyout: null
-    }
+    };
     let date = new Date;
     let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
     let time = `${date.getHours()}:${minutes}`;
@@ -100,13 +99,11 @@ let getBuyinBuyouts = (sid) => {
 // adds the player to the sid -> name -> pid map
 // adds the player to the table
 let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
-    let seat = getAvailableSeat(sessionid);
-    if (getAvailableSeat(sessionid) > -1){
+    const addedPlayer = tables[sessionid].table.AddPlayer(playerName, stack, isStraddling);
+    if (addedPlayer) {
         addToPlayerIds(sessionid, playerName, playerid);
         addToBuyins(sessionid, playerName, playerid, stack);
-        // console.log(tables[sessionid]);
-        tables[sessionid].table.AddPlayer(playerName, stack, seat, isStraddling);
-        console.log(`${playerName} buys in for ${stack} at seat ${seat}`);
+        console.log(`${playerName} buys in for ${stack}`);
         if (getTableById(sessionid).hostName === null){
             console.log(`transferring host to ${playerName} (pid: ${playerid})`);
             transferHost(sessionid, playerName);
@@ -117,7 +114,7 @@ let buyin = (sessionid, playerName, playerid, stack, isStraddling) => {
         console.log('no seats available');
         return false;
     }
-}
+};
 
 function setPlayerStraddling(sid, playerid, isStraddling) {
     const player = tables[sid].table.getPlayer(getPlayerById(sid, playerid));
@@ -128,7 +125,7 @@ function setPlayerStraddling(sid, playerid, isStraddling) {
 
 let removePlayer = (sessionid, playerName) => {
     tables[sessionid].table.removePlayer(playerName);
-    tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
+    // tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
     delete playerids[sessionid][playerName];
     if (playerName === tables[sessionid].hostName){
         // transfer host name / abilities to next player
@@ -158,22 +155,11 @@ let transferHost = (sid, newHostName) => {
     return false;
 }
 
-let makeEmptySeats = (sid) => {
-    for (let i = 0; i < tables[sid].leavingGame.length; i++){
-        if (tables[sid].leavingGame[i]){
-            tables[sid].seatsTaken[i] = false;
-            tables[sid].leavingGame[i] = false;
-        }
-    }
-}
-
 // returns the seats of all all in players
 let getAllIns = (sid) => {
     let players = tables[sid].table.players;
     for (let i = 0; i < players.length; i++){
-        if (getPlayerSeat(sid, players[i].playerName) != -1){
-            tables[sid].allIn[getPlayerSeat(sid, players[i].playerName)] = players[i].allIn;
-        }
+        tables[sid].allIn[players[i].seat] = players[i].allIn;
     }
     return tables[sid].allIn;
 }
@@ -186,6 +172,10 @@ let getLosers = (sid) => {
 }
 
 let getTableById = (id) => tables[id];
+
+const playersInNextHand = function(sid) {
+    return tables[sid].table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
+}
 
 const isPlayerNameUsed = (sid, playerName) => {
     return Object.keys(playerids[sid]).includes(playerName)
@@ -228,22 +218,14 @@ let getPlayerById = (sid, pid) => {
 
 let getPlayerBySeat = (sid, seat) => {
     // let t = tables[sid].table;
-    for (name in playerids[sid]) {
-        if (playerids[sid][name].seat == seat) {
-            return name;
-        }
-    }
-    return 'guest';
+    return tables[sid].table.allPlayers[seat] || 'guest';
 }
 
 
 let getPlayerSeat = (sid, playerName) => {
-    if (playerids[sid][playerName])
-        return playerids[sid][playerName].seat;
-    else {
-        console.log('no seat for', playerName);
-        return -1;
-    }
+    const p = tables[sid].table.getPlayer(playerName);
+    if (p) return p.seat;
+    return -1;
 };
 
 let updatePlayerId = (sid, playerName, playerid) => {
@@ -257,15 +239,8 @@ let updatePlayerId = (sid, playerName, playerid) => {
 }
 
 let getAvailableSeat = (sid) => {
-    for (let i = 0; i < tables[sid].seatsTaken.length; i++){
-        if (!tables[sid].seatsTaken[i]){
-            return i;
-        }    
-    }
-    return -1;
-}
-
-
+    return tables[sid].table.getAvailableSeat();
+};
 
 // returns a list of {playerName, seat, stack, playerid, waiting, betAmount}
 // playerName -> { playerid, seat }
@@ -274,7 +249,7 @@ let playersInfo = (sid) => {
     // console.log(getTableById(sid).table);
     // console.log(playerids[sid]);
 
-    const waitingPlayerNames = getTableById(sid).table.playersToAdd.map(x => x.playerName);
+    const waitingPlayerNames = tables[sid].table.waitingPlayers.map(x => x.playerName);
     for (let name in playerids[sid]){
         let isWaiting = waitingPlayerNames.includes(name);
         info.push({
@@ -292,28 +267,13 @@ let playersInfo = (sid) => {
 
 const getBet = (sid, playerName) => {
     if (!gameInProgress(sid)) return 0;
-    let table = getTableById(sid).table;
-    for (let i = 0; i < table.players.length; i++){
-        if (table.players[i].playerName === playerName){
-            return table.players[i].bet;
-        }
-    }
-    return 0;
+    return tables[sid].table.getPlayer(playerName).bet;
 };
 
 let getStack = (sid, playerName) => {
-    let table = getTableById(sid).table;
-    for (let i = 0; i < table.players.length; i++){
-        if (table.players[i].playerName == playerName){
-            return (table.players[i].chips);
-        }
-    }
-    for (let i = 0; i < table.playersToAdd.length; i++){
-        if (table.playersToAdd[i].playerName == playerName){
-            return (table.playersToAdd[i].chips);
-        }
-    }
-    return -1;
+    const p = tables[sid].table.getPlayer(playerName);
+    if (!p) return -1;
+    return p.chips;
 }
 
 let startGame = (sid) => {
@@ -343,16 +303,7 @@ let getDealerSeat = (sid) => {
     // console.log(tables[sid].table);
     // console.log('----------');
     if (gameInProgress(sid)) {
-        let dealerIndex = tables[sid].table.dealer;
-        let seat = 0;
-        for (let i = 0; i < tables[sid].seatsTaken.length; i++){
-            if (tables[sid].seatsTaken[i] && seat == dealerIndex){
-                console.log(`DEALER INDEX: ${dealerIndex}, SEAT: ${i}`);
-                return i;
-            } else if (tables[sid].seatsTaken[i]){
-                seat++;
-            }
-        } 
+        return tables[sid].table.dealer;
         // console.log(tables[sid].table.bets);
     } else {
         return -1;
@@ -406,14 +357,7 @@ let bet = (sid, playerName, betAmount) => {
 // allows user to raise to a number 
 // (such that node-poker doenst have him bet that number + his previous bet)
 let raise = (sid, playerName, betAmount) => {
-    // console.log(tables[sid]);
-    let betIndex = 0;
-    for (let i = 0; i < getPlayerSeat(sid, playerName); i++){
-        if (tables[sid].seatsTaken[i]){
-            betIndex++;
-        }
-    }
-    let playersLastBet = tables[sid].table.players[betIndex].bet;
+    let playersLastBet = getBet(sid, playerName);
     let realBetAmount = betAmount - playersLastBet; 
     // let addedBetSize = betAmount - getBet
     // return tables[sid].table.bet(tables[sid].table.getCurrentPlayer(), betAmount);
@@ -426,8 +370,8 @@ let getWinnings = (sid, prev_round) => {
     let winnings = tables[sid].table.game.pot;
     if (prev_round === 'deal') {
         //basically check if any bets are still on the table and add them to the pot (for big blind, etc)
-        for (let i = 0; i < tables[sid].table.players.length; i++) {
-            winnings += tables[sid].table.players[i].bet;
+        for (const p of tables[sid].table.players) {
+            winnings += p.bet;
         }
     }
     return winnings;
@@ -460,25 +404,11 @@ let getInitialBets = (sid) => {
     let bets = tables[sid].table.players.map(x => x.bet);
     let toReturn = [];
     for (let i = 0; i < bets.length; i++){
-        let obj = {
-            seat: 'guest',
-            bet: 0
-        }
         if (bets[i]){
-            obj.bet = bets[i];
-            let seatsTaken = getTableById(sid).seatsTaken;
-            let counter = 0;
-            for (let j = 0; j < seatsTaken.length; j++){
-                if (seatsTaken[j]){
-                    if (counter === i){
-                        obj.seat = j;
-                        break;
-                    } else {
-                        counter++;
-                    }
-                }
-            }
-            toReturn.push(obj);
+            toReturn.push({
+                seat: tables[sid].table.players[i].seat,
+                bet: bets[i]
+            });
         }
     }
     return toReturn;
@@ -493,19 +423,8 @@ let getWinners = (sid) => {
 }
 
 let getBigBlindSeat = (sid) => {
-    let seat = getDealerSeat(sid);
-    let seats = getTableById(sid).seatsTaken;
-    let counter = 0; 
-    while (counter < 2){
-        if (seat + 1 >= seats.length) {
-            seat = 0;
-        } else {
-            seat++;
-        }
-        if (seats[seat]) counter++;
-    }
-    return seat;
-}
+    return (tables[sid].table.dealer + 2) % tables[sid].table.players.length;
+};
 
 let getAvailableActions = (sid, playerid) => {
     let availableActions = {
@@ -525,8 +444,7 @@ let getAvailableActions = (sid, playerid) => {
     if (isActivePlayerId(sid, playerid)){
         console.log('player at table');
         // case where game hasnt started yet, player is mod and there are enough players
-        let seatsTaken = getTableById(sid).seatsTaken.filter(isTaken => isTaken).length;
-        if (!gameInProgress(sid) && (getModId(sid) == playerid) && seatsTaken >= 2) {
+        if (!gameInProgress(sid) && (getModId(sid) == playerid) && playersInNextHand(sid) >= 2) {
             console.log('game can start');
             availableActions['start'] = true;
         }
@@ -620,11 +538,12 @@ module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
 module.exports.removePlayer = removePlayer;
-module.exports.makeEmptySeats = makeEmptySeats;
+// module.exports.makeEmptySeats = makeEmptySeats;
 module.exports.getPlayerId = getPlayerId;
 module.exports.getPlayerById = getPlayerById;
 module.exports.isActivePlayerId = isActivePlayerId;
 module.exports.isPlayerNameUsed = isPlayerNameUsed;
+module.exports.playersInNextHand = playersInNextHand;
 module.exports.getBet = getBet;
 module.exports.getPlayerBySeat = getPlayerBySeat;
 // need to change name to getSeatByPlayer eventually
