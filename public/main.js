@@ -837,6 +837,19 @@ const hideBoardPreFlop = () => {
     $('#cards').find('.card-bottomright').addClass('hidden');
 };
 
+// data is {seat, time}
+// time is milliseconds until the player's turn expires and they are forced to fold.
+// seat is not necessarily the next action seat, as the timer could have been refreshed.
+// if time <= 0, remove the timer.
+socket.on('render-timer', (data) => {
+    // Clear existing turn timers
+    // $('.name').removeClass('turn-timer');
+    // Set new timer for data.playerName
+    if (data.time > 0) {
+        // $(`#${data.seat} > .name`).addClass('turn-timer');
+    }
+});
+
 // when the players joins in the middle of a hand
 // data: {street, board, sound}
 socket.on('sync-board', (data) => {

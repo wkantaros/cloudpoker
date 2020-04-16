@@ -17,6 +17,7 @@ let trackBuyins = {}
 
 let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
     let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
+
     tables[sessionid] = {
         table: table,
         hostName: hostName,
@@ -26,7 +27,10 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, host
         // seatsTaken: [false, false, false, false, false, false, false, false, false, false],
         // leavingGame: [false, false, false, false, false, false, false, false, false, false],
         allIn: [false, false, false, false, false, false, false, false, false, false],
-        gameInProgress: false 
+        gameInProgress: false,
+        timerDelay: -1,
+        timer: null,
+        timerCallback: null,
     };
     table.AddPlayer(hostName, hostStack, hostIsStraddling);
     addToPlayerIds(sessionid, hostName, playerid);
@@ -274,7 +278,7 @@ let getStack = (sid, playerName) => {
     const p = tables[sid].table.getPlayer(playerName);
     if (!p) return -1;
     return p.chips;
-}
+};
 
 let startGame = (sid) => {
     tables[sid].gameInProgress = true;
@@ -536,6 +540,27 @@ let getPlayerIds = (sid) => {
     return Object.values(playerids[sid]).map(x => x.playerid);
 }
 
+const getTimer = (sid) => {
+    return tables[sid].timer;
+};
+
+const setTimerDelay = (sid, delay) => {
+    if (tables[sid].timer)
+        clearTimeout(tables[sid].timer);
+    tables[sid].timer = setTimeout(delay, tables[sid].timerCallback);
+    tables[sid].timerDelay = delay;
+};
+
+const setTimer = (sid, timer) => {
+    tables[sid].timer = timer;
+};
+
+const initializeTimer = (sid, delay, callback) => {
+    tables[sid].timer = setTimeout(delay, callback);
+    tables[sid].timerDelay = delay;
+    tables[sid].timerCallback = callback;
+};
+
 module.exports.createNewTable = createNewTable;
 module.exports.getTableById = getTableById;
 module.exports.buyin = buyin;
@@ -587,3 +612,7 @@ module.exports.setPlayerStraddling = setPlayerStraddling;
 module.exports.getStraddleLimit = getStraddleLimit;
 module.exports.getBuyinBuyouts = getBuyinBuyouts;
 module.exports.addBuyOut = addBuyOut;
+module.exports.getTimer = getTimer;
+module.exports.initializeTimer = initializeTimer;
+module.exports.setTimer = setTimer;
+module.exports.setTimerDelay = setTimerDelay;

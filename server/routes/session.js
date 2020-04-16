@@ -261,6 +261,24 @@ router.route('/:id').get((req, res) => {
             }
         });
 
+        const expirePlayerTurn = () => {
+
+        };
+        socket.on('set-turn-timer', (data) => { // delay
+            if (playerId === s.getModId(sid)) {
+                // If a timer is not yet set, initialize one.
+                const prevTimer = s.getTimer(sid);
+                if (prevTimer) {
+                    clearTimeout(prevTimer); // cancel previous timer, if it exists
+                }
+                s.initializeTimer(sid, data.delay, expirePlayerTurn);
+                io.to(sid).emit('render-timer', {
+                    seat: s.getPlayerSeat(sid, getPlayerById(playerId)),
+                    time: data.delay
+                });
+            }
+        });
+
         socket.on('start-game', (data) => {
             const playersInNextHand = s.playersInNextHand(sid).length;
             console.log(`players in next hand: ${playersInNextHand}`);
