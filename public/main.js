@@ -707,11 +707,16 @@ message.addEventListener('keypress', () => {
 
 //Listen for events--------------------------------------------------------------------------------
 
+const setTurnTimer = () => {
+    socket.emit('set-turn-timer', )
+}
+
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
     $('#bomb-pot').removeClass('collapse');
+    // TODO: show mod panel or set turn timer button
 });
 
 socket.on('bust', (data) => {
@@ -799,6 +804,20 @@ socket.on('remove-out-players', (data) => {
     }
 });
 
+// data is {seat, time}
+// time is milliseconds until the player's turn expires and they are forced to fold.
+// seat is not necessarily the next action seat, as the timer could have been refreshed.
+// in all other cases, seat should be the action seat.
+// if time <= 0, remove the timer.
+socket.on('render-timer', (data) => {
+    // Clear existing turn timers
+    // $('.name').removeClass('turn-timer');
+    // Set new timer for data.playerName
+    if (data.time > 0) {
+        // $(`#${data.seat} > .name`).addClass('turn-timer');
+    }
+});
+
 const showCard = (card, locator) => {
     let cardRank = card.charAt(0);
     let cardSuit = getSuitSymbol(card.charAt(1));
@@ -836,19 +855,6 @@ const hideBoardPreFlop = () => {
     $('#cards').find('.card-topleft').addClass('hidden');
     $('#cards').find('.card-bottomright').addClass('hidden');
 };
-
-// data is {seat, time}
-// time is milliseconds until the player's turn expires and they are forced to fold.
-// seat is not necessarily the next action seat, as the timer could have been refreshed.
-// if time <= 0, remove the timer.
-socket.on('render-timer', (data) => {
-    // Clear existing turn timers
-    // $('.name').removeClass('turn-timer');
-    // Set new timer for data.playerName
-    if (data.time > 0) {
-        // $(`#${data.seat} > .name`).addClass('turn-timer');
-    }
-});
 
 // when the players joins in the middle of a hand
 // data: {street, board, sound}

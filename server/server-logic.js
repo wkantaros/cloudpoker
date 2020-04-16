@@ -544,13 +544,6 @@ const getTimer = (sid) => {
     return tables[sid].timer;
 };
 
-const setTimerDelay = (sid, delay) => {
-    if (tables[sid].timer)
-        clearTimeout(tables[sid].timer);
-    tables[sid].timer = setTimeout(delay, tables[sid].timerCallback);
-    tables[sid].timerDelay = delay;
-};
-
 const setTimer = (sid, timer) => {
     tables[sid].timer = timer;
 };
@@ -615,4 +608,3 @@ module.exports.addBuyOut = addBuyOut;
 module.exports.getTimer = getTimer;
 module.exports.initializeTimer = initializeTimer;
 module.exports.setTimer = setTimer;
-module.exports.setTimerDelay = setTimerDelay;

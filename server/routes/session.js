@@ -264,18 +264,21 @@ router.route('/:id').get((req, res) => {
         const expirePlayerTurn = () => {
 
         };
+        const setTimer = (delay) => {
+            // If a timer is not yet set, initialize one.
+            const prevTimer = s.getTimer(sid);
+            if (prevTimer) {
+                clearTimeout(prevTimer); // cancel previous timer, if it exists
+            }
+            s.initializeTimer(sid, delay, expirePlayerTurn);
+            io.to(sid).emit('render-timer', {
+                seat: s.getActionSeat(sid),
+                time: delay
+            });
+        };
         socket.on('set-turn-timer', (data) => { // delay
             if (playerId === s.getModId(sid)) {
-                // If a timer is not yet set, initialize one.
-                const prevTimer = s.getTimer(sid);
-                if (prevTimer) {
-                    clearTimeout(prevTimer); // cancel previous timer, if it exists
-                }
-                s.initializeTimer(sid, data.delay, expirePlayerTurn);
-                io.to(sid).emit('render-timer', {
-                    seat: s.getPlayerSeat(sid, getPlayerById(playerId)),
-                    time: data.delay
-                });
+                setTimer(delay);
             }
         });
 
