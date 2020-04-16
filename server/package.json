@@ -20,5 +20,7 @@
     "shortid": "^2.2.15",
     "socket.io": "^2.3.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "mocha": "^7.1.1"
+  }
 }
