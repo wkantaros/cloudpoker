@@ -51,7 +51,7 @@ var starterData = {
     width: $wrapper.width(),
     height: $wrapper.height()
   }
-}
+};
 doResize(null, starterData);
 
 //helper function
@@ -65,7 +65,7 @@ const getMaxRoundBet = () => {
         }
     });
     return maxBetAmount;
-}
+};
 
 
 //header functions--------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ let loggedIn = false;
 $('#buyin').on('click', () => {
     if (!loggedIn)
         $('#buyin-info').addClass('show');
-})
+});
 
 /**
  * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
@@ -100,7 +100,7 @@ const logOut = () => {
     loggedIn = false;
     $('#quit-btn').addClass('collapse');
     $('#buyin').removeClass('collapse');
-}
+};
 
 $('#buyin-btn').on('click', () => {
     console.log('here!');
@@ -125,11 +125,11 @@ $('#buyin-btn').on('click', () => {
             stack: stack
         });
     }
-})
+});
 
 $('#buyin-info').keydown(function (e){
     e.stopPropagation();
-})
+});
 
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {
@@ -145,7 +145,7 @@ let copyLink = () => {
     setTimeout(() => {
         link.innerHTML = 'get sharable link'
     }, 2000);
-}
+};
 
 function copyStringToClipboard(str) {
     // Create new element
@@ -207,45 +207,45 @@ $('#bet').on('click', () => {
             output.focus();
         } 
     }
-})
+});
 
 $('#betplus').on('click', () => {
     let output = document.getElementById("bet-input-val");
     let bb = parseInt($('#bb').html());
     let maxval = parseInt($('.action > .stack').html());
     handleBetSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
-})
+});
 
 $('#betminus').on('click', () => {
     let output = document.getElementById("bet-input-val");
     let bb = parseInt($('#bb').html());
     handleBetSliderButtons(Math.max(parseInt(output.value) - bb, bb));
 
-})
+});
 
 $('#bai').on('click', () => {
     handleBetSliderButtons(parseInt($('.action > .stack').html()));
-})
+});
 
 $('#bp').on('click', () => {
     handleBetSliderButtons(getPotSize());
-})
+});
 
 $('#btqp').on('click', () => {
     handleBetSliderButtons(Math.floor(3 * getPotSize() / 4));
-})
+});
 
 $('#bhp').on('click', () => {
     handleBetSliderButtons(Math.floor(getPotSize() / 2));
-})
+});
 
 $('#bqp').on('click', () => {
     handleBetSliderButtons(Math.max(Math.floor(getPotSize() / 4), parseInt($('#bb').html())));
-})
+});
 
 $('#mb').on('click', () => {
     handleBetSliderButtons(parseInt($('#bb').html()));
-})
+});
 
 let closingPreflopAction = false;
 $('#back').on('click', () => {
@@ -269,7 +269,7 @@ $('#back').on('click', () => {
         $('#back').toggleClass('collapse');
         $('#c').toggleClass('collapse');
     }
-})
+});
 
 $('#bet-input-val').keydown(function (e) {
     e.stopPropagation();
@@ -291,7 +291,7 @@ const handleBetSliderButtons = (outputVal) => {
     output.value = outputVal;
     slider.value = output.value;
     output.focus();
-}
+};
 
 const handleRaiseSliderButtons = (outputVal) => {
     let slider = document.getElementById("raiseRange");
@@ -299,27 +299,32 @@ const handleRaiseSliderButtons = (outputVal) => {
     output.value = outputVal;
     slider.value = output.value;
     output.focus();
-}
+};
 
 const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
     let minBetAmount = parseInt($('#bb').html());
-    let maxBetAmount = parseInt($('.action > .stack').html());
-    if (betAmount > maxBetAmount) {
-        betAmount = maxBetAmount;
-    }
-    if (!betAmount || betAmount < minBetAmount) {
+    let playerStack = parseInt($('.action > .stack').html());
+    if (betAmount > playerStack) { // if player bet more than stack, go all in
+        betAmount = playerStack;
+    } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
+        if (playerStack <= minBetAmount) { // if player bet < stack <= min bet then must go all in b/c stack <= min bet
+            alert(`must go all in or fold. stack is less than minimum bet amount`);
+        } else {
+            alert(`minimum bet size is ${minBetAmount}`);
+        }
+        return false;
+    } else if (!betAmount) { // if player did not enter a bet
         alert(`minimum bet size is ${minBetAmount}`);
-    } else {
-        socket.emit('action', {
-            amount: betAmount,
-            action: 'bet'
-        });
-        return true;
+        return false;
     }
-    return false;
-}
+    socket.emit('action', {
+        amount: betAmount,
+        action: 'bet'
+    });
+    return true;
+};
 
 // hacky global variable
 $('#raise').on('click', () => {
@@ -360,57 +365,57 @@ $('#raise').on('click', () => {
             output.focus();
         }
     }
-})
+});
 
 $('#raiseplus').on('click', () => {
     let output = document.getElementById("raise-input-val");
     let bb = parseInt($('#bb').html());
     let maxval = parseInt($('.action > .stack').html());
     handleRaiseSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
-})
+});
 
 $('#raiseminus').on('click', () => {
     let output = document.getElementById("bet-input-val");
     let bb = parseInt($('#bb').html());
     handleRaiseSliderButtons(Math.max(parseInt(output.value) - bb, getMinRaiseAmount()));
 
-})
+});
 
 $('#rai').on('click', () => {
     handleRaiseSliderButtons(parseInt($('.action > .stack').html()));
-})
+});
 
 $('#rthp').on('click', () => { 
     let valormr = Math.max(Math.floor(3 * getPotSize()), getMinRaiseAmount());
     let totalStack = parseInt($('.action > .stack').html());
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
-})
+});
 
 $('#rtp').on('click', () => {
     let valormr = Math.max(Math.floor(2 * getPotSize()), getMinRaiseAmount());
     let totalStack = parseInt($('.action > .stack').html());
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
-})
+});
 
 $('#rsqp').on('click', () => {
     let valormr = Math.max(Math.floor(6 * getPotSize() / 4), getMinRaiseAmount());
     let totalStack = parseInt($('.action > .stack').html());
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
-})
+});
 
 $('#rp').on('click', () => {
     let valormr = Math.max(Math.floor(getPotSize()), getMinRaiseAmount());
     let totalStack = parseInt($('.action > .stack').html());
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
-})
+});
 
 $('#mr').on('click', () => {
     // min raise or all in
     handleRaiseSliderButtons(Math.min(getMinRaiseAmount(), parseInt($('.action > .stack').html())));
-})
+});
 
 $('#raise-input-val').keydown(function (e) {
-    e.stopPropagation()
+    e.stopPropagation();
     if (e.keyCode == 13) {
         if (placeRaise()) {
             $('#raise').click();
@@ -457,7 +462,7 @@ let placeRaise = () => {
         return true;
     }
     return false;
-}
+};
 
 start_btn.addEventListener('click', () => {
     console.log('starting game');
@@ -492,7 +497,7 @@ fold.addEventListener('click', () => {
 
 minBet.addEventListener('click', () => {
     console.log('min bet');
-    console.log(parseInt($('#bb').html()))
+    console.log(parseInt($('#bb').html()));
     socket.emit('action', {
         amount: parseInt($('#bb').html()),
         action: 'bet'
@@ -548,7 +553,7 @@ $('#pm-check').on('click', (e) => {
         $('#pm-check').addClass('pm');
     }
     e.stopPropagation();
-})
+});
 
 $('#pm-call').on('click', (e) => {
     if ($('#pm-call').hasClass('pm')) {
@@ -558,7 +563,7 @@ $('#pm-call').on('click', (e) => {
         $('#pm-call').addClass('pm');
     }
     e.stopPropagation();
-})
+});
 
 $('#pm-checkfold').on('click', (e) => {
     if ($('#pm-checkfold').hasClass('pm')) {
@@ -568,7 +573,7 @@ $('#pm-checkfold').on('click', (e) => {
         $('#pm-checkfold').addClass('pm');
     }
     e.stopPropagation();
-})
+});
 
 $('#pm-fold').on('click', (e) => {
     if ($('#pm-fold').hasClass('pm')) {
@@ -578,7 +583,7 @@ $('#pm-fold').on('click', (e) => {
         $('#pm-fold').addClass('pm');
     }
     e.stopPropagation();
-})
+});
 
 const checkForPremoves = () => {
     if ($('#pm-fold').hasClass('pm')){
@@ -594,7 +599,7 @@ const checkForPremoves = () => {
         return '#check';
     }
     return undefined;
-}
+};
 
 
 // keyboard shortcuts for all events ------------------------------------------------------------------------------------------------
@@ -685,7 +690,7 @@ send_btn.addEventListener('click', () => {
 //allow user to send message with enter key
 message.addEventListener("keydown", (event) => {
     // Number 13 is the "Enter" key on the keyboard
-    event.stopPropagation()
+    event.stopPropagation();
     if (event.keyCode === 13) {
         if (message.value) {
             $('#message').blur();
@@ -784,7 +789,7 @@ socket.on('remove-out-players', (data) => {
     $('.out').each(function(){
         $(this).find('.username').text('guest');
         $(this).find('.stack').text('stack');
-    })
+    });
     $('.out').addClass('hidden').removeClass('out');
     // if seat passed in remove it
     if (data.hasOwnProperty('seat')){
@@ -897,7 +902,7 @@ const renderAllIn = (board) => {
         showRiver(board);
         playSoundIfVolumeOn('river');
     }
-}
+};
 
 
 
@@ -943,7 +948,7 @@ socket.on('action', (data) => {
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
     displayButtons(data);
-})
+});
 
 // adds dealer chip to seat of dealer
 socket.on('new-dealer', (data) => {
@@ -1089,6 +1094,10 @@ socket.on('initial-bets', function(data){
     }
 });
 
+socket.on('alert', function(data) {
+    alert(data.message);
+});
+
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
     createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
@@ -1156,7 +1165,7 @@ const displayButtons = (data) => {
             }
         }
         premove = checkForPremoves();
-        $('.pm-btn').removeClass('pm')
+        $('.pm-btn').removeClass('pm');
         $('.pm-btn').addClass('collapse');
     }
     let maxBetAmount = getMaxRoundBet();
@@ -1176,11 +1185,11 @@ const displayButtons = (data) => {
             $(`${premove}`).click();
         }, 650);
     }
-}
+};
 
 const cleanInput = (input) => {
     return $('<div/>').text(input).html();
-}
+};
 
 const getSuitSymbol = (input) => {
     const suits = '♠︎ ♥︎ ♣︎ ♦︎'.split(' ');
@@ -1189,7 +1198,7 @@ const getSuitSymbol = (input) => {
         if (inputs[i] == input) return suits[i];
     }
     return 'yikes';
-}
+};
 
 const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red'; 
 
@@ -1199,7 +1208,7 @@ const flipCard = (name) => {
         $(`#${name}`).find('.card-topleft').removeClass('hidden');
         $(`#${name}`).find('.card-bottomright').removeClass('hidden');
     }, 250);
-}
+};
 
 const outHand = (seat) => {
     $(`#${seat}`).find('.back-card').removeClass('hidden').addClass('waiting');
@@ -1211,7 +1220,7 @@ const outHand = (seat) => {
     $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
     $(`#${seat}`).find('.card-topleft').addClass('hidden');
     $(`#${seat}`).find('.card-bottomright').addClass('hidden');
-}
+};
 
 const inHand = () => {
     $('.hand').find('.back-card').removeClass('waiting');
@@ -1222,7 +1231,7 @@ const inHand = () => {
     $('.card-topleft').addClass('hidden');
     $('.card-bottomright').addClass('hidden');
     $('.back-card').removeClass('hidden');
-}
+};
 
 const renderHand = (seat, cards) => {
         let leftCardRank = cards[0].charAt(0);
@@ -1240,7 +1249,7 @@ const renderHand = (seat, cards) => {
         $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
         $(`#${seat}`).find('.card-topleft').removeClass('hidden');
         $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
-}
+};
 
 const hideHand = (seat) => {
     $(`#${seat}`).find('.back-card').removeClass('hidden');
@@ -1252,7 +1261,7 @@ const hideHand = (seat) => {
     $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
     $(`#${seat}`).find('.card-topleft').addClass('hidden');
     $(`#${seat}`).find('.card-bottomright').addClass('hidden');
-}
+};
 
 const showWinnings = (winnings, seat) => {
     console.log('show winnings');
@@ -1260,7 +1269,7 @@ const showWinnings = (winnings, seat) => {
     console.log(seat);
     $(`#${seat}`).find('.earnings').html(`+${winnings}`);
     $(`#${seat}`).find('.earnings').removeClass('hidden');
-}
+};
 
 const alreadyExistingName = (playerName) => {
     let alreadyExists = false;
@@ -1273,7 +1282,7 @@ const alreadyExistingName = (playerName) => {
         }
     });
     return alreadyExists;
-}
+};
 
 const getMinRaiseAmount = () => {
     let minRaiseAmount = 0;
@@ -1303,7 +1312,7 @@ const getMinRaiseAmount = () => {
         minRaiseAmount = 2 * (biggestBet - secondBiggestBet) + secondBiggestBet;
     }
     return minRaiseAmount;
-}
+};
 
 const getPotSize = () => {
     let pot = parseInt($("#pot-amount").html()) || 0;
@@ -1314,7 +1323,7 @@ const getPotSize = () => {
         }
     });
     return pot;
-}
+};
 
 //add hands and bets to table --------------------------------------------------------------------------------
 //add hands and bets to table --------------------------------------------------------------------------------
@@ -1363,7 +1372,7 @@ function distributeHands(firstRender) {
     });
     if (firstRender){
         for (let i = 0; i < 10; i++) {
-            let position = document.getElementsByClassName('field')[i]
+            let position = document.getElementsByClassName('field')[i];
             let hand = document.getElementsByClassName(i)[0];
             // console.log(position);
             // console.log(hand.innerHTML);
@@ -1422,7 +1431,7 @@ $(window).resize(function () {
             width: $wrapper.width(),
             height: $wrapper.height()
         }
-    }
+    };
     doResize(null, resizeData);
 });
 
@@ -1438,13 +1447,13 @@ socket.on('get-buyin-info', (data) => {
     $('#buyins').empty();
     for (let i = 0; i < data.length; i++) {
         let time = `<span class='info'>${data[i].time} ~</span>`;
-        let datastr = `${time} ${data[i].playerName} (id: ${data[i].playerid}) buy-in: ${data[i].buyin}`
+        let datastr = `${time} ${data[i].playerName} (id: ${data[i].playerid}) buy-in: ${data[i].buyin}`;
         if (data[i].buyout != null){
             datastr += ` buy-out: ${data[i].buyout}`
         }
         $('#buyins').prepend(`<p>${datastr}</p>`);
     }
-})
+});
 
 function closeBuyin() {
     document.getElementById("buyin-log").style.width = "0%";
