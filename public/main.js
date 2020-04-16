@@ -305,20 +305,25 @@ const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
     let minBetAmount = parseInt($('#bb').html());
-    let maxBetAmount = parseInt($('.action > .stack').html());
-    if (betAmount > maxBetAmount) {
-        // If player is going all in
-        betAmount = maxBetAmount;
-    } else if (!betAmount || betAmount < minBetAmount) {
+    let playerStack = parseInt($('.action > .stack').html());
+    if (betAmount > playerStack) { // if player bet more than stack, go all in
+        betAmount = playerStack;
+    } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
+        if (playerStack <= minBetAmount) { // if player bet < stack <= min bet then must go all in b/c stack <= min bet
+            alert(`must go all in or fold. stack is less than minimum bet amount`);
+        } else {
+            alert(`minimum bet size is ${minBetAmount}`);
+        }
+        return false;
+    } else if (!betAmount) { // if player did not enter a bet
         alert(`minimum bet size is ${minBetAmount}`);
-    } else {
-        socket.emit('action', {
-            amount: betAmount,
-            action: 'bet'
-        });
-        return true;
+        return false;
     }
-    return false;
+    socket.emit('action', {
+        amount: betAmount,
+        action: 'bet'
+    });
+    return true;
 }
 
 // hacky global variable
