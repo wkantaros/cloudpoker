@@ -871,6 +871,36 @@ socket.on('render-board', (data) => {
     }
 });
 
+
+// renders the board (flop, turn, river)
+socket.on('render-all-in', (data) => {
+    $('.pm-btn').removeClass('pm');
+    hideAllBets();
+    renderAllIn(data.board);
+});
+
+const renderAllIn = (board) => {
+    console.log(board);
+    if ($('#flop').hasClass('hidden')) {
+        showFlop(board);
+        playSoundIfVolumeOn('flop');
+        setTimeout(() => {
+            renderAllIn(board);
+        }, 1200);
+    } else if ($('#turn').hasClass('hidden')) {
+        showTurn(board);
+        playSoundIfVolumeOn('turn');
+        setTimeout(() => {
+            renderAllIn(board);
+        }, 1800);
+    } else {
+        showRiver(board);
+        playSoundIfVolumeOn('river');
+    }
+}
+
+
+
 // renders a players hand
 socket.on('render-hand', (data) => {
     console.log(data.cards);
@@ -912,7 +942,6 @@ socket.on('action', (data) => {
 
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
-    console.log('here we are lets go', data);
     displayButtons(data);
 })
 
@@ -1079,6 +1108,12 @@ const loadSounds = () => {
 loadSounds();
 
 const displayButtons = (data) => {
+    if (data == -1) {
+        console.log('here yuh');
+        $('.action-btn').addClass('collapse');
+        $('.pm-btn').removeClass('pm');
+        return;
+    }
     let premove = undefined;
     if (data.canPerformPremoves) {
         $('#pm-fold').removeClass('collapse');

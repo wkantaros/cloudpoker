@@ -434,6 +434,13 @@ router.route('/:id').get((req, res) => {
         } 
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (s.everyoneAllIn(sid) && prev_round !== s.getRoundName(sid)) {
+            let time = 500;
+            if (s.getRoundName(sid) == 'flop'){
+                time = 4500;
+            }
+            else if (s.getRoundName(sid) == 'turn'){
+                time = 3000;
+            }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
             let allInPlayerSeatsHands = [];
             for (let i = 0; i < playerSeatsAllInBool.length; i++){
@@ -444,26 +451,25 @@ router.route('/:id').get((req, res) => {
                     });
                 }
             }
-            // NEED TO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
+            // TODO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
             io.sockets.to(sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
             io.sockets.to(sid).emit('update-pot', {
                 amount: s.getPot(sid)
             });
 
-            let rName = prev_round;
+            // TODO remove ability to perform actions
+
             while (s.getRoundName(sid) !== 'showdown'){
-                console.log(rName);
-                if (rName !== s.getRoundName(sid)){
-                    rName = s.getRoundName(sid);
-                        io.sockets.to(sid).emit('render-board', {
-                            street: s.getRoundName(sid),
-                            board: s.getDeal(sid),
-                            sound: true
-                        });
-                }
                 s.call(sid, s.getNameByActionSeat(sid));
             }
-            check_round('showdown');
+            io.sockets.to(sid).emit('render-all-in', {
+                street: s.getRoundName(sid),
+                board: s.getDeal(sid),
+                sound: true
+            });
+            setTimeout(() => {
+                check_round('showdown');
+            }, time);
         } else if (data.everyoneFolded) {
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with s.getRoundName
