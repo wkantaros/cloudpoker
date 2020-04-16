@@ -8,7 +8,7 @@ let poker = require('../poker-logic/lib/node-poker');
 // maps sessionid -> {table, hostname, hoststack, gameInProgress}
 let tables = {};
 
-// maps sessionid -> playerName -> { playerid, seat }
+// maps sessionid -> playerName -> { playerid }
 let playerids = {}
 
 //track buyins/buyouts
@@ -36,8 +36,7 @@ let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, host
 let addToPlayerIds = (sessionid, playerName, playerid) => {
     let tempObj = playerids[sessionid] || {};
     tempObj[playerName] = {
-        playerid: playerid,
-        seat: getPlayerSeat(sessionid, playerName)
+        playerid: playerid
     };
     playerids[sessionid] = tempObj;
 }
@@ -125,7 +124,6 @@ function setPlayerStraddling(sid, playerid, isStraddling) {
 
 let removePlayer = (sessionid, playerName) => {
     tables[sessionid].table.removePlayer(playerName);
-    // tables[sessionid].leavingGame[playerids[sessionid][playerName].seat] = true;
     delete playerids[sessionid][playerName];
     if (playerName === tables[sessionid].hostName){
         // transfer host name / abilities to next player
@@ -254,7 +252,7 @@ let playersInfo = (sid) => {
         let isWaiting = waitingPlayerNames.includes(name);
         info.push({
             playerName: name,
-            seat: playerids[sid][name].seat,
+            seat: getPlayerSeat(sid, name),
             stack: getStack(sid, name),
             playerid: playerids[sid][name].playerid,
             waiting: isWaiting,
@@ -391,13 +389,9 @@ let getMaxBet = (sid) => {
 
 let getNameByActionSeat = (sid) => {
     let seat = getActionSeat(sid);
-    for (let name in playerids[sid]) {
-        if (playerids[sid][name].seat == seat) {
-            return name;
-        }
-    }
-    return 'guest';
-}
+    if (seat === -1) return 'guest';
+    return tables[sid].table.players[seat].playerName;
+};
 
 // return an array of seat, bet objects
 // may lead to a bug down the line still unsure
