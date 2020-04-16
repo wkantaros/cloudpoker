@@ -13,7 +13,14 @@ form.addEventListener('submit', (event) => {
     const stack = formData.get('stack') || 1000;
     const smallBlind = parseInt(formData.get('small-blind')) || 25;
     const bigBlind = parseInt(formData.get('big-blind')) || 50;
-    const straddleLimit = parseInt(formData.get('straddle-type')) || 0;
+    let straddleLimit = 0;
+    if (formData.get('straddle')){
+      straddleLimit = 1;
+    }
+    if (formData.get('multi-straddle')) {
+      straddleLimit = -1;
+    }
+    alert(straddleLimit);
 
     const game = {
         name,

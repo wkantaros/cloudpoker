@@ -552,8 +552,15 @@ let getAvailableActions = (sid, playerid) => {
         // cases where its not the players action and game is in progress
         else if (gameInProgress(sid)) {
             let playerName = getPlayerById(sid, playerid);
-            let playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
-            let playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+            let playerAllIn;
+            let playerFolded;
+            if (getTableById(sid).table.getPlayer(playerName) == null){
+                console.log('player waiting for seat');
+                canPerformPremoves = false
+            } else {
+                playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
+                playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+            }
             if (!playerFolded && !playerAllIn){
                 canPerformPremoves = true;
             }
