@@ -58,10 +58,6 @@ class Table {
         return this.allPlayers.filter(p => p !== null && p.leavingGame)
     }
 
-    get gameInProgress() {
-        return this.game !== null && t.players.length >= 2;
-    }
-
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
         if (p !== null) return p.cards;
@@ -237,6 +233,7 @@ class Table {
     initNewRound () {
         this.removeAndAddPlayers();
         if (this.players.length < 2) {
+            console.log('not enough players (initNewRound)');
             this.game = null;
             return;
         }
@@ -341,7 +338,7 @@ class Table {
         this.removeAndAddPlayers();
         // EDITED
         if (this.players.length < 2){
-            console.log('not enough players :(');
+            console.log('not enough players (NewRound)');
             this.game = null;
             return;
         }
