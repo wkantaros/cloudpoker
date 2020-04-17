@@ -202,7 +202,12 @@ let getModId = (sid) => {
     } else {
         return null;
     }
-}
+};
+
+const isModPlayerId = (sid, pid) => {
+    if (tables[sid].hostName === null) return false;
+    return getPlayerId(sid, tables[sid].hostName) === pid;
+};
 
 const isActivePlayerId = (sid, playerid) => {
     return Object.values(playerids[sid]).map(x => x.playerid).includes(playerid);
@@ -594,6 +599,7 @@ module.exports.getInitialBets = getInitialBets;
 module.exports.getWinners = getWinners;
 module.exports.getLosers = getLosers;
 module.exports.getModId = getModId;
+module.exports.isModPlayerId = isModPlayerId;
 module.exports.getAllIns = getAllIns;
 module.exports.getAvailableActions = getAvailableActions;
 module.exports.actionOnAllInPlayer = actionOnAllInPlayer;

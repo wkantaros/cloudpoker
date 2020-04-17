@@ -711,6 +711,11 @@ const setTurnTimer = () => {
     socket.emit('set-turn-timer', )
 };
 
+const kickPlayer = (playerName) => {
+    console.log(`kicking player ${playerName}`);
+    socket.emit('kick-player', {playerName: playerName});
+}
+
 socket.on('player-disconnect', (data) => {
     console.log(`${data.playerName} disconnected`)
     // TODO: do something that makes it clear that the player is offline, such as making

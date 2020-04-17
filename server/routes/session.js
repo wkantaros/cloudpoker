@@ -209,6 +209,10 @@ router.route('/:id').get((req, res) => {
             s.setPlayerStraddling(sid, playerId, data.isStraddling)
         });
 
+        socket.on('kick-player', (data) => {
+            // TODO
+        });
+
         socket.on('leave-game', (data) => {
             // if (!s.isActivePlayerId(playerId)) {
             //     console.log(`error: ${playerId} is inactive but received leave-game.`);
