@@ -390,7 +390,7 @@ let getMaxBet = (sid) => {
 let getNameByActionSeat = (sid) => {
     let seat = getActionSeat(sid);
     if (seat === -1) return 'guest';
-    return tables[sid].table.players[seat].playerName;
+    return tables[sid].table.allPlayers[seat].playerName;
 };
 
 // return an array of seat, bet objects
