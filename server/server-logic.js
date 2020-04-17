@@ -222,7 +222,9 @@ let getPlayerById = (sid, pid) => {
 
 let getPlayerBySeat = (sid, seat) => {
     // let t = tables[sid].table;
-    return tables[sid].table.allPlayers[seat] || 'guest';
+    const p = tables[sid].table.allPlayers[seat];
+    if (p) return p.playerName;
+    return 'guest';
 }
 
 
@@ -395,12 +397,8 @@ let getMaxBet = (sid) => {
 
 let getNameByActionSeat = (sid) => {
     let seat = getActionSeat(sid);
-    for (let name in playerids[sid]) {
-        if (playerids[sid][name].seat == seat) {
-            return name;
-        }
-    }
-    return 'guest';
+    if (seat === -1) return 'guest';
+    return tables[sid].table.allPlayers[seat].playerName;
 }
 
 // return an array of seat, bet objects

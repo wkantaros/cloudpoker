@@ -709,7 +709,18 @@ message.addEventListener('keypress', () => {
 
 const setTurnTimer = () => {
     socket.emit('set-turn-timer', )
-}
+};
+
+socket.on('player-disconnect', (data) => {
+    console.log(`${data.playerName} disconnected`)
+    // TODO: do something that makes it clear that the player is offline, such as making
+    //  their cards gray or putting the word "offline" next to their name
+});
+
+socket.on('player-reconnect', (data) => {
+    console.log(`${data.playerName} reconnected`);
+    // TODO: undo the effects of the player-disconnect event listener
+});
 
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {

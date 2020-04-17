@@ -124,10 +124,13 @@ router.route('/:id').get((req, res) => {
         
         tableSocketMap.get(sid).set(playerId, socket.id);
 
-        // socket.on('disconnect', (reason) => {
-        //     console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
-        //     io.removeAllListeners('connection');
-        // });
+        socket.on('disconnect', (reason) => {
+            console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
+            io.sockets.to(sid).emit('player-disconnect', {
+                playerName: s.getPlayerById(playerId),
+            });
+            io.removeAllListeners('connection');
+        });
 
         // make sure host has a socketid associate with name (player who sent in login form)
         if (s.getModId(sid) != null && s.getModId(sid) == 6969) {
@@ -148,7 +151,7 @@ router.route('/:id').get((req, res) => {
         // chatroom features
         // send a message in the chatroom
         socket.on('chat', (data) => {
-            io.to(sid).emit('chat', {
+            io.sockets.to(sid).emit('chat', {
                 handle: s.getPlayerById(sid, playerId),
                 message: data.message
             });
@@ -163,29 +166,26 @@ router.route('/:id').get((req, res) => {
             // TODO: get returning player in sync with hand.
             //  render his cards, etc.
             console.log(`syncing ${s.getPlayerById(sid, playerId)}`);
-            let data = s.playersInfo(sid);
+            io.sockets.to(sid).emit('player-reconnect', {
+                playerName: s.getPlayerById(playerId),
+            });
             io.sockets.to(getSocketId(playerId)).emit('sync-board', {
                 street: s.getRoundName(sid),
                 board: s.getDeal(sid),
                 sound: true
             });
-            // TODO: check if player is in game
             // render player's hand
-            // TODO: this doesn't work
-            for (let i = 0; i < data.length; i++) {
-                if (data[i].playerid === playerId) {
-                    io.to(getSocketId(playerId)).emit('render-hand', {
-                        cards: s.getCardsByPlayerName(sid, data[i].playerName),
-                        seat: data[i].seat
-                    });
-                }
-            }
+            const playerName = s.getPlayerById(playerId);
+            io.sockets.to(getSocketId(playerId)).emit('render-hand', {
+                cards: s.getCardsByPlayerName(sid, playerName),
+                seat: s.getPlayerSeat(sid, playerName)
+            });
 
             // highlight cards of player in action seat and get available buttons for players
             renderActionSeatAndPlayerActions(sid);
             // Play sound for action seat player
             if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
-                io.to(getSocketId(playerId)).emit('players-action-sound', {});
+                io.sockets.to(getSocketId(playerId)).emit('players-action-sound', {});
             }
         }
 
@@ -255,7 +255,7 @@ router.route('/:id').get((req, res) => {
                 setTimeout(() => {
                     // notify player its their action with sound
                     if (s.getPlayerId(sid, s.getNameByActionSeat(sid))){
-                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                        io.sockets.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
                     }
                 }, 500);
             }
@@ -271,7 +271,7 @@ router.route('/:id').get((req, res) => {
                 clearTimeout(prevTimer); // cancel previous timer, if it exists
             }
             s.initializeTimer(sid, delay, expirePlayerTurn);
-            io.to(sid).emit('render-timer', {
+            io.sockets.to(sid).emit('render-timer', {
                 seat: s.getActionSeat(sid),
                 time: delay
             });
@@ -376,7 +376,7 @@ router.route('/:id').get((req, res) => {
                     setTimeout(()=>{
                         // notify player its their action with sound
                         if (!everyoneFolded)
-                            io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                            io.sockets.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -562,7 +562,7 @@ router.route('/:id').get((req, res) => {
         let data = s.playersInfo(sid);
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
-            io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
+            io.sockets.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(sid, name),
                 seat: data[i].seat
             });
@@ -575,7 +575,7 @@ router.route('/:id').get((req, res) => {
         // highlight cards of player in action seat and get available buttons for players
         renderActionSeatAndPlayerActions(sid);
         // abstracting this to be able to work with bomb pots/straddles down the line
-        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action-sound', {});
+        io.sockets.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action-sound', {});
     }
 
     let renderActionSeatAndPlayerActions = (sid) => {
@@ -588,7 +588,7 @@ router.route('/:id').get((req, res) => {
         let playerIds = s.getPlayerIds(sid);
         for (let i = 0; i < playerIds.length; i++){
             let pid = playerIds[i];
-            io.to(getSocketId(pid)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
+            io.sockets.to(getSocketId(pid)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
         }
     }
 });
