@@ -132,9 +132,7 @@ $('#buyin-info').keydown(function (e){
 });
 
 quit.addEventListener('click', () => {
-    socket.emit('leave-game', {
-        amount: 0
-    });
+    socket.emit('leave-game', {});
     logOut();
 });
 
