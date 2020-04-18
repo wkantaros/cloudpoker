@@ -136,7 +136,7 @@ class SessionManager extends TableManager {
                 // highlight cards of player in action seat and get available buttons for players
                 this.renderActionSeatAndPlayerActions();
             }
-            this.handlePlayerExit(playerName, true, stack);
+            this.handlePlayerExit(playerName);
             setTimeout(() => {
                 // check if round has ended
                 this.check_round(prev_round);
@@ -153,12 +153,13 @@ class SessionManager extends TableManager {
     
     // private method
     // removes players not in the current hand
-    handlePlayerExit(playerName, gameInProgress, stack) {
+    handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const modLeavingGame = playerId === super.getModId();
         const seat = super.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
 
+        const stack = this.getStack(playerName);
         super.addBuyOut(playerName, playerId, stack);
         super.removePlayer(playerName);
         if (modLeavingGame) {
@@ -171,7 +172,7 @@ class SessionManager extends TableManager {
         });
         this.io.sockets.to(this.sid).emit('remove-out-players', {seat: seat});
 
-        if (gameInProgress) {
+        if (this.gameInProgress) {
             this.io.sockets.to(this.sid).emit('buy-out', {
                 playerName: playerName,
                 stack: stack,
@@ -197,14 +198,14 @@ class SessionManager extends TableManager {
             setTimeout(() => {
                 // handle losers
                 for (let i = 0; i < losers.length; i++){
-                    this.handlePlayerExit(losers[i].playerName, true, 0);
+                    this.handlePlayerExit(losers[i].playerName);
                 }
 
                 for (let i = 0; i < winners.length; i++){
                     // update client's stack size
                     this.io.sockets.to(this.sid).emit('update-stack', {
-                        seat:super.getPlayerSeat(winners[i].playerName),
-                        stack:super.getStack(winners[i].playerName)
+                        seat: super.getPlayerSeat(winners[i].playerName),
+                        stack: super.getStack(winners[i].playerName)
                     });
                 }
 
@@ -289,6 +290,12 @@ class SessionManager extends TableManager {
                 board: super.getDeal(),
                 sound: true
             });
+            for (let i = 0; i < this.table.players.length; i++) {
+                const p = this.table.players[i];
+                this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('update-rank', {
+                    handRankMessage: this.playerHandState(name).handRankMessage,
+                });
+            }
         }
     }
 
@@ -323,7 +330,8 @@ class SessionManager extends TableManager {
             let name = data[i].playerName;
             this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: super.getCardsByPlayerName(name),
-                seat: data[i].seat
+                seat: data[i].seat,
+                handRankMessage: this.playerHandState(name).handRankMessage,
             });
             this.io.sockets.to(this.sid).emit('update-stack', {
                 seat: data[i].seat,
@@ -587,7 +595,8 @@ router.route('/:id').get((req, res) => {
             const playerName = s.getPlayerById(playerId);
             io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(playerName),
-                seat: s.getPlayerSeat(playerName)
+                seat: s.getPlayerSeat(playerName),
+                handRankMessage: this.playerHandState(playerName).handRankMessage,
             });
 
             // highlight cards of player in action seat and get available buttons for players

@@ -1012,7 +1012,9 @@ const renderAllIn = (board) => {
     }
 };
 
-
+socket.on('update-rank', (data) => {
+    console.log(`hand rank update: ${data.handRankMessage}`)
+});
 
 // renders a players hand
 socket.on('render-hand', (data) => {
