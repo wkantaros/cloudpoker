@@ -71,6 +71,8 @@ class SessionManager extends TableManager {
         this.socketMap = new TwoWayMap();
         // maps player id -> playerName when kicked
         this.kickedPlayers = {};
+        this.timerDelay = -1;
+        this.timer = null;
     }
 
     setSocketId(playerId, socketId) {
@@ -81,6 +83,15 @@ class SessionManager extends TableManager {
         // return tableSocketMap.get(this.sid).key(playerId);
         return this.socketMap.key(playerId);
     };
+
+    canPlayerJoin(playerId, playerName, stack, isStraddling) {
+        if (super.isPlayerNameUsed(playerName)) {
+            this.io.sockets.to(this.getSocketId(playerId)).emit('alert',
+                {'message': `Player name ${playerName} is already taken.`});
+            return false;
+        }
+        return true;
+    }
 
     kickPlayer(playerId) {
         this.kickedPlayers[playerId] = super.getPlayerById(playerId);
@@ -143,7 +154,7 @@ class SessionManager extends TableManager {
     // private method
     // removes players not in the current hand
     handlePlayerExit(playerName, gameInProgress, stack) {
-        const playerId =super.getPlayerId(playerName);
+        const playerId = super.getPlayerId(playerName);
         const modLeavingGame = playerId === super.getModId();
         const seat =super.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
@@ -167,23 +178,6 @@ class SessionManager extends TableManager {
                 seat: seat
             });
         }
-    };
-
-    expirePlayerTurn () {
-
-    };
-
-    setTimer (delay) {
-        // If a timer is not yet set, initialize one.
-        const prevTimer = this.timer;
-        if (prevTimer) {
-            clearTimeout(prevTimer); // cancel previous timer, if it exists
-        }
-        super.initializeTimer(delay, this.expirePlayerTurn);
-        this.io.sockets.to(this.sid).emit('render-timer', {
-            seat: this.actionSeat,
-            time: delay
-        });
     };
 
     //checks if round has ended (reveals next card)
@@ -356,6 +350,117 @@ class SessionManager extends TableManager {
             this.io.sockets.to(this.getSocketId(pid)).emit('render-action-buttons', super.getAvailableActions(pid));
         }
     }
+
+    performAction(playerName, action, amount) {
+        const prev_round = this.getRoundName();
+        let actualBetAmount = this.performActionHelper(playerName, action, amount);
+        let canPerformAction = actualBetAmount >= 0;
+
+        if (canPerformAction) {
+            this.refreshTimer();
+            this.io.sockets.to(this.sid).emit(`${action}`, {
+                username: playerName,
+                stack: this.getStack(playerName),
+                pot: this.getPot(),
+                seat: this.getPlayerSeat(playerName),
+                amount: actualBetAmount
+            });
+            // update client's stack size
+            this.io.sockets.to(this.sid).emit('update-stack', {
+                seat: this.getPlayerSeat(playerName),
+                stack: this.getStack(playerName)
+            });
+            // shift action to next player in hand
+            if (this.actionOnAllInPlayer()){
+                console.log('ACTION ON ALL IN PLAYER');
+            }
+            // highlight cards of player in action seat and get available buttons for players
+            let everyoneFolded = this.checkwin().everyoneFolded;
+            this.check_round(prev_round);
+
+            setTimeout(()=>{
+                // check if round has ended
+                if (!everyoneFolded)
+                    this.renderActionSeatAndPlayerActions();
+                else
+                    this.io.sockets.to(this.sid).emit('action', {
+                        seat: -1
+                    });
+            }, 250);
+            setTimeout(()=>{
+                // notify player its their action with sound
+                if (!everyoneFolded)
+                    this.io.sockets.to(this.getSocketId(`${this.getPlayerId(this.getNameByActionSeat())}`)).emit('players-action-sound', {});
+            }, 500);
+        }
+    }
+
+    /**
+     * @param {string} playerName
+     * @param {string} action Player's action
+     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
+     * @return {number} Amount bet. -1 if action cannot be performed
+     */
+    performActionHelper(playerName, action, amount) {
+        if (amount < 0) {
+            return -1;
+        }
+        let actualBetAmount = 0;
+        if (action === 'bet') {
+            actualBetAmount = super.bet(playerName, amount);
+        } else if (action === 'raise') {
+            actualBetAmount = super.raise(playerName, amount);
+        } else if (action === 'call') {
+            if (super.getRoundName() === 'deal') {
+                actualBetAmount = super.callBlind(playerName);
+            } else {
+                actualBetAmount = super.call(playerName);
+            }
+        } else if (action === 'fold') {
+            actualBetAmount = 0;
+            super.fold(playerName);
+        } else if (action === 'check') {
+            let canPerformAction = super.check(playerName);
+            if (canPerformAction) {
+                actualBetAmount = 0;
+            }
+        }
+        return actualBetAmount;
+    }
+
+    setTimer (delay) {
+        // If a timer is not yet set, initialize one.
+        const prevTimer = this.timer;
+        if (prevTimer) {
+            clearTimeout(prevTimer); // cancel previous timer, if it exists
+        }
+        if (delay > 0) {
+            this.initializeTimer(delay);
+            this.io.sockets.to(this.sid).emit('render-timer', {
+                seat: this.actionSeat,
+                time: delay
+            });
+        } else if (prevTimer) { // turn off the turn timer
+            this.timer = null;
+            this.timerDelay = -1;
+        }
+    };
+
+    initializeTimer(delay) {
+        this.timer = setTimeout(delay, this.expirePlayerTurn);
+        this.timerDelay = delay;
+    }
+
+    refreshTimer() {
+        if (this.timer) this.timer.refresh();
+    }
+
+    expirePlayerTurn () {
+        const playerName = super.getPlayerBySeat(super.actionSeat);
+        const availableActions = super.getAvailableActions(playerName).availableActions;
+        const action = availableActions['check'] ? 'check' : 'fold';
+        this.performAction(playerName, action, 0);
+    };
 }
 
 router.route('/:id').get((req, res) => {
@@ -481,14 +586,11 @@ router.route('/:id').get((req, res) => {
         }
 
         socket.on('buy-in', (data) => {
-
-            if (s.isPlayerNameUsed(data.playerName)) {
-                io.sockets.to(s.getSocketId(playerId)).emit('alert',
-                    {'message': `Player name ${data.playerName} is already taken.`});
+            if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
             s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
-            if (s.getModId() === playerId) {
+            if (s.isModPlayerId(playerId)) {
                 io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
             }
             io.sockets.to(sid).emit('buy-in', data);
@@ -502,7 +604,9 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('kick-player', (data) => {
-            s.playerLeaves(s.getPlayerId(data.playerName));
+            if (s.isModPlayerId(playerId)) {
+                s.kickPlayer(s.getPlayerId(data.playerName));
+            }
         });
 
         socket.on('leave-game', (data) => {
@@ -510,7 +614,7 @@ router.route('/:id').get((req, res) => {
         });
         
         socket.on('set-turn-timer', (data) => { // delay
-            if (playerId === s.getModId()) {
+            if (s.isModPlayerId(playerId)) {
                 s.setTimer(data.delay);
             }
         });
@@ -527,38 +631,6 @@ router.route('/:id').get((req, res) => {
             }
         });
 
-        /**
-         * @param playerName
-         * @param data Player's action Object
-         * @return {number} Amount bet. -1 if action cannot be performed
-         */
-        function performAction(playerName, data) {
-            if (data.amount < 0) {
-                return -1;
-            }
-            let actualBetAmount = 0;
-            if (data.action === 'bet') {
-                actualBetAmount = s.bet(playerName, data.amount);
-            } else if (data.action === 'raise') {
-                actualBetAmount = s.raise(playerName, data.amount);
-            } else if (data.action === 'call') {
-                if (s.getRoundName() === 'deal') {
-                    actualBetAmount = s.callBlind(playerName);
-                } else {
-                    actualBetAmount = s.call(playerName);
-                }
-            } else if (data.action === 'fold') {
-                actualBetAmount = 0;
-                s.fold(playerName);
-            } else if (data.action === 'check') {
-                let canPerformAction = s.check(playerName);
-                if (canPerformAction) {
-                    actualBetAmount = 0;
-                }
-            }
-            return actualBetAmount;
-        }
-
         socket.on('get-buyin-info', () => {
             console.log('here!mf');
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
@@ -570,50 +642,8 @@ router.route('/:id').get((req, res) => {
             if (!s.gameInProgress) {
                 console.log('game hasn\'t started yet');
             } else if (s.actionSeat === s.getPlayerSeat(playerName)) {
-                prev_round = s.getRoundName();
                 console.log('action data', JSON.stringify(data));
-
-                let actualBetAmount = performAction(playerName, data);
-                let canPerformAction = actualBetAmount >= 0;
-
-                if (canPerformAction) {
-                    io.sockets.to(sid).emit(`${data.action}`, {
-                        username: playerName,
-                        stack: s.getStack(playerName),
-                        pot: s.getPot(),
-                        seat: s.getPlayerSeat(playerName),
-                        amount: actualBetAmount
-                    });
-                    // update client's stack size
-                    io.sockets.to(sid).emit('update-stack', {
-                        seat: s.getPlayerSeat(playerName),
-                        stack: s.getStack(playerName)
-                    });
-                    // shift action to next player in hand
-                    if (s.actionOnAllInPlayer()){
-                        console.log('ACTION ON ALL IN PLAYER');
-                    }
-                    // highlight cards of player in action seat and get available buttons for players
-                    let everyoneFolded = s.checkwin().everyoneFolded;
-                    s.check_round(prev_round);
-
-                    setTimeout(()=>{
-                        // check if round has ended
-                        if (!everyoneFolded)
-                            s.renderActionSeatAndPlayerActions();
-                        else
-                            io.sockets.to(sid).emit('action', {
-                                seat: -1
-                            });
-                    }, 250);
-                    setTimeout(()=>{
-                        // notify player its their action with sound
-                        if (!everyoneFolded)
-                            io.sockets.to(s.getSocketId(`${s.getPlayerId(s.getNameByActionSeat())}`)).emit('players-action-sound', {});
-                    }, 500);
-                } else {
-                    console.log(`${playerName} cannot perform action in this situation!`);
-                }
+                s.performAction(playerName, data.action, data.amount);
             } else {
                 console.log(`not ${playerName}'s action`);
             }

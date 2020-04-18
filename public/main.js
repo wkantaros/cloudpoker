@@ -705,8 +705,8 @@ message.addEventListener('keypress', () => {
 
 //Listen for events--------------------------------------------------------------------------------
 
-const setTurnTimer = () => {
-    socket.emit('set-turn-timer', )
+const setTurnTimer = (delay) => {
+    socket.emit('set-turn-timer', {delay: delay});
 };
 
 const kickPlayer = (playerName) => {

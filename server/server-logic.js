@@ -7,9 +7,6 @@ class TableManager {
         this.gameInProgress = false;
         this.trackBuyins = [];
         this.playerids = {};
-        this.timerDelay = -1;
-        this.timer = null;
-        this.timerCallback = null;
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
         this.addToPlayerIds(hostName, playerid);
         this.addToBuyins(hostName, playerid, hostStack);
@@ -415,7 +412,7 @@ class TableManager {
         let canPerformPremoves = false;
         // if player is at the table
         if (this.isActivePlayerId(playerid)){
-            console.log('player at table');
+            // console.log('player at table');
             // case where game hasnt started yet, player is mod and there are enough players
             if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
                 console.log('game can start');
@@ -504,12 +501,6 @@ class TableManager {
 
     getPlayerIds() {
         return Object.values(this.playerids).map(x => x.playerid);
-    }
-
-    initializeTimer(delay, callback) {
-        this.timer = setTimeout(delay, callback);
-        this.timerDelay = delay;
-        this.timerCallback = callback;
     }
 }
 
