@@ -1,3 +1,6 @@
+const {rankHandInt} = require('../poker-logic/lib/deck');
+const {Hand} = require('../poker-logic/lib/node-poker');
+
 class TableManager {
     constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
         this.table = table;
@@ -10,6 +13,29 @@ class TableManager {
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
         this.addToPlayerIds(hostName, playerid);
         this.addToBuyins(hostName, playerid, hostStack);
+    }
+
+    get gameState() {
+        return {
+            smallBlind: this.table.smallBlind,
+            bigBlind: this.table.bigBlind,
+            dealer: this.getDealerSeat(),
+            actionSeat: this.actionSeat,
+            pot: this.getPot(),
+            roundName: this.getRoundName(),
+            board: this.getDeal(),
+            players: this.table.players.map(p => {return {
+                playerName: p.playerName,
+                chips: p.chips,
+                folded: p.folded,
+                allIn: p.allIn,
+                talked: p.talked,
+                inHand: p.inHand,
+                bet: p.bet,
+                seat: p.seat,
+                leavingGame: p.leavingGame,
+            }}),
+        };
     }
 
     get bigBlindSeat() {
@@ -216,6 +242,20 @@ class TableManager {
         this.playerids[playerName].playerid = playerid;
     }
 
+    playerHandState(playerName) {
+        const p = this.table.getPlayer(playerName);
+        if (!p) return null;
+        let result = {
+            cards: this.table.getHandForPlayerName(playerName),
+            handRankMessage: '',
+        };
+        if (this.gameInProgress) {
+            const cards = p.cards.concat(this.table.game.board);
+            result.handRankMessage = rankHandInt(new Hand(cards)).message;
+        }
+        return result;
+    }
+
     getAvailableSeat() {
         return this.table.getAvailableSeat();
     };
@@ -284,7 +324,6 @@ class TableManager {
         if (this.gameInProgress) {
             const t = this.table;
             return t.players[t.dealer].seat;
-            // console.log(this.table.bets);
         } else {
             return -1;
         }

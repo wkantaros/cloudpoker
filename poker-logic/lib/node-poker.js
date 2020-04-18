@@ -454,7 +454,7 @@ class Player {
         this.folded = false;
         this.allIn = false;
         this.talked = false;
-        // If the player is in the current hand. False is they are standing up, have quit/ will be removed, or just joined.
+        // If the player is in the current hand. False is they are standing up or just joined.
         this.inHand = false;
         this.cards = [];
         this.bet = 0;
@@ -659,7 +659,6 @@ function progress(table) {
             }
             if (table.game.roundName === 'River') {
                 table.game.roundName = 'Showdown';
-                // table.game.bets.splice(0, table.game.bets.length);
                 //Evaluate each hand
                 for (j = 0; j < table.players.length; j += 1) {
                     cards = table.players[j].cards.concat(table.game.board);
@@ -705,7 +704,6 @@ function Game(smallBlind, bigBlind) {
     this.pot = 0;
     this.roundName = 'deal'; //Start the first round
     this.betName = 'bet'; //bet,raise,re-raise,cap
-    this.bets = [];
     this.roundBets = [];
     this.deck = [];
     this.board = [];
@@ -738,3 +736,4 @@ function rankHands(hands) {
 }
 
 module.exports.Table = Table;
+module.exports.Hand = Hand;
