@@ -22,9 +22,14 @@ class TableManager {
             dealer: this.getDealerSeat(),
             actionSeat: this.actionSeat,
             pot: this.getPot(),
-            roundName: this.getRoundName(),
-            board: this.getDeal(),
-            players: this.table.players.map(p => {return {
+            street: this.getRoundName(),
+            board: this.getDeal()
+        };
+    }
+
+    get playerStates() {
+        return this.table.allPlayers.map(p => {
+            return {
                 playerName: p.playerName,
                 chips: p.chips,
                 folded: p.folded,
@@ -34,8 +39,7 @@ class TableManager {
                 bet: p.bet,
                 seat: p.seat,
                 leavingGame: p.leavingGame,
-            }}),
-        };
+            }})
     }
 
     get bigBlindSeat() {

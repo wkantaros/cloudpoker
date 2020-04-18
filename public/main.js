@@ -425,6 +425,14 @@ $('#raise-input-val').keydown(function (e) {
     }
 });
 
+const requestState = () => {
+    socket.emit('request-state', {
+        gameState: true,
+        playerStates: true,
+        handState: true,
+    })
+};
+
 let placeRaise = () => {
     console.log('raise');
     let raiseAmount = parseInt($('#raise-input-val').val());
@@ -712,7 +720,7 @@ const setTurnTimer = (delay) => {
 const kickPlayer = (playerName) => {
     console.log(`kicking player ${playerName}`);
     socket.emit('kick-player', {playerName: playerName});
-}
+};
 
 socket.on('player-disconnect', (data) => {
     console.log(`${data.playerName} disconnected`)
@@ -724,6 +732,70 @@ socket.on('player-reconnect', (data) => {
     console.log(`${data.playerName} reconnected`);
     // TODO: undo the effects of the player-disconnect event listener
 });
+
+/**
+ * {
+ *     gameState: {
+ *          //smallBlind: this.table.smallBlind,
+            //bigBlind: this.table.bigBlind,
+            dealer: this.getDealerSeat(),
+            actionSeat: this.actionSeat,
+            pot: this.getPot(),
+            street: this.getRoundName(),
+            board: this.getDeal()
+ *     },
+ *     playerStates: Array<{
+            playerName: p.playerName,
+            chips: p.chips,
+            folded: p.folded,
+            allIn: p.allIn,
+            talked: p.talked,
+            inHand: p.inHand,
+            bet: p.bet,
+            seat: p.seat,
+            leavingGame: p.leavingGame,
+       }>,
+ *     handState: {
+ *         cards: ['QH', '4S'],
+ *         playerHandRank: 'Two Pair'
+ *     }
+ * }
+ */
+function stateResponseHandler(data) {
+    // TODO: how should we deal with a player joining when street === 'showdown'
+    if (data.hasOwnProperty('gameState')) {
+        updateGameState(data.gameState);
+    }
+    if (data.hasOwnProperty('playerStates'))
+        updatePlayers(data.playerStates);
+    if (data.hasOwnProperty('handState')) {
+        updateHand(data.handState);
+    }
+}
+function updateGameState(data) {
+    if (data.hasOwnProperty('dealer'))
+        setDealerSeat(data.dealer);
+    if (data.hasOwnProperty('actionSeat'))
+        setActionSeat(data.actionSeat);
+    if (data.hasOwnProperty('pot'))
+        updatePot(data.pot);
+    if (data.hasOwnProperty('board'))
+        dealStreet({board: data.board, street: data.street, sound: false});
+
+}
+function updatePlayers(players) {
+    for (let i=0; i < players.length; i++) {
+        const p = players[i];
+        if (p.folded) outHand(p.seat);
+        else if (p.inHand) showBet(p.seat, p.bet);
+    }
+}
+function updateHand(data) {
+
+}
+socket.on('state-response', stateResponseHandler);
+
+socket.on('update-state', stateResponseHandler);
 
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {
@@ -881,36 +953,34 @@ socket.on('sync-board', (data) => {
     logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
-    if (data.street === 'deal') return;
-    showFlop(data.board);
-    if (data.street === 'flop') return;
-    showTurn(data.board);
-    if (data.street === 'turn') return;
-    showRiver(data.board);
+    dealStreet(data);
 });
+
+const dealStreet = (data) => {
+    if (data.street === 'deal') {
+        hideBoardPreFlop();
+        if (data.sound) playSoundIfVolumeOn('deal');
+        return;
+    }
+    showFlop(data.board);
+    if (data.street === 'flop') {
+        if (data.sound) playSoundIfVolumeOn('flop');
+        return;
+    }
+    showTurn(data.board);
+    if (data.street === 'turn') {
+        if (data.sound) playSoundIfVolumeOn('turn');
+        return;
+    }
+    showRiver(data.board);
+    if (data.sound) playSoundIfVolumeOn('river');
+};
 
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
     $('.pm-btn').removeClass('pm');
     hideAllBets();
-    if (data.street == 'deal'){
-        hideBoardPreFlop();
-        if (data.sound) {
-            playSoundIfVolumeOn('deal');
-        }
-    }
-    else if (data.street == 'flop'){
-        showFlop(data.board);
-        playSoundIfVolumeOn('flop');
-    }
-    else if (data.street == 'turn'){
-        showTurn(data.board);
-        playSoundIfVolumeOn('turn');
-    }
-    else if (data.street == 'river'){
-        showRiver(data.board);
-        playSoundIfVolumeOn('river');
-    }
+    dealStreet(data);
 });
 
 
@@ -961,13 +1031,17 @@ socket.on('update-stack', (data) => {
     hand.querySelector('.stack').innerHTML = data.stack;
 });
 
-// updates pot at beginning of each new street
-socket.on('update-pot', (data) => {
-    if (data.amount) {
-        $('#pot-amount').html(data.amount);
+const updatePot = (amount) => {
+    if (amount) {
+        $('#pot-amount').html(amount);
     } else {
         $('#pot-amount').empty();
     }
+};
+
+// updates pot at beginning of each new street
+socket.on('update-pot', (data) => {
+   updatePot(data.amount);
 });
 
 // start game (change all cards to red)
@@ -976,10 +1050,14 @@ socket.on('start-game', (data) => {
     $('#start').addClass('collapse');
 });
 
+const setActionSeat = (seat) => {
+    $('.name').removeClass('action');
+    $(`#${seat} > .name`).addClass('action');
+};
+
 // changes that person to the person who has the action
 socket.on('action', (data) => {
-    $('.name').removeClass('action');
-    $(`#${data.seat} > .name`).addClass('action');
+    setActionSeat(data.seat);
 });
 
 // renders available buttons for player
@@ -987,12 +1065,16 @@ socket.on('render-action-buttons', (data) => {
     displayButtons(data);
 });
 
+const setDealerSeat = (seat) => {
+    $('.dealer').remove();
+    if (seat != -1){
+        $(`#${seat} > .name`).append('<span class="dealer">D</span>');
+    }
+}
+
 // adds dealer chip to seat of dealer
 socket.on('new-dealer', (data) => {
-    $('.dealer').remove();
-    if (data.seat != -1){
-        $(`#${data.seat} > .name`).append('<span class="dealer">D</span>');
-    }
+    setDealerSeat(data.seat);
 });
 
 // changes color of players not in last hand to red (folded, buying in, etc)

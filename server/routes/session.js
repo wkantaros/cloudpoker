@@ -527,6 +527,19 @@ router.route('/:id').get((req, res) => {
             // io.removeAllListeners('connection');
         });
 
+        socket.on('request-state', (data) => {
+            let result = {};
+            if (data.gameState) {
+                result.gameState = s.gameState;
+            }
+            if (data.playerStates)
+                result.playerStates = s.playerStates;
+            if (data.handState) {
+                result.handState = s.playerHandState(s.getPlayerById(playerId));
+            }
+            io.sockets.to(s.getSocketId(playerId)).emit('state-response', result);
+        });
+
         // make sure host has a socketid associate with name (player who sent in login form)
 
         if (s.getModId() != null && s.getModId() === 6969) {
@@ -568,7 +581,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(s.getSocketId(playerId)).emit('sync-board', {
                 street: s.getRoundName(),
                 board: s.getDeal(),
-                sound: true
+                sound: false
             });
             // render player's hand
             const playerName = s.getPlayerById(playerId);
