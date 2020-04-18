@@ -35,7 +35,7 @@ class TableManager {
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
     // $2($5)
     addToPlayerIds(playerName, playerid) {
-        this.playerids[playerName] = playerid;
+        this.playerids[playerName] = {playerid};
     }
 
     addToBuyins(playerName, playerid, playerStack) {
@@ -276,7 +276,7 @@ class TableManager {
     }
 
     getCardsByPlayerName(playerName) {
-        this.table.getHandForPlayerName(playerName);
+        return this.table.getHandForPlayerName(playerName);
     }
 
     get actionSeat() {
@@ -306,7 +306,7 @@ class TableManager {
     }
 
     checkwin() {
-        this.table.checkwin();
+        return this.table.checkwin();
     }
 
     getRoundName() {
@@ -347,8 +347,8 @@ class TableManager {
     }
 
 
-// allows user to raise to a number
-// (such that node-poker doenst have him bet that number + his previous bet)
+    // allows user to raise to a number
+    // (such that node-poker doenst have him bet that number + his previous bet)
     raise(playerName, betAmount) {
         let playersLastBet = this.getBet(playerName);
         let realBetAmount = betAmount - playersLastBet;
@@ -376,7 +376,7 @@ class TableManager {
 
     get maxBet() {
         if (this.gameInProgress)
-            this.table.getMaxBet();
+            return this.table.getMaxBet();
         else
             return this.table.bigBlind;
     };
