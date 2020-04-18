@@ -436,14 +436,14 @@ class SessionManager extends TableManager {
         }
         if (delay > 0) {
             this.initializeTimer(delay);
-            this.io.sockets.to(this.sid).emit('render-timer', {
-                seat: this.actionSeat,
-                time: delay
-            });
         } else if (prevTimer) { // turn off the turn timer
             this.timer = null;
             this.timerDelay = -1;
         }
+        this.io.sockets.to(this.sid).emit('render-timer', {
+            seat: this.actionSeat,
+            time: delay
+        });
     };
 
     initializeTimer(delay) {

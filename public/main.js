@@ -828,7 +828,11 @@ socket.on('render-timer', (data) => {
     // $('.name').removeClass('turn-timer');
     // Set new timer for data.playerName
     if (data.time > 0) {
+        // TODO: implement front end graphics for turn timer
         // $(`#${data.seat} > .name`).addClass('turn-timer');
+    } else {
+        // TODO: remove graphics for turn timer
+        // no longer display the timer
     }
 });
 
