@@ -50,30 +50,33 @@ router.route('/').post((req, res) => {
         req.body.isValid = true;
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
-        createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
-        tableSocketMap.set(sid, new TwoWayMap());
+        const t = createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
+        sessionManagers.set(sid, new SessionManager(null, sid, t));
     }
 });
 
-
-// maps sid -> (player ID (from cookie) -> socket ID (from socket.io session) and vice versa)
-// TODO: delete sid from tSM when table finishes
-const tableSocketMap = new Map();
+// maps sid -> SessionManager
+// TODO: delete sid from sessionManagers when table finishes
+const sessionManagers = new Map();
 
 // hacky fix
 const socket_ids = {};
 
 class SessionManager {
-    constructor(io, sid) {
+    constructor(io, sid, table) {
         this.io = io;
-        this.table = getTableById(sid);
+        this.table = table || getTableById(sid);
         this.sid = sid;
-        // this.socketMap = new TwoWayMap();
+        this.socketMap = new TwoWayMap();
+    }
+
+    setSocketId(playerId, socketId) {
+        this.socketMap.set(playerId, socketId);
     }
 
     getSocketId (playerId) {
-        return tableSocketMap.get(this.sid).key(playerId);
-        // return this.socketMap.key(playerId);
+        // return tableSocketMap.get(this.sid).key(playerId);
+        return this.socketMap.key(playerId);
     };
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
@@ -387,7 +390,8 @@ router.route('/:id').get((req, res) => {
     // hacky
     let socket_id = [];
     const io = req.app.get('socketio');
-    const sm = new SessionManager(io, sid);
+    const sm = sessionManagers.get(sid);
+    sm.io = io;
     io.once('connection', function (socket) {
         console.log('socket id!:', socket.id, 'player id', playerId);
 
@@ -401,8 +405,8 @@ router.route('/:id').get((req, res) => {
 
             // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
             socket_ids[socket_id[0]] = true;
-        
-        tableSocketMap.get(sid).set(playerId, socket.id);
+
+        sm.setSocketId(playerId, socket.id);
 
         socket.on('disconnect', (reason) => {
             console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);

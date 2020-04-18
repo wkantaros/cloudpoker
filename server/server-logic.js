@@ -11,6 +11,7 @@ let tables = {};
 let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
     let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
     tables[sessionid] = new TableManager(table, hostName, hostStack, hostIsStraddling, playerid);
+    return tables[sessionid];
 };
 
 class TableManager {
