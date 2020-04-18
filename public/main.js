@@ -786,8 +786,9 @@ function updateGameState(data) {
 function updatePlayers(players) {
     for (let i=0; i < players.length; i++) {
         const p = players[i];
-        if (p.folded) outHand(p.seat);
-        else if (p.inHand) showBet(p.seat, p.bet);
+        if (p.folded || (p.hasOwnProperty('inHand') && !p.inHand)) outHand(p.seat);
+        else showBet(p.seat, p.bet);
+
     }
 }
 function updateHand(data) {

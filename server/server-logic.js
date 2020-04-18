@@ -28,7 +28,7 @@ class TableManager {
     }
 
     get playerStates() {
-        return this.table.allPlayers.map(p => {
+        return this.table.allPlayers.filter(p => p !== null).map(p => {
             return {
                 playerName: p.playerName,
                 chips: p.chips,

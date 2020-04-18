@@ -156,11 +156,11 @@ class SessionManager extends TableManager {
     handlePlayerExit(playerName, gameInProgress, stack) {
         const playerId = super.getPlayerId(playerName);
         const modLeavingGame = playerId === super.getModId();
-        const seat =super.getPlayerSeat(playerName);
+        const seat = super.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
 
-       super.addBuyOut(playerName, playerId, stack);
-       super.removePlayer(playerName);
+        super.addBuyOut(playerName, playerId, stack);
+        super.removePlayer(playerName);
         if (modLeavingGame) {
             if (super.getModId() != null){
                 this.io.sockets.to(this.getSocketId(super.getModId())).emit('add-mod-abilities');
