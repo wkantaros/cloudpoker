@@ -68,11 +68,12 @@ class SessionManager {
         this.io = io;
         this.table = getTableById(sid);
         this.sid = sid;
-        this.socketMap = new TwoWayMap();
+        // this.socketMap = new TwoWayMap();
     }
 
     getSocketId (playerId) {
-        return this.socketMap.key(playerId);
+        return tableSocketMap.get(this.sid).key(playerId);
+        // return this.socketMap.key(playerId);
     };
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
@@ -408,7 +409,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(sid).emit('player-disconnect', {
                 playerName: s.getPlayerById(playerId),
             });
-            io.removeAllListeners('connection');
+            // io.removeAllListeners('connection');
         });
 
         // make sure host has a socketid associate with name (player who sent in login form)
