@@ -1,19 +1,3 @@
-/**
- * functions needed
- */
-
-let poker = require('../poker-logic/lib/node-poker');
-
-// could probably make this a proper db at some point
-// maps sessionid -> TableManager
-let tables = {};
-
-let createNewTable = (sessionid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) => {
-    let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
-    tables[sessionid] = new TableManager(table, hostName, hostStack, hostIsStraddling, playerid);
-    return tables[sessionid];
-};
-
 class TableManager {
     constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
         this.table = table;
@@ -522,14 +506,6 @@ class TableManager {
         return Object.values(this.playerids).map(x => x.playerid);
     }
 
-    getTimer() {
-        return this.timer;
-    }
-
-    setTimer(timer) {
-        this.timer = timer;
-    }
-
     initializeTimer(delay, callback) {
         this.timer = setTimeout(delay, callback);
         this.timerDelay = delay;
@@ -537,8 +513,4 @@ class TableManager {
     }
 }
 
-const getTableById = (id) => tables[id];
-
-module.exports.createNewTable = createNewTable;
 module.exports.TableManager = TableManager;
-module.exports.getTableById = getTableById;
