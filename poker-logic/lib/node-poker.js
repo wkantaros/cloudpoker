@@ -591,16 +591,17 @@ function checkForWinner(table) {
     }
 
     for (i = 0; i < winners.length; i += 1) {
-      var winnerPrize = prize / winners.length;
-      var winningPlayer = table.players[winners[i]];
-      winningPlayer.chips += winnerPrize;
+        const winnerPrize = prize / winners.length;
+        const winningPlayer = table.players[winners[i]];
+        winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
             winningPlayer.folded = true;
             table.gameWinners.push( {
-              playerName: winningPlayer.playerName,
-              amount: winnerPrize,
-              hand: winningPlayer.hand,
-              chips: winningPlayer.chips
+                playerName: winningPlayer.playerName,
+                amount: winnerPrize,
+                hand: winningPlayer.hand,
+                chips: winningPlayer.chips,
+                seat: winningPlayer.seat,
             });
         }
         console.log('player ' + table.players[winners[i]].playerName + ' wins !!');

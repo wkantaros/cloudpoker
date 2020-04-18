@@ -6,7 +6,7 @@ router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
-const s = require('../server-logic');
+const {getTableById, createNewTable} = require('../server-logic');
 const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
 
 // Information host submits for game (name, stack, bb, sb)
@@ -50,7 +50,7 @@ router.route('/').post((req, res) => {
         req.body.isValid = true;
         res.json(req.body);
         console.log(`starting new table with id: ${sid}`);
-        s.createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
+        createNewTable(sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969);
         tableSocketMap.set(sid, new TwoWayMap());
     }
 });
@@ -65,17 +65,16 @@ const socket_ids = {};
 
 router.route('/:id').get((req, res) => {
     let sid = req.params.id;
-    let t = s.getTableById(sid);
-    if (!t){
+    let s = getTableById(sid);
+    if (!s){
         res.status(404).render('pages/404');
     }
-    let table = t.table;
 
     let playerId = playerIdFromRequest(req);
 
-    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(sid, playerId));
+    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(playerId));
     // isActivePlayerId is false if the player previously quit the game
-    const isNewPlayer = (playerId === undefined) || !s.isActivePlayerId(sid, playerId);
+    const isNewPlayer = (playerId === undefined) || !s.isActivePlayerId(playerId);
     console.log('inp', isNewPlayer);
     if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
@@ -89,20 +88,20 @@ router.route('/:id').get((req, res) => {
     };
 
     res.render('pages/game', {
-        bigBlind: table.bigBlind,
-        smallBlind: table.smallBlind,
+        bigBlind: s.table.bigBlind,
+        smallBlind: s.table.smallBlind,
         rank: 'A',
         suit: 'S',
         action: false,
-        actionSeat: s.getActionSeat(sid),
-        dealer: s.getDealerSeat(sid),
+        actionSeat: s.actionSeat,
+        dealer: s.getDealerSeat(),
         color: 'black',
         showCards: false,
-        joinedGame: s.isActivePlayerId(sid, playerId),
-        waiting: !s.gameInProgress(sid),
-        pot: s.getPot(sid),
-        roundName: s.getRoundName(sid),
-        callAmount: s.getMaxBet(sid)
+        joinedGame: s.isActivePlayerId(playerId),
+        waiting: !s.gameInProgress,
+        pot: s.getPot(),
+        roundName: s.getRoundName(),
+        callAmount: s.maxBet
     });
 
     // hacky
@@ -130,18 +129,18 @@ router.route('/:id').get((req, res) => {
         // });
 
         // make sure host has a socketid associate with name (player who sent in login form)
-        if (s.getModId(sid) != null && s.getModId(sid) == 6969) {
-            s.updatePlayerId(sid, s.getPlayerById(sid, s.getModId(sid)), playerId);
-            console.log('updating hostname playerid to:', s.getPlayerId(sid, s.getPlayerById(sid, s.getModId(sid))));
+        if (s.getModId() != null && s.getModId() === 6969) {
+            s.updatePlayerId(s.getPlayerById(s.getModId()), playerId);
+            console.log('updating hostname playerid to:', playerId);
         }
         console.log('a user connected at', socket.id, 'with player ID', playerId);
 
         //adds socket to room (actually a sick feature)
         socket.join(sid);
-        if (s.getModId(sid) != null){
-            io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+        if (s.getModId() != null){
+            io.sockets.to(getSocketId(s.getModId())).emit('add-mod-abilities');
         }
-        io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+        io.sockets.to(sid).emit('render-players', s.playersInfo());
         // highlight cards of player in action seat and get available buttons for players
         renderActionSeatAndPlayerActions(sid);
 
@@ -149,24 +148,24 @@ router.route('/:id').get((req, res) => {
         // send a message in the chatroom
         socket.on('chat', (data) => {
             io.to(sid).emit('chat', {
-                handle: s.getPlayerById(sid, playerId),
+                handle: s.getPlayerById(playerId),
                 message: data.message
             });
         });
 
         // typing
         socket.on('typing', () => {
-            socket.broadcast.to(sid).emit('typing', s.getPlayerById(sid, playerId));
+            socket.broadcast.to(sid).emit('typing', s.getPlayerById(playerId));
         });
 
-        if (!isNewPlayer && s.gameInProgress(sid)) {
+        if (!isNewPlayer && s.gameInProgress) {
             // TODO: get returning player in sync with hand.
             //  render his cards, etc.
-            console.log(`syncing ${s.getPlayerById(sid, playerId)}`);
-            let data = s.playersInfo(sid);
+            console.log(`syncing ${s.getPlayerById(playerId)}`);
+            let data = s.playersInfo();
             io.sockets.to(getSocketId(playerId)).emit('sync-board', {
-                street: s.getRoundName(sid),
-                board: s.getDeal(sid),
+                street: s.getRoundName(),
+                board: s.getDeal(),
                 sound: true
             });
             // TODO: check if player is in game
@@ -175,7 +174,7 @@ router.route('/:id').get((req, res) => {
             for (let i = 0; i < data.length; i++) {
                 if (data[i].playerid === playerId) {
                     io.to(getSocketId(playerId)).emit('render-hand', {
-                        cards: s.getCardsByPlayerName(sid, data[i].playerName),
+                        cards: s.getCardsByPlayerName(data[i].playerName),
                         seat: data[i].seat
                     });
                 }
@@ -184,29 +183,29 @@ router.route('/:id').get((req, res) => {
             // highlight cards of player in action seat and get available buttons for players
             renderActionSeatAndPlayerActions(sid);
             // Play sound for action seat player
-            if (s.getPlayerId(sid, s.getNameByActionSeat(sid)) === playerId) {
+            if (s.getPlayerId(s.getNameByActionSeat()) === playerId) {
                 io.to(getSocketId(playerId)).emit('players-action-sound', {});
             }
         }
 
         socket.on('buy-in', (data) => {
-            if (s.isPlayerNameUsed(sid, data.playerName)) {
+            if (s.isPlayerNameUsed(data.playerName)) {
                 io.sockets.to(getSocketId(playerId)).emit('alert',
                     {'message': `Player name ${data.playerName} is already taken.`});
                 return;
             }
-            s.buyin(sid, data.playerName, playerId, data.stack, data.isStraddling === true);
-            if (s.getModId(sid) === playerId) {
-                io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+            s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
+            if (s.getModId() === playerId) {
+                io.sockets.to(getSocketId(s.getModId())).emit('add-mod-abilities');
             }
             io.sockets.to(sid).emit('buy-in', data);
-            io.sockets.to(sid).emit('render-players', s.playersInfo(sid));
+            io.sockets.to(sid).emit('render-players', s.playersInfo());
             // highlight cards of player in action seat and get available buttons for players
             renderActionSeatAndPlayerActions(sid);
         });
 
         socket.on('straddle-switch', (data) => {
-            s.setPlayerStraddling(sid, playerId, data.isStraddling)
+            s.setPlayerStraddling(playerId, data.isStraddling)
         });
 
         socket.on('leave-game', (data) => {
@@ -214,31 +213,31 @@ router.route('/:id').get((req, res) => {
             //     console.log(`error: ${playerId} is inactive but received leave-game.`);
             //     return;
             // }
-            if (!s.gameInProgress(sid)){
-                let playerName = s.getPlayerById(sid, playerId);
+            if (!s.gameInProgress){
+                let playerName = s.getPlayerById(playerId);
                 handlePlayerExit(playerName);
                 // highlight cards of player in action seat and get available buttons for players
                 renderActionSeatAndPlayerActions(sid);
                 console.log('waiting for more players to rejoin');
             } else {
-                let playerName = s.getPlayerById(sid, playerId);
-                let stack = s.getStack(sid, playerName);
-                prev_round = s.getRoundName(sid);
+                let playerName = s.getPlayerById(playerId);
+                let stack = s.getStack(playerName);
+                prev_round = s.getRoundName();
                 console.log(`${playerName} leaves game for ${stack}`);
                 // fold player
                 // note: dont actually fold him (just emit folding noise)
                 // s.fold(sid, playerName);
                 io.sockets.to(sid).emit('fold', {
                     username: playerName,
-                    stack: s.getStack(sid, playerName),
-                    pot: s.getPot(sid),
-                    seat: s.getPlayerSeat(sid, playerName),
+                    stack: s.getStack(playerName),
+                    pot: s.getPot(),
+                    seat: s.getPlayerSeat(playerName),
                     amount: data.amount
                 });
                 // update client's stack size
                 io.sockets.to(sid).emit('update-stack', {
-                    seat: s.getPlayerSeat(sid, playerName),
-                    stack: s.getStack(sid, playerName)
+                    seat: s.getPlayerSeat(playerName),
+                    stack: s.getStack(playerName)
                 });
                 // shift action to next player in hand
                 if (s.actionOnAllInPlayer(sid)) {
@@ -254,19 +253,19 @@ router.route('/:id').get((req, res) => {
                 }, 250);
                 setTimeout(() => {
                     // notify player its their action with sound
-                    if (s.getPlayerId(sid, s.getNameByActionSeat(sid))){
-                        io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                    if (s.getPlayerId(s.getNameByActionSeat())){
+                        io.to(getSocketId(`${s.getPlayerId(s.getNameByActionSeat())}`)).emit('players-action-sound', {});
                     }
                 }, 500);
             }
         });
 
         socket.on('start-game', (data) => {
-            const playersInNextHand = s.playersInNextHand(sid).length;
+            const playersInNextHand = s.playersInNextHand().length;
             console.log(`players in next hand: ${playersInNextHand}`);
             if (playersInNextHand >= 2 && playersInNextHand <= 10) {
-                s.startGame(sid);
-                io.sockets.to(sid).emit('start-game', s.playersInfo(sid));
+                s.startGame();
+                io.sockets.to(sid).emit('start-game', s.playersInfo());
                 begin_round();
             } else {
                 console.log("waiting on players");
@@ -284,20 +283,20 @@ router.route('/:id').get((req, res) => {
             }
             let actualBetAmount = 0;
             if (data.action === 'bet') {
-                actualBetAmount = s.bet(sid, playerName, data.amount);
+                actualBetAmount = s.bet(playerName, data.amount);
             } else if (data.action === 'raise') {
-                actualBetAmount = s.raise(sid, playerName, data.amount);
+                actualBetAmount = s.raise(playerName, data.amount);
             } else if (data.action === 'call') {
-                if (s.getRoundName(sid) === 'deal') {
-                    actualBetAmount = s.callBlind(sid, playerName);
+                if (s.getRoundName() === 'deal') {
+                    actualBetAmount = s.callBlind(playerName);
                 } else {
-                    actualBetAmount = s.call(sid, playerName);
+                    actualBetAmount = s.call(playerName);
                 }
             } else if (data.action === 'fold') {
                 actualBetAmount = 0;
-                s.fold(sid, playerName);
+                s.fold(playerName);
             } else if (data.action === 'check') {
-                let canPerformAction = s.check(sid, playerName);
+                let canPerformAction = s.check(playerName);
                 if (canPerformAction) {
                     actualBetAmount = 0;
                 }
@@ -307,16 +306,16 @@ router.route('/:id').get((req, res) => {
 
         socket.on('get-buyin-info', () => {
             console.log('here!mf');
-            io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts(sid));
+            io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         })
         
         socket.on('action', (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
-            let playerName = s.getPlayerById(sid, playerId);
-            if (!s.gameInProgress(sid)) {
+            let playerName = s.getPlayerById(playerId);
+            if (!s.gameInProgress) {
                 console.log('game hasn\'t started yet');
-            } else if (s.getActionSeat(sid) === s.getPlayerSeat(sid, playerName)) {
-                prev_round = s.getRoundName(sid);
+            } else if (s.actionSeat === s.getPlayerSeat(playerName)) {
+                prev_round = s.getRoundName();
                 console.log('action data', JSON.stringify(data));
 
                 let actualBetAmount = performAction(playerName, data);
@@ -325,22 +324,22 @@ router.route('/:id').get((req, res) => {
                 if (canPerformAction) {
                     io.sockets.to(sid).emit(`${data.action}`, {
                         username: playerName,
-                        stack: s.getStack(sid, playerName),
-                        pot: s.getPot(sid),
-                        seat: s.getPlayerSeat(sid, playerName),
+                        stack: s.getStack(playerName),
+                        pot: s.getPot(),
+                        seat: s.getPlayerSeat(playerName),
                         amount: actualBetAmount
                     });
                     // update client's stack size
                     io.sockets.to(sid).emit('update-stack', {
-                        seat: s.getPlayerSeat(sid, playerName),
-                        stack: s.getStack(sid, playerName)
+                        seat: s.getPlayerSeat(playerName),
+                        stack: s.getStack(playerName)
                     });
                     // shift action to next player in hand
-                    if (s.actionOnAllInPlayer(sid)){
+                    if (s.actionOnAllInPlayer()){
                         console.log('ACTION ON ALL IN PLAYER');
                     }
                     // highlight cards of player in action seat and get available buttons for players
-                    let everyoneFolded = s.checkwin(sid).everyoneFolded;
+                    let everyoneFolded = s.checkwin().everyoneFolded;
                     check_round(prev_round);
 
                     setTimeout(()=>{
@@ -355,7 +354,7 @@ router.route('/:id').get((req, res) => {
                     setTimeout(()=>{
                         // notify player its their action with sound
                         if (!everyoneFolded)
-                            io.to(getSocketId(`${s.getPlayerId(sid, s.getNameByActionSeat(sid))}`)).emit('players-action-sound', {});
+                            io.to(getSocketId(`${s.getPlayerId(s.getNameByActionSeat())}`)).emit('players-action-sound', {});
                     }, 500);
                 } else {
                     console.log(`${playerName} cannot perform action in this situation!`);
@@ -372,16 +371,16 @@ router.route('/:id').get((req, res) => {
     });
 
     const handlePlayerExit = function(playerName, gameInProgress, stack) {
-        const playerId = s.getPlayerId(sid, playerName);
-        const modLeavingGame = playerId === s.getModId(sid);
-        const seat = s.getPlayerSeat(sid, playerName);
+        const playerId = s.getPlayerId(playerName);
+        const modLeavingGame = playerId === s.getModId();
+        const seat = s.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
 
-        s.addBuyOut(sid, playerName, playerId, stack);
-        s.removePlayer(sid, playerName);
+        s.addBuyOut(playerName, playerId, stack);
+        s.removePlayer(playerName);
         if (modLeavingGame) {
-            if (s.getModId(sid) != null){
-                io.sockets.to(getSocketId(s.getModId(sid))).emit('add-mod-abilities');
+            if (s.getModId() != null){
+                io.sockets.to(getSocketId(s.getModId())).emit('add-mod-abilities');
             }
         }
         io.sockets.to(getSocketId(playerId)).emit('bust', {
@@ -400,15 +399,15 @@ router.route('/:id').get((req, res) => {
     
     //checks if round has ended (reveals next card)
     let check_round = (prev_round) => {
-        let playerSeatsAllInBool = s.getAllIns(sid);
-        let data = s.checkwin(sid);
+        let playerSeatsAllInBool = s.getAllIns();
+        let data = s.checkwin();
         // SHOWDOWN CASE
-        if (s.getRoundName(sid) === 'showdown') {
-            io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
-            winners = s.getWinners(sid);
+        if (s.getRoundName() === 'showdown') {
+            io.sockets.to(sid).emit('update-pot', {amount: s.getPot()});
+            winners = s.getWinners();
             console.log('winners');
             console.log('LOSERS');
-            let losers = s.getLosers(sid);
+            let losers = s.getLosers();
             io.sockets.to(sid).emit('showdown', winners);
 
             // console.log("ALL IN");
@@ -423,8 +422,8 @@ router.route('/:id').get((req, res) => {
                 for (let i = 0; i < winners.length; i++){
                     // update client's stack size
                     io.sockets.to(sid).emit('update-stack', {
-                        seat: s.getPlayerSeat(sid, winners[i].playerName),
-                        stack: s.getStack(sid, winners[i].playerName)
+                        seat: s.getPlayerSeat(winners[i].playerName),
+                        stack: s.getStack(winners[i].playerName)
                     });
                 }
 
@@ -433,12 +432,12 @@ router.route('/:id').get((req, res) => {
             }, (3000));
         } 
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
-        else if (s.everyoneAllIn(sid) && prev_round !== s.getRoundName(sid)) {
+        else if (s.everyoneAllIn(sid) && prev_round !== s.getRoundName()) {
             let time = 500;
-            if (s.getRoundName(sid) == 'flop'){
+            if (s.getRoundName() === 'flop'){
                 time = 4500;
             }
-            else if (s.getRoundName(sid) == 'turn'){
+            else if (s.getRoundName() === 'turn'){
                 time = 3000;
             }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
@@ -447,24 +446,24 @@ router.route('/:id').get((req, res) => {
                 if (playerSeatsAllInBool[i]){
                     allInPlayerSeatsHands.push({
                         seat: i,
-                        cards: s.getCardsByPlayerName(sid, s.getPlayerBySeat(sid, i))
+                        cards: s.getCardsByPlayerName(s.getPlayerBySeat(i))
                     });
                 }
             }
             // TODO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
             io.sockets.to(sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
             io.sockets.to(sid).emit('update-pot', {
-                amount: s.getPot(sid)
+                amount: s.getPot()
             });
 
             // TODO remove ability to perform actions
 
-            while (s.getRoundName(sid) !== 'showdown'){
-                s.call(sid, s.getNameByActionSeat(sid));
+            while (s.getRoundName() !== 'showdown'){
+                s.call(s.getNameByActionSeat());
             }
             io.sockets.to(sid).emit('render-all-in', {
-                street: s.getRoundName(sid),
-                board: s.getDeal(sid),
+                street: s.getRoundName(),
+                board: s.getDeal(),
                 sound: true
             });
             setTimeout(() => {
@@ -473,7 +472,7 @@ router.route('/:id').get((req, res) => {
         } else if (data.everyoneFolded) {
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with s.getRoundName
-            let winnings = s.getWinnings(sid, prev_round);
+            let winnings = s.getWinnings(prev_round);
             // console.log(data.winner);
             console.log(`${data.winner.playerName} won a pot of ${winnings}`);
 
@@ -481,32 +480,32 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(sid).emit('folds-through', {
                 username: data.winner.playerName,
                 amount: winnings,
-                seat: s.getPlayerSeat(sid, data.winner.playerName)
+                seat: s.getPlayerSeat(data.winner.playerName)
             });
 
             // start new round
             setTimeout(() => {
                 // update client's stack size
                 io.sockets.to(sid).emit('update-stack', {
-                    seat: s.getPlayerSeat(sid, data.winner.playerName),
+                    seat: s.getPlayerSeat(data.winner.playerName),
                     stack: data.winner.chips + winnings
                 });
 
                 // update stack on the server
-                console.log(`Player has ${s.getStack(sid, data.winner.playerName)}`);
+                console.log(`Player has ${s.getStack(data.winner.playerName)}`);
                 console.log('Updating player\'s stack on the server...');
-                s.updateStack(sid, data.winner.playerName, winnings);
-                console.log(`Player now has ${s.getStack(sid, data.winner.playerName)}`);
+                s.updateStack(data.winner.playerName, winnings);
+                console.log(`Player now has ${s.getStack(data.winner.playerName)}`);
 
                 // next round
                 startNextRoundOrWaitingForPlayers();
                 
             }, (3000));
-        } else if (prev_round !== s.getRoundName(sid)) {
-            io.sockets.to(sid).emit('update-pot', {amount: s.getPot(sid)});
+        } else if (prev_round !== s.getRoundName()) {
+            io.sockets.to(sid).emit('update-pot', {amount: s.getPot()});
             io.sockets.to(sid).emit('render-board', {
-                street: s.getRoundName(sid),
-                board: s.getDeal(sid),
+                street: s.getRoundName(),
+                board: s.getDeal(),
                 sound: true
             });
         }
@@ -514,8 +513,8 @@ router.route('/:id').get((req, res) => {
 
     let startNextRoundOrWaitingForPlayers = () => {
         // start new round
-        s.startRound(sid);
-        if (s.gameInProgress(sid)) {
+        s.startRound();
+        if (s.gameInProgress) {
             begin_round();
         } else {
             io.sockets.to(sid).emit('waiting', {});
@@ -524,7 +523,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(sid).emit('new-dealer', {seat: -1});
             io.sockets.to(sid).emit('update-pot', {amount: 0});
             io.sockets.to(sid).emit('clear-earnings', {});
-            io.sockets.to(sid).emit('render-action-buttons', s.getAvailableActions(sid));
+            io.sockets.to(sid).emit('render-action-buttons', s.getAvailableActions());
             console.log('waiting for more players to rejoin!');
         }
     }
@@ -532,17 +531,17 @@ router.route('/:id').get((req, res) => {
     let begin_round = () => {
         io.sockets.to(sid).emit('render-board', {street: 'deal', sound: true});
         io.sockets.to(sid).emit('remove-out-players', {});
-        io.sockets.to(sid).emit('new-dealer', {seat: s.getDealerSeat(sid)});
+        io.sockets.to(sid).emit('new-dealer', {seat: s.getDealerSeat()});
         io.sockets.to(sid).emit('nobody-waiting', {});
         io.sockets.to(sid).emit('update-pot', {amount: 0});
         io.sockets.to(sid).emit('clear-earnings', {});
         // io.sockets.to(sid).emit('hide-hands', {});
-        io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets(sid)});
-        let data = s.playersInfo(sid);
+        io.sockets.to(sid).emit('initial-bets', {seats: s.getInitialBets()});
+        let data = s.playersInfo();
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
             io.to(getSocketId(`${data[i].playerid}`)).emit('render-hand', {
-                cards: s.getCardsByPlayerName(sid, name),
+                cards: s.getCardsByPlayerName(name),
                 seat: data[i].seat
             });
             io.sockets.to(sid).emit('update-stack', {
@@ -554,20 +553,20 @@ router.route('/:id').get((req, res) => {
         // highlight cards of player in action seat and get available buttons for players
         renderActionSeatAndPlayerActions(sid);
         // abstracting this to be able to work with bomb pots/straddles down the line
-        io.to(getSocketId(s.getPlayerId(sid, s.getNameByActionSeat(sid)))).emit('players-action-sound', {});
+        io.to(getSocketId(s.getPlayerId(s.getNameByActionSeat()))).emit('players-action-sound', {});
     }
 
     let renderActionSeatAndPlayerActions = (sid) => {
         // highlight cards of player in action seat
         io.sockets.to(sid).emit('action', {
-            seat: s.getActionSeat(sid)
+            seat: s.actionSeat
         });
         // get available actions for player to act
         // TODO: allow players to premove 
-        let playerIds = s.getPlayerIds(sid);
+        let playerIds = s.getPlayerIds();
         for (let i = 0; i < playerIds.length; i++){
             let pid = playerIds[i];
-            io.to(getSocketId(pid)).emit('render-action-buttons', s.getAvailableActions(sid, pid));
+            io.to(getSocketId(pid)).emit('render-action-buttons', s.getAvailableActions(pid));
         }
     }
 });
