@@ -105,13 +105,13 @@ class SessionManager extends TableManager {
         //     return;
         // }
         if (!this.gameInProgress){
-            let playerName =super.getPlayerById(playerId);
+            let playerName = super.getPlayerById(playerId);
             this.handlePlayerExit(playerName);
             // highlight cards of player in action seat and get available buttons for players
             this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
         } else {
-            let playerName =super.getPlayerById(playerId);
+            let playerName = super.getPlayerById(playerId);
             let stack = super.getStack(playerName);
             let prev_round = super.getRoundName();
             console.log(`${playerName} leaves game for ${stack}`);
@@ -469,6 +469,10 @@ class SessionManager extends TableManager {
         const action = availableActions['check'] ? 'check' : 'fold';
         this.performAction(playerName, action, 0);
     };
+
+    canSendMessage(playerId, message) {
+        return message.length > 0;
+    }
 }
 
 router.route('/:id').get((req, res) => {
@@ -568,6 +572,7 @@ router.route('/:id').get((req, res) => {
         // chatroom features
         // send a message in the chatroom
         socket.on('chat', (data) => {
+            if (!s.canSendMessage(playerId, data.message)) return;
             io.sockets.to(sid).emit('chat', {
                 handle: s.getPlayerById(playerId),
                 message: data.message
