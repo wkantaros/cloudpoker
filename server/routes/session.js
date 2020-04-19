@@ -93,6 +93,21 @@ class SessionManager extends TableManager {
         return true;
     }
 
+    emitAction(action, playerName, betAmount) {
+        this.io.sockets.to(this.sid).emit(action, {
+            username: playerName,
+            stack: this.getStack(playerName),
+            pot: this.getPot(),
+            seat: this.getPlayerSeat(playerName),
+            amount: betAmount
+        });
+        // update client's stack size
+        this.io.sockets.to(this.sid).emit('update-stack', {
+            seat: this.getPlayerSeat(playerName),
+            stack: this.getStack(playerName)
+        });
+    }
+
     kickPlayer(playerId) {
         this.kickedPlayers[playerId] = super.getPlayerById(playerId);
         this.playerLeaves(playerId);
@@ -118,17 +133,7 @@ class SessionManager extends TableManager {
             // fold player
             // note: dont actually fold him (just emit folding noise)
             //super.fold(playerName);
-            this.io.sockets.to(this.sid).emit('fold', {
-                username: playerName,
-                stack: super.getStack(playerName),
-                pot: super.getPot(),
-                seat: super.getPlayerSeat(playerName)
-            });
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: super.getPlayerSeat(playerName),
-                stack: super.getStack(playerName)
-            });
+            this.emitAction('fold', playerName, 0);
             // shift action to next player in hand
             if (super.actionOnAllInPlayer()) {
                 console.log('ACTION ON ALL IN PLAYER 123');
@@ -366,18 +371,7 @@ class SessionManager extends TableManager {
 
         if (canPerformAction) {
             this.refreshTimer();
-            this.io.sockets.to(this.sid).emit(`${action}`, {
-                username: playerName,
-                stack: this.getStack(playerName),
-                pot: this.getPot(),
-                seat: this.getPlayerSeat(playerName),
-                amount: actualBetAmount
-            });
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: this.getPlayerSeat(playerName),
-                stack: this.getStack(playerName)
-            });
+            this.emitAction(action, playerName, actualBetAmount);
             // shift action to next player in hand
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');

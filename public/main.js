@@ -779,8 +779,8 @@ function updateGameState(data) {
         setActionSeat(data.actionSeat);
     if (data.hasOwnProperty('pot'))
         updatePot(data.pot);
-    if (data.hasOwnProperty('board'))
-        dealStreet({board: data.board, street: data.street, sound: false});
+    if (data.hasOwnProperty('street'))
+        dealStreet(data);
 
 }
 function updatePlayers(players) {
