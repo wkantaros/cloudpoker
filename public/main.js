@@ -132,9 +132,7 @@ $('#buyin-info').keydown(function (e){
 });
 
 quit.addEventListener('click', () => {
-    socket.emit('leave-game', {
-        amount: 0
-    });
+    socket.emit('leave-game', {});
     logOut();
 });
 
@@ -197,9 +195,9 @@ $('#bet').on('click', () => {
         let output = document.getElementById("bet-input-val");
         slider.value = output.value;
         output.focus();
-        output.value = parseInt($('#bb').html()); // Display the default slider value
-        slider.min = parseInt($('#bb').html());
-        slider.max = parseInt($('.action > .stack').html());
+        output.value = getBigBlind(); // Display the default slider value
+        slider.min = getBigBlind();
+        slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -209,22 +207,24 @@ $('#bet').on('click', () => {
     }
 });
 
+const getBetInput = () => {
+    return parseInt(document.getElementById("bet-input-val").value);
+};
+
 $('#betplus').on('click', () => {
-    let output = document.getElementById("bet-input-val");
-    let bb = parseInt($('#bb').html());
-    let maxval = parseInt($('.action > .stack').html());
-    handleBetSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
+    let bb = getBigBlind();
+    let maxval = getStack();
+    handleBetSliderButtons(Math.min(getBetInput() + bb, maxval));
 });
 
 $('#betminus').on('click', () => {
-    let output = document.getElementById("bet-input-val");
-    let bb = parseInt($('#bb').html());
-    handleBetSliderButtons(Math.max(parseInt(output.value) - bb, bb));
+    let bb = getBigBlind();
+    handleBetSliderButtons(Math.max(getBetInput() - bb, bb));
 
 });
 
 $('#bai').on('click', () => {
-    handleBetSliderButtons(parseInt($('.action > .stack').html()));
+    handleBetSliderButtons(getStack());
 });
 
 $('#bp').on('click', () => {
@@ -240,11 +240,11 @@ $('#bhp').on('click', () => {
 });
 
 $('#bqp').on('click', () => {
-    handleBetSliderButtons(Math.max(Math.floor(getPotSize() / 4), parseInt($('#bb').html())));
+    handleBetSliderButtons(Math.max(Math.floor(getPotSize() / 4), getBigBlind()));
 });
 
 $('#mb').on('click', () => {
-    handleBetSliderButtons(parseInt($('#bb').html()));
+    handleBetSliderButtons(getBigBlind());
 });
 
 let closingPreflopAction = false;
@@ -304,8 +304,8 @@ const handleRaiseSliderButtons = (outputVal) => {
 const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
-    let minBetAmount = parseInt($('#bb').html());
-    let playerStack = parseInt($('.action > .stack').html());
+    let minBetAmount = getBigBlind();
+    let playerStack = getStack();
     if (betAmount > playerStack) { // if player bet more than stack, go all in
         betAmount = playerStack;
     } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
@@ -357,7 +357,7 @@ $('#raise').on('click', () => {
         output.focus();
         output.value = getMinRaiseAmount(); // Display the default slider value
         slider.min = getMinRaiseAmount();
-        slider.max = parseInt($('.action > .stack').html());
+        slider.max = getStack();
 
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -369,49 +369,47 @@ $('#raise').on('click', () => {
 
 $('#raiseplus').on('click', () => {
     let output = document.getElementById("raise-input-val");
-    let bb = parseInt($('#bb').html());
-    let maxval = parseInt($('.action > .stack').html());
+    let bb = getBigBlind();
+    let maxval = getStack();
     handleRaiseSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
 });
 
 $('#raiseminus').on('click', () => {
-    let output = document.getElementById("bet-input-val");
-    let bb = parseInt($('#bb').html());
-    handleRaiseSliderButtons(Math.max(parseInt(output.value) - bb, getMinRaiseAmount()));
+    handleRaiseSliderButtons(Math.max(getBetInput() - getBigBlind(), getMinRaiseAmount()));
 
 });
 
 $('#rai').on('click', () => {
-    handleRaiseSliderButtons(parseInt($('.action > .stack').html()));
+    handleRaiseSliderButtons(getStack());
 });
 
 $('#rthp').on('click', () => { 
     let valormr = Math.max(Math.floor(3 * getPotSize()), getMinRaiseAmount());
-    let totalStack = parseInt($('.action > .stack').html());
+    let totalStack = getStack();
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
 });
 
 $('#rtp').on('click', () => {
     let valormr = Math.max(Math.floor(2 * getPotSize()), getMinRaiseAmount());
-    let totalStack = parseInt($('.action > .stack').html());
+    let totalStack = getStack();
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
 });
 
 $('#rsqp').on('click', () => {
     let valormr = Math.max(Math.floor(6 * getPotSize() / 4), getMinRaiseAmount());
-    let totalStack = parseInt($('.action > .stack').html());
+    let totalStack = getStack();
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
 });
 
 $('#rp').on('click', () => {
     let valormr = Math.max(Math.floor(getPotSize()), getMinRaiseAmount());
-    let totalStack = parseInt($('.action > .stack').html());
+    let totalStack = getStack();
     handleRaiseSliderButtons(Math.min(valormr, totalStack));
 });
 
 $('#mr').on('click', () => {
     // min raise or all in
-    handleRaiseSliderButtons(Math.min(getMinRaiseAmount(), parseInt($('.action > .stack').html())));
+    handleRaiseSliderButtons(Math.min(getMinRaiseAmount(), getStack()));
 });
 
 $('#raise-input-val').keydown(function (e) {
@@ -432,7 +430,7 @@ let placeRaise = () => {
     let raiseAmount = parseInt($('#raise-input-val').val());
     console.log(raiseAmount);
     let minRaiseAmount = getMinRaiseAmount();
-    let maxRaiseAmount = parseInt($('.action > .stack').html());
+    let maxRaiseAmount = getStack();
     console.log(maxRaiseAmount);
     if (raiseAmount > maxRaiseAmount) {
         raiseAmount = maxRaiseAmount;
@@ -497,9 +495,9 @@ fold.addEventListener('click', () => {
 
 minBet.addEventListener('click', () => {
     console.log('min bet');
-    console.log(parseInt($('#bb').html()));
+    console.log(getBigBlind());
     socket.emit('action', {
-        amount: parseInt($('#bb').html()),
+        amount: getBigBlind(),
         action: 'bet'
     });
 });
@@ -707,11 +705,32 @@ message.addEventListener('keypress', () => {
 
 //Listen for events--------------------------------------------------------------------------------
 
+const setTurnTimer = (delay) => {
+    socket.emit('set-turn-timer', {delay: delay});
+};
+
+const kickPlayer = (playerName) => {
+    console.log(`kicking player ${playerName}`);
+    socket.emit('kick-player', {playerName: playerName});
+}
+
+socket.on('player-disconnect', (data) => {
+    console.log(`${data.playerName} disconnected`)
+    // TODO: do something that makes it clear that the player is offline, such as making
+    //  their cards gray or putting the word "offline" next to their name
+});
+
+socket.on('player-reconnect', (data) => {
+    console.log(`${data.playerName} reconnected`);
+    // TODO: undo the effects of the player-disconnect event listener
+});
+
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
     $('#bomb-pot').removeClass('collapse');
+    // TODO: show mod panel or set turn timer button
 });
 
 socket.on('bust', (data) => {
@@ -796,6 +815,24 @@ socket.on('remove-out-players', (data) => {
         $(`#${data.seat}`).addClass('hidden');
         $(`#${data.seat}`).find('.username').text('guest');
         $(`#${data.seat}`).find('.stack').text('stack');
+    }
+});
+
+// data is {seat, time}
+// time is milliseconds until the player's turn expires and they are forced to fold.
+// seat is not necessarily the next action seat, as the timer could have been refreshed.
+// in all other cases, seat should be the action seat.
+// if time <= 0, remove the timer.
+socket.on('render-timer', (data) => {
+    // Clear existing turn timers
+    // $('.name').removeClass('turn-timer');
+    // Set new timer for data.playerName
+    if (data.time > 0) {
+        // TODO: implement front end graphics for turn timer
+        // $(`#${data.seat} > .name`).addClass('turn-timer');
+    } else {
+        // TODO: remove graphics for turn timer
+        // no longer display the timer
     }
 });
 
@@ -1303,7 +1340,7 @@ const getMinRaiseAmount = () => {
     });
 
     // if the biggest bet is the bb then double it
-    if (biggestBet == parseInt($('#bb').html())) {
+    if (biggestBet == getBigBlind()) {
         console.log('here!!!!!');
         minRaiseAmount = biggestBet + biggestBet;
     } else {
@@ -1312,6 +1349,14 @@ const getMinRaiseAmount = () => {
         minRaiseAmount = 2 * (biggestBet - secondBiggestBet) + secondBiggestBet;
     }
     return minRaiseAmount;
+};
+
+const getStack = () => {
+    return parseInt($('.action > .stack').html());
+};
+
+const getBigBlind = () => {
+  return parseInt($('#bb').html());
 };
 
 const getPotSize = () => {
