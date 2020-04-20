@@ -20,7 +20,6 @@ form.addEventListener('submit', (event) => {
     if (formData.get('multi-straddle')) {
       straddleLimit = -1;
     }
-    alert(straddleLimit);
 
     const game = {
         name,
