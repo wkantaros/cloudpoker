@@ -43,8 +43,9 @@ FRONTEND EDITS:
     [*] update bet/check/fold/call/raise buttons / abilities depending on action
     [*] keyboard shortcuts
     [*] slider, added bet/raise features
+    [*] have all in render properly 
     [ ] fix sounds to work when they sould
-    [ ] have all in render properly 
+    [ ] straddle
 
 FOR TOMORROW
     [*] display "check" bet if player checks
@@ -78,6 +79,7 @@ BACKEND:
     [*] bet
     [*] fold
     [*] have user with cookies to table (so if he refreshes he isnt kicked out of the game, name stays, etc)
+    [*] straddle
 
 DOWN THE LINE CODE:
     [*] make login to adjust blinds (for host)
@@ -104,6 +106,7 @@ DISTINGUISHING FEATURES FROM COMPETITORS:
     [ ] bomb pots
     [ ] on all ins, show odds of winning (preflop, post flop, turn)
     [ ] ability to run it twice
+    [ ] stores messages if you refresh page
 
 GAME FEATURES TO ADD:
     [ ] implement tokyo
