@@ -469,6 +469,7 @@ router.route('/:id').get((req, res) => {
     const s = sessionManagers.get(sid);
     if (!s) {
         res.status(404).render('pages/404');
+        return;
     }
     const io = req.app.get('socketio');
     s.io = io;
