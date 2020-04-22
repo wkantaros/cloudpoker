@@ -6,7 +6,6 @@ class TableManager {
         this.table = table;
         this.hostName = hostName;
         this.hostStack = hostStack;
-        this.allIn = [false, false, false, false, false, false, false, false, false, false];
         this.gameInProgress = false;
         this.trackBuyins = [];
         this.playerids = {};
@@ -46,6 +45,10 @@ class TableManager {
         const t = this.table;
         return t.players[(t.dealer + 2) % t.players.length].seat;
     };
+
+    get allIn() {
+        return this.table.allPlayers.map(p => p != null && p.inHand && p.allIn);
+    }
 
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
     // $2($5)
@@ -158,15 +161,6 @@ class TableManager {
             console.log('no player to transfer game to :(');
         }
         return false;
-    }
-
-    // returns the seats of all all in players
-    getAllIns() {
-        let players = this.table.players;
-        for (let i = 0; i < players.length; i++){
-            this.allIn[players[i].seat] = players[i].allIn;
-        }
-        return this.allIn;
     }
 
     getLosers() {
@@ -486,21 +480,21 @@ class TableManager {
                     availableActions['your-action'] = true;
                 }
             }
-        }
-        // cases where its not the players action and game is in progress
-        else if (this.gameInProgress) {
-            let playerName = this.getPlayerById(playerid);
-            let playerFolded = this.table.getPlayer(playerName).folded;
-            let playerAllIn = this.allIn[this.getPlayerSeat(playerName)];
-            // if (getTableById(sid).table.getPlayer(playerName) == null) {
-            //     console.log('player waiting for seat');
-            //     canPerformPremoves = false
-            // } else {
-            //     playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
-            //     playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
-            // }
-            if (!playerFolded && !playerAllIn){
-                canPerformPremoves = true;
+            // cases where its not the players action and game is in progress
+            else if (this.gameInProgress) {
+                let playerName = this.getPlayerById(playerid);
+                let playerFolded = this.table.getPlayer(playerName).folded;
+                let playerAllIn = this.allIn[this.getPlayerSeat(playerName)];
+                // if (getTableById(sid).table.getPlayer(playerName) == null) {
+                //     console.log('player waiting for seat');
+                //     canPerformPremoves = false
+                // } else {
+                //     playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
+                //     playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+                // }
+                if (!playerFolded && !playerAllIn){
+                    canPerformPremoves = true;
+                }
             }
         }
         return {availableActions, canPerformPremoves};
@@ -519,30 +513,9 @@ class TableManager {
     }
 
     everyoneAllIn() {
-        let playersInfos = this.playersInfo();
-        let playersWhoCanAct = 0;
-        let allInPlayer = false;
-        let allInSeats = this.allIn;
-        for (let i = 0; i < 10; i++){
-            allInPlayer = allInPlayer || allInSeats[i];
-        }
-        for (let i = 0; i < playersInfos.length; i++){
-            // if the player is currently in the hand
-            if (!playersInfos[i].waiting) {
-                // if player is not all in
-                if (!this.allIn[playersInfos[i].seat]){
-                    // if player hasnt folded
-                    if (!this.playerFolded(playersInfos[i].playerName)){
-                        // the number of players in the hand who can act ++
-                        playersWhoCanAct++;
-                    }
-                }
-            }
-        }
-        console.log(`Number of players who can act: ${playersWhoCanAct}`);
-        console.log(`All in player: ${allInPlayer}`);
-        let everyoneFolded = this.table.checkwin().everyoneFolded;
-        return !everyoneFolded && (playersWhoCanAct <= 1) && allInPlayer;
+        const playersIn = this.table.players.filter(p=>!p.folded);
+        const playersWhoCanAct = playersIn.filter(p=>!p.allIn);
+        return playersIn.length >= 2 && playersWhoCanAct.length <= 1;
     }
 
     playerFolded(playerName) {
