@@ -470,30 +470,9 @@ class TableManager {
     }
 
     everyoneAllIn() {
-        let playersInfos = this.playersInfo();
-        let playersWhoCanAct = 0;
-        let allInPlayer = false;
-        let allInSeats = this.allIn;
-        for (let i = 0; i < 10; i++){
-            allInPlayer = allInPlayer || allInSeats[i];
-        }
-        for (let i = 0; i < playersInfos.length; i++){
-            // if the player is currently in the hand
-            if (!playersInfos[i].waiting) {
-                // if player is not all in
-                if (!this.allIn[playersInfos[i].seat]){
-                    // if player hasnt folded
-                    if (!this.playerFolded(playersInfos[i].playerName)){
-                        // the number of players in the hand who can act ++
-                        playersWhoCanAct++;
-                    }
-                }
-            }
-        }
-        console.log(`Number of players who can act: ${playersWhoCanAct}`);
-        console.log(`All in player: ${allInPlayer}`);
-        let everyoneFolded = this.table.checkwin().everyoneFolded;
-        return !everyoneFolded && (playersWhoCanAct <= 1) && allInPlayer;
+        const playersIn = this.table.players.filter(p=>!p.folded);
+        const playersWhoCanAct = playersIn.filter(p=>!p.allIn);
+        return playersIn.length >= 2 && playersWhoCanAct.length <= 1;
     }
 
     playerFolded(playerName) {
