@@ -182,7 +182,7 @@ class SessionManager extends TableManager {
 
     //checks if round has ended (reveals next card)
     check_round (prev_round) {
-        let playerSeatsAllInBool = super.getAllIns();
+        let playerSeatsAllInBool = this.allIn;
         let data = super.checkwin();
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
