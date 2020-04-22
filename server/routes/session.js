@@ -224,11 +224,10 @@ class SessionManager extends TableManager {
                 time = 3000;
             }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-            let allInPlayerSeatsHands = this.players.filter(p=>p.allIn).map(p=>{
+            let playersInHand = this.players.filter(p=>p.allIn || !p.folded).map(p=>{
                 return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
             });
-            // TODO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
-            this.io.sockets.to(this.sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
+            this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand);
             this.io.sockets.to(this.sid).emit('update-pot', {
                 amount: super.getPot()
             });
