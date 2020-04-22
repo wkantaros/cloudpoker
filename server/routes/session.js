@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
+const xss = require("xss");
 
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 
@@ -549,7 +550,7 @@ router.route('/:id').get((req, res) => {
         socket.on('chat', (data) => {
             io.sockets.to(sid).emit('chat', {
                 handle: s.getPlayerById(playerId),
-                message: data.message
+                message: xss(data.message)
             });
         });
 
