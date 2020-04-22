@@ -17,7 +17,7 @@ class TableManager {
     };
 
     get allIn() {
-        return this.table.allPlayers.map(p => p != null && p.allIn);
+        return this.table.allPlayers.map(p => p != null && p.inHand && p.allIn);
     }
 
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>

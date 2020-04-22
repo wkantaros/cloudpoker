@@ -183,10 +183,10 @@ class SessionManager extends TableManager {
 
     //checks if round has ended (reveals next card)
     check_round (prev_round) {
-        let playerSeatsAllInBool = this.allIn;
         let data = super.checkwin();
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             let winners = this.getWinners();
             console.log('winners');
@@ -215,6 +215,7 @@ class SessionManager extends TableManager {
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (super.everyoneAllIn() && prev_round !== super.getRoundName()) {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             let time = 500;
             if (super.getRoundName() === 'flop'){
                 time = 4500;
@@ -223,15 +224,9 @@ class SessionManager extends TableManager {
                 time = 3000;
             }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-            let allInPlayerSeatsHands = [];
-            for (let i = 0; i < playerSeatsAllInBool.length; i++){
-                if (playerSeatsAllInBool[i]){
-                    allInPlayerSeatsHands.push({
-                        seat: i,
-                        cards: super.getCardsByPlayerName(super.getPlayerBySeat(i))
-                    });
-                }
-            }
+            let allInPlayerSeatsHands = this.players.filter(p=>p.allIn).map(p=>{
+                return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
+            });
             // TODO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
             this.io.sockets.to(this.sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
             this.io.sockets.to(this.sid).emit('update-pot', {
@@ -252,6 +247,7 @@ class SessionManager extends TableManager {
                 this.check_round('showdown');
             }, time);
         } else if (data.everyoneFolded) {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
             let winnings = super.getWinnings(prev_round);
