@@ -188,7 +188,7 @@ class SessionManager extends TableManager {
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            let winners = super.getWinners();
+            let winners = this.getWinners();
             console.log('winners');
             console.log('LOSERS');
             let losers = super.getLosers();
