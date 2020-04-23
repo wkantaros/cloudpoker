@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
+const xss = require("xss");
 
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 
@@ -93,6 +94,21 @@ class SessionManager extends TableManager {
         return true;
     }
 
+    emitAction(action, playerName, betAmount) {
+        this.io.sockets.to(this.sid).emit(action, {
+            username: playerName,
+            stack: this.getStack(playerName),
+            pot: this.getPot(),
+            seat: this.getPlayerSeat(playerName),
+            amount: betAmount
+        });
+        // update client's stack size
+        this.io.sockets.to(this.sid).emit('update-stack', {
+            seat: this.getPlayerSeat(playerName),
+            stack: this.getStack(playerName)
+        });
+    }
+
     kickPlayer(playerId) {
         this.kickedPlayers[playerId] = super.getPlayerById(playerId);
         this.playerLeaves(playerId);
@@ -105,30 +121,20 @@ class SessionManager extends TableManager {
         //     return;
         // }
         if (!this.gameInProgress){
-            let playerName =super.getPlayerById(playerId);
+            let playerName = super.getPlayerById(playerId);
             this.handlePlayerExit(playerName);
             // highlight cards of player in action seat and get available buttons for players
             this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
         } else {
-            let playerName =super.getPlayerById(playerId);
+            let playerName = super.getPlayerById(playerId);
             let stack = super.getStack(playerName);
             let prev_round = super.getRoundName();
             console.log(`${playerName} leaves game for ${stack}`);
             // fold player
             // note: dont actually fold him (just emit folding noise)
             //super.fold(playerName);
-            this.io.sockets.to(this.sid).emit('fold', {
-                username: playerName,
-                stack: super.getStack(playerName),
-                pot: super.getPot(),
-                seat: super.getPlayerSeat(playerName)
-            });
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: super.getPlayerSeat(playerName),
-                stack: super.getStack(playerName)
-            });
+            this.emitAction('fold', playerName, 0);
             // shift action to next player in hand
             if (super.actionOnAllInPlayer()) {
                 console.log('ACTION ON ALL IN PLAYER 123');
@@ -136,7 +142,7 @@ class SessionManager extends TableManager {
                 // highlight cards of player in action seat and get available buttons for players
                 this.renderActionSeatAndPlayerActions();
             }
-            this.handlePlayerExit(playerName, true, stack);
+            this.handlePlayerExit(playerName);
             setTimeout(() => {
                 // check if round has ended
                 this.check_round(prev_round);
@@ -153,14 +159,15 @@ class SessionManager extends TableManager {
     
     // private method
     // removes players not in the current hand
-    handlePlayerExit(playerName, gameInProgress, stack) {
+    handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const modLeavingGame = playerId === super.getModId();
-        const seat =super.getPlayerSeat(playerName);
+        const seat = super.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
 
-       super.addBuyOut(playerName, playerId, stack);
-       super.removePlayer(playerName);
+        const stack = this.getStack(playerName);
+        super.addBuyOut(playerName, playerId, stack);
+        super.removePlayer(playerName);
         if (modLeavingGame) {
             if (super.getModId() != null){
                 this.io.sockets.to(this.getSocketId(super.getModId())).emit('add-mod-abilities');
@@ -171,7 +178,7 @@ class SessionManager extends TableManager {
         });
         this.io.sockets.to(this.sid).emit('remove-out-players', {seat: seat});
 
-        if (gameInProgress) {
+        if (this.gameInProgress) {
             this.io.sockets.to(this.sid).emit('buy-out', {
                 playerName: playerName,
                 stack: stack,
@@ -182,12 +189,12 @@ class SessionManager extends TableManager {
 
     //checks if round has ended (reveals next card)
     check_round (prev_round) {
-        let playerSeatsAllInBool = super.getAllIns();
         let data = super.checkwin();
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            let winners = super.getWinners();
+            let winners = this.getWinners();
             console.log('winners');
             console.log('LOSERS');
             let losers = super.getLosers();
@@ -197,14 +204,14 @@ class SessionManager extends TableManager {
             setTimeout(() => {
                 // handle losers
                 for (let i = 0; i < losers.length; i++){
-                    this.handlePlayerExit(losers[i].playerName, true, 0);
+                    this.handlePlayerExit(losers[i].playerName);
                 }
 
                 for (let i = 0; i < winners.length; i++){
                     // update client's stack size
                     this.io.sockets.to(this.sid).emit('update-stack', {
-                        seat:super.getPlayerSeat(winners[i].playerName),
-                        stack:super.getStack(winners[i].playerName)
+                        seat: super.getPlayerSeat(winners[i].playerName),
+                        stack: super.getStack(winners[i].playerName)
                     });
                 }
 
@@ -214,6 +221,7 @@ class SessionManager extends TableManager {
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (super.everyoneAllIn() && prev_round !== super.getRoundName()) {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             let time = 500;
             if (super.getRoundName() === 'flop'){
                 time = 4500;
@@ -222,17 +230,10 @@ class SessionManager extends TableManager {
                 time = 3000;
             }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-            let allInPlayerSeatsHands = [];
-            for (let i = 0; i < playerSeatsAllInBool.length; i++){
-                if (playerSeatsAllInBool[i]){
-                    allInPlayerSeatsHands.push({
-                        seat: i,
-                        cards: super.getCardsByPlayerName(super.getPlayerBySeat(i))
-                    });
-                }
-            }
-            // TODO ADD NON ALL IN PLAYER WHO CALLED HERE AS WELL (will do later)
-            this.io.sockets.to(this.sid).emit('turn-cards-all-in', allInPlayerSeatsHands);
+            let playersInHand = this.players.filter(p=>p.allIn || !p.folded).map(p=>{
+                return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
+            });
+            this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand);
             this.io.sockets.to(this.sid).emit('update-pot', {
                 amount: super.getPot()
             });
@@ -251,6 +252,7 @@ class SessionManager extends TableManager {
                 this.check_round('showdown');
             }, time);
         } else if (data.everyoneFolded) {
+            // TODO: ANYONE CAN REVEAL HAND HERE
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
             let winnings = super.getWinnings(prev_round);
@@ -289,6 +291,12 @@ class SessionManager extends TableManager {
                 board: super.getDeal(),
                 sound: true
             });
+            for (let i = 0; i < this.table.players.length; i++) {
+                const p = this.table.players[i];
+                this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('update-rank', {
+                    handRankMessage: this.playerHandState(p.playerName).handRankMessage,
+                });
+            }
         }
     }
 
@@ -323,7 +331,8 @@ class SessionManager extends TableManager {
             let name = data[i].playerName;
             this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: super.getCardsByPlayerName(name),
-                seat: data[i].seat
+                seat: data[i].seat,
+                handRankMessage: this.playerHandState(name).handRankMessage,
             });
             this.io.sockets.to(this.sid).emit('update-stack', {
                 seat: data[i].seat,
@@ -358,18 +367,7 @@ class SessionManager extends TableManager {
 
         if (canPerformAction) {
             this.refreshTimer();
-            this.io.sockets.to(this.sid).emit(`${action}`, {
-                username: playerName,
-                stack: this.getStack(playerName),
-                pot: this.getPot(),
-                seat: this.getPlayerSeat(playerName),
-                amount: actualBetAmount
-            });
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: this.getPlayerSeat(playerName),
-                stack: this.getStack(playerName)
-            });
+            this.emitAction(action, playerName, actualBetAmount);
             // shift action to next player in hand
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');
@@ -461,6 +459,10 @@ class SessionManager extends TableManager {
         const action = availableActions['check'] ? 'check' : 'fold';
         this.performAction(playerName, action, 0);
     };
+
+    canSendMessage(playerId, message) {
+        return message.length > 0;
+    }
 }
 
 router.route('/:id').get((req, res) => {
@@ -468,6 +470,7 @@ router.route('/:id').get((req, res) => {
     const s = sessionManagers.get(sid);
     if (!s) {
         res.status(404).render('pages/404');
+        return;
     }
     const io = req.app.get('socketio');
     s.io = io;
@@ -527,6 +530,19 @@ router.route('/:id').get((req, res) => {
             // io.removeAllListeners('connection');
         });
 
+        socket.on('request-state', (data) => {
+            let result = {};
+            if (data.gameState) {
+                result.gameState = s.gameState;
+            }
+            if (data.playerStates)
+                result.playerStates = s.playerStates;
+            if (data.handState) {
+                result.handState = s.playerHandState(s.getPlayerById(playerId));
+            }
+            io.sockets.to(s.getSocketId(playerId)).emit('state-response', result);
+        });
+
         // make sure host has a socketid associate with name (player who sent in login form)
 
         if (s.getModId() != null && s.getModId() === 6969) {
@@ -547,9 +563,10 @@ router.route('/:id').get((req, res) => {
         // chatroom features
         // send a message in the chatroom
         socket.on('chat', (data) => {
+            if (!s.canSendMessage(playerId, data.message)) return;
             io.sockets.to(sid).emit('chat', {
                 handle: s.getPlayerById(playerId),
-                message: data.message
+                message: xss(data.message)
             });
         });
 
@@ -568,13 +585,14 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(s.getSocketId(playerId)).emit('sync-board', {
                 street: s.getRoundName(),
                 board: s.getDeal(),
-                sound: true
+                sound: false
             });
             // render player's hand
             const playerName = s.getPlayerById(playerId);
             io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(playerName),
-                seat: s.getPlayerSeat(playerName)
+                seat: s.getPlayerSeat(playerName),
+                handRankMessage: this.playerHandState(playerName).handRankMessage,
             });
 
             // highlight cards of player in action seat and get available buttons for players

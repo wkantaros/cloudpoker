@@ -416,20 +416,13 @@ class Table {
     };
 
     checkwin() {
-        let numPlayers = 0;
-        let pwinner;
-        for (let i = 0; i < this.players.length; i++){
-            if (!this.players[i].folded) {
-                numPlayers++;
-                pwinner = this.players[i];
-            }
-        }
-        if (numPlayers === 1) {
+        let unfoldedPlayers = this.players.filter(p=>!p.folded);
+        if (unfoldedPlayers.length === 1) {
             console.log("everyone's folded!");
             return {
                 everyoneFolded: true,
                 pot: this.game.pot,
-                winner: pwinner
+                winner: unfoldedPlayers[0]
             };
         }
         return {
@@ -454,7 +447,7 @@ class Player {
         this.folded = false;
         this.allIn = false;
         this.talked = false;
-        // If the player is in the current hand. False is they are standing up, have quit/ will be removed, or just joined.
+        // If the player is in the current hand. False is they are standing up or just joined.
         this.inHand = false;
         this.cards = [];
         this.bet = 0;
@@ -538,23 +531,11 @@ function checkForEndOfRound(table) {
     return endOfRound;
 }
 
-function checkForAllInPlayer(table, winners) {
-    var i, allInPlayer;
-    allInPlayer = [];
-    for (i = 0; i < winners.length; i += 1) {
-        if (table.players[winners[i]].allIn === true) {
-            allInPlayer.push(winners[i]);
-        }
-    }
-    return allInPlayer;
-}
-
-function checkForWinner(table) {
-    var i, j, k, l, maxRank, winners, part, prize, allInPlayer, minBets, roundEnd;
+function identifyWinners(table) {
     //Identify winner(s)
-    winners = [];
-    maxRank = 0.000;
-    for (k = 0; k < table.players.length; k += 1) {
+    let winners = [];
+    let maxRank = 0.000;
+    for (let k = 0; k < table.players.length; k += 1) {
         if (table.players[k].hand.rank === maxRank && table.players[k].folded === false) {
             winners.push(k);
         }
@@ -564,23 +545,32 @@ function checkForWinner(table) {
             winners.push(k);
         }
     }
+    return winners;
+}
 
-    part = 0;
-    prize = 0;
-    allInPlayer = checkForAllInPlayer(table, winners);
+// Calculates side pot value if any players went all in.
+// If no player went all in, returns the value of the main pot.
+function getSidePotBet(table, winners) {
+    let part = 0;
+    let allInPlayer = winners.filter(wi => table.players[wi].allIn);
     if (allInPlayer.length > 0) {
-        minBets = table.game.roundBets[winners[0]];
-        for (j = 1; j < allInPlayer.length; j += 1) {
+        let minBets = table.game.roundBets[winners[0]];
+        for (let j = 1; j < allInPlayer.length; j += 1) {
             if (table.game.roundBets[winners[j]] !== 0 && table.game.roundBets[winners[j]] < minBets) {
                 minBets = table.game.roundBets[winners[j]];
             }
         }
         part = parseInt(minBets, 10);
     } else {
+        // do not think that parseInt is necessary, but do not want to break anything by removing this line.
         part = parseInt(table.game.roundBets[winners[0]], 10);
-
     }
-    for (l = 0; l < table.game.roundBets.length; l += 1) {
+    return part;
+}
+
+function getSidePotPrize(table, part) {
+    let prize = 0;
+    for (let l = 0; l < table.game.roundBets.length; l += 1) {
         if (table.game.roundBets[l] > part) {
             prize += part;
             table.game.roundBets[l] -= part;
@@ -589,9 +579,19 @@ function checkForWinner(table) {
             table.game.roundBets[l] = 0;
         }
     }
+    return prize;
+}
 
-    for (i = 0; i < winners.length; i += 1) {
-        const winnerPrize = prize / winners.length;
+function checkForWinner(table) {
+    let winners = identifyWinners(table);
+
+    let part = getSidePotBet(table, winners);
+    let prize = getSidePotPrize(table, part);
+
+    const winnerPrize = Math.floor(prize / winners.length);
+    // TODO: make the next pot start with extraChips, not 0.
+    // const extraChips = prize - (winnerPrize * winners.length);
+    for (let i = 0; i < winners.length; i += 1) {
         const winningPlayer = table.players[winners[i]];
         winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
@@ -607,12 +607,7 @@ function checkForWinner(table) {
         console.log('player ' + table.players[winners[i]].playerName + ' wins !!');
     }
 
-    roundEnd = true;
-    for (l = 0; l < table.game.roundBets.length; l += 1) {
-        if (table.game.roundBets[l] !== 0) {
-            roundEnd = false;
-        }
-    }
+    let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length > 0;
     if (roundEnd === false) {
         checkForWinner(table);
     }
@@ -659,7 +654,6 @@ function progress(table) {
             }
             if (table.game.roundName === 'River') {
                 table.game.roundName = 'Showdown';
-                // table.game.bets.splice(0, table.game.bets.length);
                 //Evaluate each hand
                 for (j = 0; j < table.players.length; j += 1) {
                     cards = table.players[j].cards.concat(table.game.board);
@@ -705,7 +699,6 @@ function Game(smallBlind, bigBlind) {
     this.pot = 0;
     this.roundName = 'deal'; //Start the first round
     this.betName = 'bet'; //bet,raise,re-raise,cap
-    this.bets = [];
     this.roundBets = [];
     this.deck = [];
     this.board = [];
@@ -738,3 +731,4 @@ function rankHands(hands) {
 }
 
 module.exports.Table = Table;
+module.exports.Hand = Hand;
