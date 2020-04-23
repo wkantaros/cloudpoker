@@ -294,7 +294,7 @@ class SessionManager extends TableManager {
             for (let i = 0; i < this.table.players.length; i++) {
                 const p = this.table.players[i];
                 this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('update-rank', {
-                    handRankMessage: this.playerHandState(name).handRankMessage,
+                    handRankMessage: this.playerHandState(p.playerName).handRankMessage,
                 });
             }
         }
