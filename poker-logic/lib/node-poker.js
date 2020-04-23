@@ -16,107 +16,8 @@ class TableState {
         }
         this.dealer = 0; //Track the dealer position between games
         this.currentPlayer = -1; // Initialized to 1 in initializeBlinds (called by startGame)
-        this.gameWinners = [];
-        this.gameLosers = [];
-        this.straddleLimit = straddleLimit;
-        this.game = null;
-    }
-
-    get players() {
-        return this.allPlayers.filter(p => p !== null && p.inHand);
-    }
-
-    get waitingPlayers() {
-        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
-    }
-
-    get leavingPlayers() {
-        return this.allPlayers.filter(p => p !== null && p.leavingGame)
-    }
-
-    getHandForPlayerName( playerName ){
-        const p = this.getPlayer(playerName);
-        if (p !== null) return p.cards;
-        return [];
-    };
-
-    getPlayer( playerName ){
-        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
-        if (i >= 0) return this.allPlayers[i];
-        return null;
-    };
-    getDeal(){
-        return this.game.board;
-    };
-    getCurrentPlayer() {
-        return this.players[ this.currentPlayer ].playerName;
-    };
-
-    /**
-     * Calculates the maximum that a player can bet (total) as limited
-     * by his going all in or making everyone else at the table go all in
-     * if he has the biggest stack
-     * @param playerInd Index of player in this.players
-     */
-    maxBetPossible(playerInd) {
-        const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
-        return Math.min(this.players[playerInd].bet + this.players[playerInd].chips, otherPlayersMaxStack);
-    };
-
-    getWinners(){
-        return this.gameWinners;
-    };
-    getLosers(){
-        return this.gameLosers;
-    };
-
-    // TODO: do we use this?
-    initNewRound () {}
-
-    addPlayer(playerName, seat, chips) {} // todo
-
-    removePlayer (playerName){ // todo
-        // const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
-        // if (ind === -1) return false;
-        // // this.playersToRemove.push(ind);
-        //
-        // const p = this.allPlayers[ind];
-        // this.allPlayers[p.seat].leavingGame = true;
-        // if (this.game != null) {
-        //     this.game.pot += p.bet;
-        //     // this.allPlayers[ind] = null;
-        //     p.Fold();
-        //     progress(this);
-        // }
-        // return true;
-    }
-}
-
-// straddleLimit values:
-// -1: unlimited straddles (last player who can straddle is the dealer)
-// 0: no straddling allowed
-// 1: only player after big blind can straddle
-// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
-//      the same behavior as -1 occurs.
-// x > players.length - 2: same behavior as -1 occurs.
-class Table {
-    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
-        this.minPlayers = minPlayers;
-        this.maxPlayers =  maxPlayers;
-        // allPlayers[i].seat === i. empty seats correspond to a null element.
-        this.allPlayers = [];
-        for (let i = 0; i < maxPlayers; i++) {
-            this.allPlayers.push(null);
-        }
-        this.dealer = 0; //Track the dealer position between games
-        this.currentPlayer = -1; // Initialized to 1 in initializeBlinds (called by startGame)
         this.minBuyIn = minBuyIn;
         this.maxBuyIn = maxBuyIn;
-        // this.eventEmitter = new events.EventEmitter();
-        this.gameWinners = [];
-        this.gameLosers = [];
         this.straddleLimit = straddleLimit;
         this.game = null;
 
@@ -175,6 +76,67 @@ class Table {
         const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
         return Math.min(this.players[playerInd].bet + this.players[playerInd].chips, otherPlayersMaxStack);
     };
+
+    // straddleLimit values:
+    // -1: unlimited straddles (last player who can straddle is the dealer)
+    // 0: no straddling allowed
+    // 1: only player after big blind can straddle
+    // 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+    //      the same behavior as -1 occurs.
+    // x > players.length - 2: same behavior as -1 occurs.
+    // Up to this.players.length -2 players can straddle because
+    //      the last player that is able to is the dealer
+    maxStraddles() {
+        if (this.players.length <= 2) return 0;
+        if (this.straddleLimit >= 0 && this.straddleLimit <= this.players.length -2) {
+            return this.straddleLimit;
+        }
+        if (this.straddleLimit === -1 || this.straddleLimit > this.players.length -2) {
+            return this.players.length - 2;
+        }
+        // straddleLimit < -1
+        console.log(`Invalid straddleLimit value ${this.straddleLimit}`);
+        return 0;
+    };
+
+    getAvailableSeat() {
+        return this.allPlayers.findIndex(elem => elem === null || elem.leavingGame);
+    };
+    getMaxBet() {
+        return Math.max(...this.players.map(x => x.bet));
+    };
+
+    checkwin() {
+        let unfoldedPlayers = this.players.filter(p=>!p.folded);
+        if (unfoldedPlayers.length === 1) {
+            console.log("everyone's folded!");
+            return {
+                everyoneFolded: true,
+                pot: this.game.pot,
+                winner: unfoldedPlayers[0]
+            };
+        }
+        return {
+            everyoneFolded: false,
+            pot: null,
+            winner: null
+        };
+    };
+}
+
+// straddleLimit values:
+// -1: unlimited straddles (last player who can straddle is the dealer)
+// 0: no straddling allowed
+// 1: only player after big blind can straddle
+// 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
+//      the same behavior as -1 occurs.
+// x > players.length - 2: same behavior as -1 occurs.
+class Table extends TableState{
+    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
+        super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit);
+        this.gameWinners = [];
+        this.gameLosers = [];
+    }
 
     callBlind(playerName) {
         let currentPlayer = this.currentPlayer;
@@ -377,12 +339,6 @@ class Table {
         }
         return false;
     };
-    getAvailableSeat() {
-        return this.allPlayers.findIndex(elem => elem === null || elem.leavingGame);
-    };
-    getMaxBet() {
-        return Math.max(...this.players.map(x => x.bet));
-    };
     removePlayer (playerName){
         const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
         if (ind === -1) return false;
@@ -443,28 +399,6 @@ class Table {
         // this.eventEmitter.emit( "newRound" );
     };
 
-    // straddleLimit values:
-    // -1: unlimited straddles (last player who can straddle is the dealer)
-    // 0: no straddling allowed
-    // 1: only player after big blind can straddle
-    // 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
-    //      the same behavior as -1 occurs.
-    // x > players.length - 2: same behavior as -1 occurs.
-    // Up to this.players.length -2 players can straddle because
-    //      the last player that is able to is the dealer
-    maxStraddles() {
-        if (this.players.length <= 2) return 0;
-        if (this.straddleLimit >= 0 && this.straddleLimit <= this.players.length -2) {
-            return this.straddleLimit;
-        }
-        if (this.straddleLimit === -1 || this.straddleLimit > this.players.length -2) {
-            return this.players.length - 2;
-        }
-        // straddleLimit < -1
-        console.log(`Invalid straddleLimit value ${this.straddleLimit}`);
-        return 0;
-    };
-
     initializeBlinds() {
         // Small and Big Blind player indexes
         let smallBlind = (this.dealer + 1) % this.players.length;
@@ -500,23 +434,6 @@ class Table {
         p.talked = false;
         return betAmount;
     };
-
-    checkwin() {
-        let unfoldedPlayers = this.players.filter(p=>!p.folded);
-        if (unfoldedPlayers.length === 1) {
-            console.log("everyone's folded!");
-            return {
-                everyoneFolded: true,
-                pot: this.game.pot,
-                winner: unfoldedPlayers[0]
-            };
-        }
-        return {
-            everyoneFolded: false,
-            pot: null,
-            winner: null
-        };
-    };
 }
 
 class Player {
@@ -540,6 +457,20 @@ class Player {
         this.isStraddling = isStraddling;
         this.seat = seat;
         this.leavingGame = false;
+    }
+    
+    getPublicInfo() {
+        return {
+            playerName: this.playerName,
+            chips: this.chips,
+            folded: this.folded,
+            allIn: this.allIn,
+            talked: this.talked,
+            inHand: this.inHand,
+            bet: this.bet,
+            seat: this.seat,
+            leavingGame: this.leavingGame,
+        }
     }
 
     GetChips(cash) {

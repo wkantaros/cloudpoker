@@ -220,7 +220,7 @@ class SessionManager extends TableManager {
             }, (3000));
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
-        else if (super.everyoneAllIn() && prev_round !== super.getRoundName()) {
+        else if (super.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
             // TODO: ANYONE CAN REVEAL HAND HERE
             let time = 500;
             if (super.getRoundName() === 'flop'){

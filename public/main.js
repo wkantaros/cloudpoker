@@ -761,10 +761,10 @@ socket.on('player-reconnect', (data) => {
  *     }
  * }
  */
-function stateResponseHandler(data) {
+function stateSnapshotHandler(data) {
     // TODO: how should we deal with a player joining when street === 'showdown'
     if (data.hasOwnProperty('gameState')) {
-        updateGameState(data.gameState);
+        initializeGameState(data.gameState);
     }
     if (data.hasOwnProperty('playerStates'))
         updatePlayers(data.playerStates);
@@ -859,81 +859,7 @@ class TableManagerf {
     }
 }
 
-class Tablef {
-    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, players, dealerSeat, ) {
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
-        this.minPlayers = minPlayers;
-        this.maxPlayers =  maxPlayers;
-        this.allPlayers = [];
-        this.dealer = dealerSeat;
-        // allPlayers[i].seat === i. empty seats correspond to a null element.
-        for (let i = 0; i < maxPlayers; i++)
-            this.allPlayers.push(null);
-        for (let p of players)
-            this.allPlayers[p.seat] = p;
-        this.game = null;
-    }
-
-    get players() {
-        return this.allPlayers.filter(p => p !== null && p.inHand);
-    }
-
-    get waitingPlayers() {
-        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
-    }
-
-    get leavingPlayers() {
-        return this.allPlayers.filter(p => p !== null && p.leavingGame)
-    }
-
-    getPlayer( playerName ){
-        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
-        if (i >= 0) return this.allPlayers[i];
-        return null;
-    };
-    getDeal(){
-        return this.game.board;
-    };
-    AddPlayer(playerName, chips) {
-
-    }
-    removePlayer (playerName){
-        // const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
-        // if (ind === -1) return false;
-        // // this.playersToRemove.push(ind);
-        //
-        // const p = this.allPlayers[ind];
-        // this.allPlayers[p.seat].leavingGame = true;
-        // if (this.game != null) {
-        //     this.game.pot += p.bet;
-        //     // this.allPlayers[ind] = null;
-        //     p.Fold();
-        //     progress(this);
-        // }
-        // return true;
-    }
-}
-class Player {
-    constructor(playerName, chips, seat) {
-        this.playerName = playerName;
-        this.chips = chips;
-        this.folded = false;
-        this.allIn = false;
-        this.talked = false;
-        // If the player is in the current hand. False is they are standing up or just joined.
-        this.inHand = false;
-        this.cards = null;
-        this.bet = 0;
-        this.seat = seat;
-        this.leavingGame = false;
-    }
-    Check() {}
-    Fold() {}
-    Bet() {}
-    AllIn() {}
-}
-function updateGameState(data) {
+function initializeGameState(data) {
     if (data.hasOwnProperty('dealer'))
         setDealerSeat(data.dealer);
     if (data.hasOwnProperty('actionSeat'))
@@ -955,9 +881,11 @@ function updatePlayers(players) {
 function updateHand(data) {
 
 }
-socket.on('state-snapshot', stateResponseHandler);
+socket.on('state-snapshot', stateSnapshotHandler);
 
-socket.on('update-state', stateResponseHandler);
+socket.on('update-state', stateSnapshotHandler);
+
+// socket.on('init-table', initializeTable);
 
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {
