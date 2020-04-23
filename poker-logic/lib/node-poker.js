@@ -1,7 +1,96 @@
-var events = require('events');
+// var events = require('events');
 const {fillDeck, rankHandInt, rankHand} = require('./deck');
 
 //Note: methods I've changed/created have been commented: EDITED
+
+class TableState {
+    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
+        this.smallBlind = smallBlind;
+        this.bigBlind = bigBlind;
+        this.minPlayers = minPlayers;
+        this.maxPlayers =  maxPlayers;
+        // allPlayers[i].seat === i. empty seats correspond to a null element.
+        this.allPlayers = [];
+        for (let i = 0; i < maxPlayers; i++) {
+            this.allPlayers.push(null);
+        }
+        this.dealer = 0; //Track the dealer position between games
+        this.currentPlayer = -1; // Initialized to 1 in initializeBlinds (called by startGame)
+        this.gameWinners = [];
+        this.gameLosers = [];
+        this.straddleLimit = straddleLimit;
+        this.game = null;
+    }
+
+    get players() {
+        return this.allPlayers.filter(p => p !== null && p.inHand);
+    }
+
+    get waitingPlayers() {
+        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
+    }
+
+    get leavingPlayers() {
+        return this.allPlayers.filter(p => p !== null && p.leavingGame)
+    }
+
+    getHandForPlayerName( playerName ){
+        const p = this.getPlayer(playerName);
+        if (p !== null) return p.cards;
+        return [];
+    };
+
+    getPlayer( playerName ){
+        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
+        if (i >= 0) return this.allPlayers[i];
+        return null;
+    };
+    getDeal(){
+        return this.game.board;
+    };
+    getCurrentPlayer() {
+        return this.players[ this.currentPlayer ].playerName;
+    };
+
+    /**
+     * Calculates the maximum that a player can bet (total) as limited
+     * by his going all in or making everyone else at the table go all in
+     * if he has the biggest stack
+     * @param playerInd Index of player in this.players
+     */
+    maxBetPossible(playerInd) {
+        const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
+        return Math.min(this.players[playerInd].bet + this.players[playerInd].chips, otherPlayersMaxStack);
+    };
+
+    getWinners(){
+        return this.gameWinners;
+    };
+    getLosers(){
+        return this.gameLosers;
+    };
+
+    // TODO: do we use this?
+    initNewRound () {}
+
+    addPlayer(playerName, seat, chips) {} // todo
+
+    removePlayer (playerName){ // todo
+        // const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
+        // if (ind === -1) return false;
+        // // this.playersToRemove.push(ind);
+        //
+        // const p = this.allPlayers[ind];
+        // this.allPlayers[p.seat].leavingGame = true;
+        // if (this.game != null) {
+        //     this.game.pot += p.bet;
+        //     // this.allPlayers[ind] = null;
+        //     p.Fold();
+        //     progress(this);
+        // }
+        // return true;
+    }
+}
 
 // straddleLimit values:
 // -1: unlimited straddles (last player who can straddle is the dealer)
@@ -25,7 +114,7 @@ class Table {
         this.currentPlayer = -1; // Initialized to 1 in initializeBlinds (called by startGame)
         this.minBuyIn = minBuyIn;
         this.maxBuyIn = maxBuyIn;
-        this.eventEmitter = new events.EventEmitter();
+        // this.eventEmitter = new events.EventEmitter();
         this.gameWinners = [];
         this.gameLosers = [];
         this.straddleLimit = straddleLimit;
@@ -72,9 +161,6 @@ class Table {
     getDeal(){
         return this.game.board;
     };
-    getEventEmitter() {
-        return this.eventEmitter;
-    };
     getCurrentPlayer() {
         return this.players[ this.currentPlayer ].playerName;
     };
@@ -87,7 +173,7 @@ class Table {
      */
     maxBetPossible(playerInd) {
         const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
-        return Math.min(this.players[playerInd].bet + this.players[playerInd].chips);
+        return Math.min(this.players[playerInd].bet + this.players[playerInd].chips, otherPlayersMaxStack);
     };
 
     callBlind(playerName) {
@@ -354,7 +440,7 @@ class Table {
         }
         this.initializeBlinds();
 
-        this.eventEmitter.emit( "newRound" );
+        // this.eventEmitter.emit( "newRound" );
     };
 
     // straddleLimit values:
@@ -631,7 +717,7 @@ function Hand(cards) {
 }
 
 function progress(table) {
-    table.eventEmitter.emit( "turn" );
+    // table.eventEmitter.emit( "turn" );
     var i, j, cards, hand;
     if (table.game) {
         if (checkForEndOfRound(table) === true) {
@@ -662,7 +748,7 @@ function progress(table) {
                 }
                 checkForWinner(table);
                 checkForBankrupt(table);
-                table.eventEmitter.emit( "gameOver" );
+                // table.eventEmitter.emit( "gameOver" );
             } else if (table.game.roundName === 'Turn') {
                 console.log('effective turn');
                 table.game.roundName = 'River';
@@ -690,7 +776,7 @@ function turnCards(table, count) {
         table.players[i].talked = false;
         table.players[i].bet = 0;
     }
-    table.eventEmitter.emit( "deal" );
+    // table.eventEmitter.emit( "deal" );
 }
 
 function Game(smallBlind, bigBlind) {

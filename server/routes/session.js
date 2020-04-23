@@ -540,7 +540,7 @@ router.route('/:id').get((req, res) => {
             if (data.handState) {
                 result.handState = s.playerHandState(s.getPlayerById(playerId));
             }
-            io.sockets.to(s.getSocketId(playerId)).emit('state-response', result);
+            io.sockets.to(s.getSocketId(playerId)).emit('state-snapshot', result);
         });
 
         // make sure host has a socketid associate with name (player who sent in login form)

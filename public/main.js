@@ -772,6 +772,167 @@ function stateResponseHandler(data) {
         updateHand(data.handState);
     }
 }
+
+class TableRenderer {
+    /**
+     *
+     * @param {Tablef} table
+     */
+    constructor(table) {
+        this.table = table;
+    }
+
+    get dealer() {
+        return this.table.dealer;
+    }
+
+    set dealer(v) {
+        setDealerSeat(v);
+        this.table.dealer = v;
+    }
+
+    endHand() {
+        clearEarnings();
+        this.removePlayers();
+    }
+
+    removePlayers() {
+
+    }
+
+    dealStreet(board, sound) {
+        // If board is null, there is no game going on b/c we are waiting
+        if (board === null) {
+            hideBoardPreFlop();
+            return;
+        }
+        let street = whichStreet(board);
+        dealStreet({street, sound, board});
+    }
+}
+
+const whichStreet = (board) => {
+    let street = 'deal';
+    if (board.length === 3) street = 'flop';
+    else if (board.length === 4) street = 'turn';
+    else if (board.length === 5) street = 'river';
+    return street;
+};
+
+function Game(smallBlind, bigBlind) {
+    // this.smallBlind = smallBlind;
+    // this.bigBlind = bigBlind;
+    // this.pot = 0;
+    // this.roundName = 'deal'; //Start the first round
+    // this.betName = 'bet'; //bet,raise,re-raise,cap
+    // this.roundBets = [];
+    // this.deck = [];
+    // this.board = [];
+    // fillDeck(this.deck);
+}
+
+class TableManagerf {
+    constructor(table) {
+        this.table = table;
+        this.gameInProgress = false;
+    }
+
+    removePlayer(playerName) {
+
+    }
+
+    playersInNextHand () {
+        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
+    }
+
+    isPlayerNameUsed(playerName) {
+        return Object.keys(this.playerids).includes(playerName)
+    };
+
+    get actionSeat() {
+        if (this.gameInProgress){
+            const t = this.table;
+            return t.players[t.currentPlayer].seat;
+        } else {
+            return -1;
+        }
+    }
+}
+
+class Tablef {
+    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, players, dealerSeat, ) {
+        this.smallBlind = smallBlind;
+        this.bigBlind = bigBlind;
+        this.minPlayers = minPlayers;
+        this.maxPlayers =  maxPlayers;
+        this.allPlayers = [];
+        this.dealer = dealerSeat;
+        // allPlayers[i].seat === i. empty seats correspond to a null element.
+        for (let i = 0; i < maxPlayers; i++)
+            this.allPlayers.push(null);
+        for (let p of players)
+            this.allPlayers[p.seat] = p;
+        this.game = null;
+    }
+
+    get players() {
+        return this.allPlayers.filter(p => p !== null && p.inHand);
+    }
+
+    get waitingPlayers() {
+        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
+    }
+
+    get leavingPlayers() {
+        return this.allPlayers.filter(p => p !== null && p.leavingGame)
+    }
+
+    getPlayer( playerName ){
+        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
+        if (i >= 0) return this.allPlayers[i];
+        return null;
+    };
+    getDeal(){
+        return this.game.board;
+    };
+    AddPlayer(playerName, chips) {
+
+    }
+    removePlayer (playerName){
+        // const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
+        // if (ind === -1) return false;
+        // // this.playersToRemove.push(ind);
+        //
+        // const p = this.allPlayers[ind];
+        // this.allPlayers[p.seat].leavingGame = true;
+        // if (this.game != null) {
+        //     this.game.pot += p.bet;
+        //     // this.allPlayers[ind] = null;
+        //     p.Fold();
+        //     progress(this);
+        // }
+        // return true;
+    }
+}
+class Player {
+    constructor(playerName, chips, seat) {
+        this.playerName = playerName;
+        this.chips = chips;
+        this.folded = false;
+        this.allIn = false;
+        this.talked = false;
+        // If the player is in the current hand. False is they are standing up or just joined.
+        this.inHand = false;
+        this.cards = null;
+        this.bet = 0;
+        this.seat = seat;
+        this.leavingGame = false;
+    }
+    Check() {}
+    Fold() {}
+    Bet() {}
+    AllIn() {}
+}
 function updateGameState(data) {
     if (data.hasOwnProperty('dealer'))
         setDealerSeat(data.dealer);
@@ -794,7 +955,7 @@ function updatePlayers(players) {
 function updateHand(data) {
 
 }
-socket.on('state-response', stateResponseHandler);
+socket.on('state-snapshot', stateResponseHandler);
 
 socket.on('update-state', stateResponseHandler);
 
@@ -1197,11 +1358,13 @@ socket.on('folds-through', function (data) {
     showWinnings(data.amount, data.seat);
 });
 
-//remove earnings span from previous hand
-socket.on('clear-earnings', function (data) {
+const clearEarnings = () => {
     $('.earnings').empty();
     $('.earnings').addClass('hidden');
-});
+};
+
+//remove earnings span from previous hand
+socket.on('clear-earnings', clearEarnings);
 
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
