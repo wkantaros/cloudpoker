@@ -81,11 +81,15 @@ class TableState {
      * Calculates the maximum that a player can bet (total) as limited
      * by his going all in or making everyone else at the table go all in
      * if he has the biggest stack
-     * @param playerInd Index of player in this.players
      */
-    maxBetPossible(playerInd) {
-        const otherPlayersMaxStack = maxSkippingIndices(this.players.map(x => x.bet + x.chips), playerInd);
-        return Math.min(this.players[playerInd].bet + this.players[playerInd].chips, otherPlayersMaxStack);
+    maxBetPossible(playerName) {
+        const player = this.getPlayer(playerName);
+        if (player === null) return 0;
+        const otherPlayersMaxStack = Math.max(...this.players
+            .filter(p=>p.playerName !== playerName)
+            .map(x => x.bet + x.chips)
+        );
+        return Math.min(player.bet + player.chips, otherPlayersMaxStack);
     };
 
     // straddleLimit values:
