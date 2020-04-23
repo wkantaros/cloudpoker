@@ -59,6 +59,14 @@ class TableState {
         return this.allPlayers.filter(p => p !== null && p.leavingGame)
     }
 
+    get actionSeat() {
+        return this.players[this.currentPlayer].seat;
+    }
+
+    get bigBlindSeat() {
+        return this.players[(this.dealer + 2) % this.players.length].seat;
+    }
+
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
         if (p !== null) return p.cards || [];
@@ -76,6 +84,55 @@ class TableState {
     getCurrentPlayer() {
         return this.players[ this.currentPlayer ].playerName;
     };
+
+    // Precondition: A game is in progress.
+    getAvailableActions(playerName) {
+        let availableActions = {
+            'min-bet': false,
+            'bet': false,
+            'raise': false,
+            'fold': false,
+            'call': false,
+            'start': false,
+            'check': false,
+            'your-action': false,
+            'straddle-switch': this.straddleLimit !== 0,
+        };
+
+        let canPerformPremoves = false;
+        const p = this.getPlayer(playerName);
+        if (p === null || !p.inHand || p.folded)
+            return {availableActions, canPerformPremoves};
+
+        // cases where it's the player's action
+        if (this.players[this.currentPlayer].playerName === playerName) {
+            availableActions['fold'] = true;
+            availableActions['your-action'] = true;
+            // TODO: this.getMaxBet() === this.bigBlind will be false if it's heads up
+            //   and one player went all in with < this.bigBlind
+            // player is in big blind
+            if (this.actionSeat === this.bigBlindSeat && this.getMaxBet() === this.bigBlind && this.game.roundName.toLowerCase() === 'deal') {
+                availableActions['check'] = true;
+                availableActions['raise'] = true;
+            }
+            // bet on table
+            else if (this.getMaxBet() > 0) {
+                availableActions['call'] = true;
+                availableActions['raise'] = true;
+            }
+            // no bets yet
+            else {
+                availableActions['check'] = true;
+                availableActions['bet'] = true;
+                availableActions['min-bet'] = true;
+            }
+        }
+        // cases where its not the players action
+        else if (!p.folded && !p.allIn) {
+            canPerformPremoves = true;
+        }
+        return {availableActions, canPerformPremoves};
+    }
 
     /**
      * Calculates the maximum that a player can bet (total) as limited
@@ -768,4 +825,5 @@ function rankHands(hands) {
 
 module.exports.TableState = TableState;
 module.exports.Table = Table;
+module.exports.Player = Player;
 module.exports.Hand = Hand;

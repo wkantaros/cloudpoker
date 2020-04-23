@@ -29,9 +29,16 @@ class TableStateManager {
     }
 
     get bigBlindSeat() {
-        const t = this.table;
-        return t.players[(t.dealer + 2) % t.players.length].seat;
+        return this.table.bigBlindSeat;
     };
+
+    get actionSeat() {
+        if (this.gameInProgress){
+            return this.table.actionSeat;
+        } else {
+            return -1;
+        }
+    }
 
     get allIn() {
         return this.table.allPlayers.map(p => p != null && p.inHand && p.allIn);
@@ -55,15 +62,6 @@ class TableStateManager {
 
     getDeal() {
         return this.table.getDeal();
-    }
-
-    get actionSeat() {
-        if (this.gameInProgress){
-            const t = this.table;
-            return t.players[t.currentPlayer].seat;
-        } else {
-            return -1;
-        }
     }
 
     getDealerSeat() {
@@ -447,58 +445,18 @@ class TableManager extends TableStateManager {
             'straddle-switch': this.getStraddleLimit() !== 0,
         };
 
-        let canPerformPremoves = false;
         // if player is at the table
         if (this.isActivePlayerId(playerid)){
-            // console.log('player at table');
+            if (this.gameInProgress) {
+                return this.table.getAvailableActions(this.getPlayerById(playerid));
+            }
             // case where game hasnt started yet, player is mod and there are enough players
-            if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
+            else if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
                 console.log('game can start');
                 availableActions['start'] = true;
             }
-            // cases where it's the player's action and game is in progress
-            else if (this.gameInProgress && (this.actionSeat === this.getPlayerSeat(this.getPlayerById(playerid)))) {
-                // player is in big blind
-                if (this.actionSeat === this.bigBlindSeat && this.maxBet === this.table.bigBlind && this.getRoundName() === 'deal') {
-                    availableActions['check'] = true;
-                    availableActions['raise'] = true;
-                    availableActions['fold'] = true;
-                    availableActions['your-action'] = true;
-                }
-                // bet on table
-                else if (this.maxBet){
-                    availableActions['call'] = true;
-                    availableActions['raise'] = true;
-                    availableActions['fold'] = true;
-                    availableActions['your-action'] = true;
-                }
-                // no bets yet
-                else {
-                    availableActions['check'] = true;
-                    availableActions['bet'] = true;
-                    availableActions['min-bet'] = true;
-                    availableActions['fold'] = true;
-                    availableActions['your-action'] = true;
-                }
-            }
-            // cases where its not the players action and game is in progress
-            else if (this.gameInProgress) {
-                let playerName = this.getPlayerById(playerid);
-                let playerFolded = this.table.getPlayer(playerName).folded;
-                let playerAllIn = this.allIn[this.getPlayerSeat(playerName)];
-                // if (getTableById(sid).table.getPlayer(playerName) == null) {
-                //     console.log('player waiting for seat');
-                //     canPerformPremoves = false
-                // } else {
-                //     playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
-                //     playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
-                // }
-                if (!playerFolded && !playerAllIn){
-                    canPerformPremoves = true;
-                }
-            }
         }
-        return {availableActions, canPerformPremoves};
+        return {availableActions: availableActions, canPerformPremoves: false};
     }
 
     // if thats the case, just call and move forward with game
