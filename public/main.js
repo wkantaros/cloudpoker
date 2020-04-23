@@ -1013,6 +1013,7 @@ const renderAllIn = (board) => {
 };
 
 socket.on('update-rank', (data) => {
+    // TODO: update rank on front end
     console.log(`hand rank update: ${data.handRankMessage}`)
 });
 
