@@ -4,22 +4,33 @@ const {fillDeck, rankHandInt, rankHand} = require('./deck');
 //Note: methods I've changed/created have been commented: EDITED
 
 class TableState {
-    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
+    /**
+     *
+     * @param {number} smallBlind
+     * @param {number} bigBlind
+     * @param {number} minPlayers
+     * @param {number} maxPlayers
+     * @param {number} minBuyIn
+     * @param {number} maxBuyIn
+     * @param {number} straddleLimit
+     * @param {number} dealer
+     * @param {Player[]} allPlayers
+     * @param {number} currentPlayer
+     * @param {Game|null} game
+     */
+    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game) {
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
         this.minPlayers = minPlayers;
         this.maxPlayers =  maxPlayers;
         // allPlayers[i].seat === i. empty seats correspond to a null element.
-        this.allPlayers = [];
-        for (let i = 0; i < maxPlayers; i++) {
-            this.allPlayers.push(null);
-        }
-        this.dealer = 0; //Track the dealer position between games
-        this.currentPlayer = -1; // Initialized to 1 in initializeBlinds (called by startGame)
+        this.allPlayers = allPlayers;
+        this.dealer = dealer; //Track the dealer position between games
+        this.currentPlayer = currentPlayer; // Initialized to 1 in initializeBlinds (called by startGame)
         this.minBuyIn = minBuyIn;
         this.maxBuyIn = maxBuyIn;
         this.straddleLimit = straddleLimit;
-        this.game = null;
+        this.game = game;
 
         //Validate acceptable value ranges.
         let err;
@@ -50,7 +61,7 @@ class TableState {
 
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
-        if (p !== null) return p.cards;
+        if (p !== null) return p.cards || [];
         return [];
     };
 
@@ -133,7 +144,11 @@ class TableState {
 // x > players.length - 2: same behavior as -1 occurs.
 class Table extends TableState{
     constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
-        super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit);
+        let allPlayers = [];
+        for (let i = 0; i < maxPlayers; i++) {
+            allPlayers.push(null);
+        }
+        super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1, null);
         this.gameWinners = [];
         this.gameLosers = [];
     }
@@ -265,18 +280,18 @@ class Table extends TableState{
     getLosers(){
         return this.gameLosers;
     };
-    getAllHands(){
-        var all = this.losers.concat( this.players );
-        var allHands = [];
-        for( var i in all ){
-            allHands.push({
-                playerName: all[i].playerName,
-                chips: all[i].chips,
-                hand: all[i].cards,
-            });
-        }
-        return allHands;
-    };
+    // getAllHands(){
+    //     var all = this.losers.concat( this.players );
+    //     var allHands = [];
+    //     for( var i in all ){
+    //         allHands.push({
+    //             playerName: all[i].playerName,
+    //             chips: all[i].chips,
+    //             hand: all[i].cards,
+    //         });
+    //     }
+    //     return allHands;
+    // };
 
     initNewRound () {
         this.removeAndAddPlayers();
@@ -747,5 +762,6 @@ function rankHands(hands) {
     return hands;
 }
 
+module.exports.TableState = TableState;
 module.exports.Table = Table;
 module.exports.Hand = Hand;

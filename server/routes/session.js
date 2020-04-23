@@ -612,6 +612,7 @@ router.route('/:id').get((req, res) => {
                 io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
             }
             io.sockets.to(sid).emit('buy-in', data);
+            // TODO: do not send playersInfo to front end. it contains secure playerIds.
             io.sockets.to(sid).emit('render-players', s.playersInfo());
             // highlight cards of player in action seat and get available buttons for players
             s.renderActionSeatAndPlayerActions();

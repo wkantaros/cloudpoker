@@ -1,3 +1,6 @@
+import {TableState} from "../poker-logic";
+import {TableStateManager} from "../server/server-logic";
+
 let socket = io();
 
 let host = document.getElementById('host'),
@@ -14,7 +17,7 @@ let host = document.getElementById('host'),
     call = document.getElementById('call'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
-    minBet = document.getElementById('min-bet');
+    minBet = document.getElementById('min-bet'),
     straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
@@ -104,13 +107,13 @@ const logOut = () => {
 
 $('#buyin-btn').on('click', () => {
     console.log('here!');
-    regex = RegExp(/^\w+(?:\s+\w+)*$/);
+    let regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
         alert('name must be between 2 and 10 characters');
     } else if (!regex.test(playerName)){
         alert('no punctuation in username');
-    } else if (playerName == 'guest'){
+    } else if (playerName === 'guest'){
         alert("'guest' cannot be a username");
     } else if (alreadyExistingName(playerName)){
         alert('please enter a username that is not already at the table')
@@ -773,44 +776,6 @@ function stateSnapshotHandler(data) {
     }
 }
 
-class TableRenderer {
-    /**
-     *
-     * @param {Tablef} table
-     */
-    constructor(table) {
-        this.table = table;
-    }
-
-    get dealer() {
-        return this.table.dealer;
-    }
-
-    set dealer(v) {
-        setDealerSeat(v);
-        this.table.dealer = v;
-    }
-
-    endHand() {
-        clearEarnings();
-        this.removePlayers();
-    }
-
-    removePlayers() {
-
-    }
-
-    dealStreet(board, sound) {
-        // If board is null, there is no game going on b/c we are waiting
-        if (board === null) {
-            hideBoardPreFlop();
-            return;
-        }
-        let street = whichStreet(board);
-        dealStreet({street, sound, board});
-    }
-}
-
 const whichStreet = (board) => {
     let street = 'deal';
     if (board.length === 3) street = 'flop';
@@ -831,31 +796,113 @@ function Game(smallBlind, bigBlind) {
     // fillDeck(this.deck);
 }
 
-class TableManagerf {
-    constructor(table) {
-        this.table = table;
-        this.gameInProgress = false;
+/**
+ *
+ * @param {number} smallBlind
+ * @param {number} bigBlind
+ * @param {number} minPlayers
+ * @param {number} maxPlayers
+ * @param {number} minBuyIn
+ * @param {number} maxBuyIn
+ * @param {number} straddleLimit
+ * @param {number} dealer
+ * @param {Player[]} allPlayers
+ * @param {number} currentPlayer
+ * @param {Game|null} game
+ */
+function initializeTable({smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game}) {
+    let table = new TableState(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game);
+    let tableManager = new TableStateManager(table, game !== null);
+    let renderer = new TableRenderer(tableManager);
+    renderer.initialize();
+}
+
+class TableRenderer {
+    /**
+     *
+     * @param {TableStateManager} manager
+     */
+    constructor(manager) {
+        this.manager = manager;
     }
 
-    removePlayer(playerName) {
-
+    /**
+     *
+     * @return {TableState}
+     */
+    get table() {
+        return this.manager.table;
     }
 
-    playersInNextHand () {
-        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
+    get dealer() {
+        return this.table.dealer;
     }
 
-    isPlayerNameUsed(playerName) {
-        return Object.keys(this.playerids).includes(playerName)
-    };
+    set dealer(v) {
+        setDealerSeat(v);
+        this.table.dealer = v;
+    }
 
-    get actionSeat() {
-        if (this.gameInProgress){
-            const t = this.table;
-            return t.players[t.currentPlayer].seat;
-        } else {
-            return -1;
+    initialize() {
+        this.renderPlayers();
+        this.renderBoard();
+        this.setActionSeat(this.manager.actionSeat);
+        // TODO: render action buttons
+    }
+
+    setActionSeat(seat) {
+        $('.name').removeClass('action');
+        $(`#${seat} > .name`).addClass('action');
+    }
+
+    renderPlayers() {
+        for (let p of this.table.allPlayers) {
+            if (p===null) return;
+            this.#renderPlayer(p);
         }
+    }
+
+    #renderPlayer(p) {
+        let hand = document.getElementById(p.seat);
+        hand.classList.remove('hidden');
+        hand.querySelector('.username').innerHTML = p.playerName;
+        hand.querySelector('.stack').innerHTML = p.chips;
+        const isWaiting = !p.inHand && !p.leavingGame;
+        if (isWaiting) {
+            $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        } else if (p.bet <= 0) {
+            hideBet(p.seat)
+        } else if (p.bet > 0) {
+            showBet(p.seat, p.bet);
+        }
+        if (p.cards !== null && p.cards.length > 0) {
+            renderHand(p.seat, p.cards, p.folded);
+            // TODO: show handrankmessage on GUI
+            // console.log(`player in seat ${p.seat} shows ${p.cards}. has a ${p.handRankMessage}`)
+        }
+    }
+
+    // TODO: call this on('buy-in')
+    addPlayer(player, seat) {
+        this.manager.table.allPlayers[seat] = player;
+        this.#renderPlayer(player);
+    }
+
+    renderBoard() {
+        $('.pm-btn').removeClass('pm');
+        let board = this.table.game ? this.table.game.board : [];
+        let street = this.manager.getRoundName();
+        let sound = false;
+        dealStreet({board, street, sound});
+    }
+
+    endHand() {
+        clearEarnings();
+        this.removePlayers();
+    }
+
+    removePlayers() {
+
     }
 }
 
@@ -885,7 +932,7 @@ socket.on('state-snapshot', stateSnapshotHandler);
 
 socket.on('update-state', stateSnapshotHandler);
 
-// socket.on('init-table', initializeTable);
+socket.on('init-table', initializeTable);
 
 // add additional abilities for mod
 socket.on('add-mod-abilities', (data) => {
@@ -939,7 +986,6 @@ socket.on('buy-out', (data) => {
     // outHand(data.seat);
     $(`#${data.seat}`).addClass('out');
 });
-
 
 // render players at a table
 socket.on('render-players', (data) => {
@@ -1447,7 +1493,9 @@ const inHand = () => {
     $('.back-card').removeClass('hidden');
 };
 
-const renderHand = (seat, cards) => {
+// TODO: grey out the cards if folded is true to indicate which players
+// have folded
+const renderHand = (seat, cards, folded) => {
         let leftCardRank = cards[0].charAt(0);
         let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
         let leftCardColor = getColor(cards[0].charAt(1));

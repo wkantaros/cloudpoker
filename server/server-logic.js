@@ -5,9 +5,11 @@ class TableStateManager {
     /**
      *
      * @param {TableState} table
+     * @param {boolean} gameInProgress
      */
-    constructor(table) {
+    constructor(table, gameInProgress) {
         this.table = table;
+        this.gameInProgress = gameInProgress;
     }
 
     get gameState() {
@@ -38,10 +40,6 @@ class TableStateManager {
     playersInNextHand () {
         return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
     }
-
-    isPlayerNameUsed(playerName) {
-        return Object.keys(this.playerids).includes(playerName)
-    };
 
     getStraddleLimit() {
         return this.table.straddleLimit;
@@ -135,10 +133,9 @@ class TableManager extends TableStateManager {
      * @param {*} playerid
      */
     constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
-        super(table);
+        super(table, false);
         this.hostName = hostName;
         this.hostStack = hostStack;
-        this.gameInProgress = false;
         this.trackBuyins = [];
         this.playerids = {};
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
@@ -151,6 +148,10 @@ class TableManager extends TableStateManager {
     addToPlayerIds(playerName, playerid) {
         this.playerids[playerName] = {playerid};
     }
+
+    isPlayerNameUsed(playerName) {
+        return Object.keys(this.playerids).includes(playerName)
+    };
 
     addToBuyins(playerName, playerid, playerStack) {
         let obj = {
@@ -527,4 +528,5 @@ class TableManager extends TableStateManager {
     }
 }
 
+module.exports.TableStateManager = TableStateManager;
 module.exports.TableManager = TableManager;
