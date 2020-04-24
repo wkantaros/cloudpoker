@@ -109,6 +109,18 @@ class SessionManager extends TableManager {
         });
     }
 
+    addPlayer(playerName) {
+        const newPlayer = this.table.getPlayer(playerName);
+        this.io.sockets.to(this.sid).emit('update-player', {player: newPlayer.getPublicInfo(), buyIn: true});
+        // send user their private data. set buyIn to false so buy in message does not get logged twice.
+        this.io.sockets.to(this.getSocketId(this.getPlayerId(newPlayer.playerName))).emit('update-self', {player: newPlayer, buyIn: false});
+        // io.sockets.to(sid).emit('buy-in', data);
+        // TODO: do not send playersInfo to front end. it contains secure playerIds.
+        // io.sockets.to(sid).emit('render-players', s.playersInfo());
+        // // highlight cards of player in action seat and get available buttons for players
+        // s.renderActionSeatAndPlayerActions();
+    }
+
     kickPlayer(playerId) {
         this.kickedPlayers[playerId] = super.getPlayerById(playerId);
         this.playerLeaves(playerId);
@@ -607,15 +619,12 @@ router.route('/:id').get((req, res) => {
             if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
-            s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
-            if (s.isModPlayerId(playerId)) {
-                io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
+            const addedPlayer = s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
+            if (addedPlayer) {
+                s.addPlayer(data.playerName);
+            } else {
+                console.log('buyin returned false for data:', JSON.stringify(data));
             }
-            io.sockets.to(sid).emit('buy-in', data);
-            // TODO: do not send playersInfo to front end. it contains secure playerIds.
-            io.sockets.to(sid).emit('render-players', s.playersInfo());
-            // highlight cards of player in action seat and get available buttons for players
-            s.renderActionSeatAndPlayerActions();
         });
 
         socket.on('straddle-switch', (data) => {
@@ -639,11 +648,15 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('start-game', (data) => {
+            if (!s.isModPlayerId(playerId)) {
+                console.log(`${s.getPlayerById(playerId)} cannot start the game because they are not a mod.`);
+                return;
+            }
             const playersInNextHand = s.playersInNextHand().length;
             console.log(`players in next hand: ${playersInNextHand}`);
             if (playersInNextHand >= 2 && playersInNextHand <= 10) {
                 s.startGame();
-                io.sockets.to(sid).emit('start-game', s.playersInfo());
+                io.sockets.to(sid).emit('start-game');
                 s.begin_round();
             } else {
                 console.log("waiting on players");

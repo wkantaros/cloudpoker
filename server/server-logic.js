@@ -25,7 +25,7 @@ class TableStateManager {
     }
 
     get playerStates() {
-        return this.table.allPlayers.filter(p => p !== null).map(p => p.getPublicInfo());
+        return this.table.allPlayers.map(p => p === null ? null: p.getPublicInfo());
     }
 
     get bigBlindSeat() {
@@ -137,6 +137,7 @@ class TableManager extends TableStateManager {
         this.trackBuyins = [];
         this.playerids = {};
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
+        table.getPlayer(hostName).isMod = true;
         this.addToPlayerIds(hostName, playerid);
         this.addToBuyins(hostName, playerid, hostStack);
     }
@@ -239,15 +240,21 @@ class TableManager extends TableStateManager {
 
     transferHost(newHostName) {
         console.log(this.playerids);
+        const previousHost = this.getPlayer(this.hostName);
+        if (previousHost !== null) {
+            previousHost.isMod = false;
+        }
         if (newHostName in this.playerids){
             this.hostName = newHostName;
             this.hostStack = this.getStack(newHostName);
+            this.table.getPlayer(newHostName).isMod = true;
             console.log('successfully transferred host to ' + newHostName);
             return true;
         } else if (Object.keys(this.playerids).length > 0) {
             const playerName = Object.keys(this.playerids)[0];
             this.hostName = playerName;
             this.hostStack = this.getStack(playerName);
+            this.table.getPlayer(playerName).isMod = true;
             console.log('transferred host to ' + playerName);
             return true;
         } else {

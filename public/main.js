@@ -1,4 +1,4 @@
-import {TableState} from "../poker-logic";
+import {TableState, Player} from "../poker-logic";
 import {TableStateManager} from "../server/server-logic";
 
 let socket = io();
@@ -475,9 +475,7 @@ let placeRaise = () => {
 
 start_btn.addEventListener('click', () => {
     console.log('starting game');
-    socket.emit('start-game', {
-        amount: 0
-    });
+    socket.emit('start-game', {});
 });
 
 call.addEventListener('click', () => {
@@ -813,46 +811,82 @@ function Game(smallBlind, bigBlind) {
 function initializeTable({smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game}) {
     let table = new TableState(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game);
     let tableManager = new TableStateManager(table, game !== null);
-    let renderer = new TableRenderer(tableManager);
+    let renderer = new TableRenderer(tableManager, null);
     renderer.initialize();
 }
 
 class TableRenderer {
     /**
-     *
      * @param {TableStateManager} manager
+     * @param {Player} player
      */
-    constructor(manager) {
+    constructor(manager, player) {
         this.manager = manager;
+        this._player = player;
+    }
+
+    get player() {
+        return this._player;
+    }
+
+    set player(v) {
+        if (v.isMod) {
+            addModAbilities();
+        } else {
+            removeModAbilities();
+        }
+        this._player = v;
     }
 
     /**
-     *
      * @return {TableState}
      */
     get table() {
         return this.manager.table;
     }
 
-    get dealer() {
-        return this.table.dealer;
-    }
-
-    set dealer(v) {
-        setDealerSeat(v);
-        this.table.dealer = v;
+    setDealer(seat) {
+        setDealerSeat(seat);
+        this.table.dealer = seat;
     }
 
     initialize() {
-        this.renderPlayers();
         this.renderBoard();
+        this.renderPlayers();
         this.setActionSeat(this.manager.actionSeat);
-        // TODO: render action buttons
+        this.setDealer(this.manager.table.dealer);
+        this.renderActionButtons();
     }
 
     setActionSeat(seat) {
+        if (seat >= 0 && seat === this.player.seat)
+            playSoundIfVolumeOn('action');
+
         $('.name').removeClass('action');
         $(`#${seat} > .name`).addClass('action');
+    }
+
+    renderActionButtons() {
+        let availableActions = {
+            'min-bet': false,
+            'bet': false,
+            'raise': false,
+            'fold': false,
+            'call': false,
+            'start': true, // note start is true
+            'check': false,
+            'your-action': false,
+            'straddle-switch': this.manager.getStraddleLimit() !== 0,
+        };
+        if (!this.manager.gameInProgress && this.player.isMod && this.manager.playersInNextHand().length >= 2) {
+            availableActions['start'] = false;
+            displayButtons({availableActions, canPerformPremoves: false})
+        } else if (this.manager.gameInProgress && this.player !== null && this.player.inHand) {
+            displayButtons(this.table.getAvailableActions(this.player.playerName));
+        } else { // if player is not in hand or not in a seat
+            console.log('viewer not in seat, no actions.');
+            displayButtons(availableActions);
+        }
     }
 
     renderPlayers() {
@@ -867,9 +901,10 @@ class TableRenderer {
         hand.classList.remove('hidden');
         hand.querySelector('.username').innerHTML = p.playerName;
         hand.querySelector('.stack').innerHTML = p.chips;
-        const isWaiting = !p.inHand && !p.leavingGame;
+        const isWaiting = p.folded || !p.inHand;
         if (isWaiting) {
-            $(`#${p.seat}`).find('.back-card').addClass('waiting');
+            outHand(p.seat);
+            // $(`#${p.seat}`).find('.back-card').addClass('waiting');
         } else if (p.bet <= 0) {
             hideBet(p.seat)
         } else if (p.bet > 0) {
@@ -883,8 +918,8 @@ class TableRenderer {
     }
 
     // TODO: call this on('buy-in')
-    addPlayer(player, seat) {
-        this.manager.table.allPlayers[seat] = player;
+    updatePlayer(player) {
+        this.manager.table.allPlayers[player.seat] = player;
         this.#renderPlayer(player);
     }
 
@@ -928,27 +963,46 @@ function updatePlayers(players) {
 function updateHand(data) {
 
 }
+
+let renderer = new TableRenderer(null, null); //TODO: properly instantiate
+socket.on('update-player', (data) => {
+    renderer.updatePlayer(data.player);
+    if (data.buyIn) {
+        feedback.innerHTML = '';
+        message_output.innerHTML += '<p><em>' + data.playerName + ' buys in for ' + data.stack +'</em></p>';
+    }
+});
+socket.on('update-self', (data) => {
+    renderer.updatePlayer(data);
+    renderer.player = data.player;
+});
+
 socket.on('state-snapshot', stateSnapshotHandler);
 
 socket.on('update-state', stateSnapshotHandler);
 
 socket.on('init-table', initializeTable);
 
-// add additional abilities for mod
-socket.on('add-mod-abilities', (data) => {
+const addModAbilities = () => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
     $('#bomb-pot').removeClass('collapse');
     // TODO: show mod panel or set turn timer button
-});
+};
+
+const removeModAbilities = () => {
+    $('#bomb-pot').addClass('collapse');
+    $('#start').addClass('collapse');
+};
+
+// add additional abilities for mod
+socket.on('add-mod-abilities', addModAbilities);
 
 socket.on('bust', (data) => {
     logOut();
     // remove additional abilities for mod when mod leaves
-    if (data.removeModAbilities) {
-        $('#bomb-pot').addClass('collapse');
-        $('#start').addClass('collapse');
-    }
+    if (data.removeModAbilities)
+        removeModAbilities();
 });
 
 // remove additional abilities for mod when mod leaves

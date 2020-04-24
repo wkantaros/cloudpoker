@@ -408,7 +408,7 @@ class Table extends TableState{
         } else {
             const seat = this.getAvailableSeat();
             if ( chips >= this.minBuyIn && chips <= this.maxBuyIn && seat !== -1) {
-                const player = new Player(playerName, chips, isStraddling, seat);
+                const player = new Player(playerName, chips, isStraddling, seat, false);
                 this.allPlayers[seat] = player;
                 return true;
             }
@@ -520,7 +520,7 @@ class Player {
      * @param isStraddling If the player wants to straddle
      * @constructor
      */
-    constructor(playerName, chips, isStraddling, seat) {
+    constructor(playerName, chips, isStraddling, seat, isMod) {
         this.playerName = playerName;
         this.chips = chips;
         this.folded = false;
@@ -533,6 +533,9 @@ class Player {
         this.isStraddling = isStraddling;
         this.seat = seat;
         this.leavingGame = false;
+        // below fields used only externally
+        this.isMod = isMod;
+        this.showingCards = false;
     }
     
     getPublicInfo() {
@@ -546,6 +549,8 @@ class Player {
             bet: this.bet,
             seat: this.seat,
             leavingGame: this.leavingGame,
+            isMod: this.isMod,
+            cards: this.showingCards? this.cards : [],
         }
     }
 
