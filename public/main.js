@@ -200,7 +200,9 @@ $('#bet').on('click', () => {
         output.focus();
         output.value = getBigBlind(); // Display the default slider value
         slider.min = getBigBlind();
-        slider.max = getStack();
+
+        slider.max = Math.min(tableState.player.chips, tableState.table.maxBetPossible());
+        // slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -925,9 +927,9 @@ class TableRenderer {
 //
 // }
 
-let unrendederedState = null; // not used for rendering.
+let tableState; // not used for rendering.
 function setState(data) {
-    unrendederedState = data;
+    tableState = data;
 }
 
 let renderer = new TableRenderer(null, null); //TODO: properly instantiate

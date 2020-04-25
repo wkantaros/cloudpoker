@@ -111,7 +111,12 @@ class SessionManager extends TableManager {
     }
 
     sendTableState() {
-        this.io.sockets.to(this.sid).emit('state-snapshot', this.table.getPublicInfo())
+        let data = {
+            table: this.table.getPublicInfo(),
+            gameInProgress: this.gameInProgress,
+            playerName: 'guest',
+        };
+        this.io.sockets.to(this.sid).emit('state-snapshot', data);
         // send each active player
         for (let p of this.table.players) {
             this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
@@ -132,6 +137,7 @@ class SessionManager extends TableManager {
         this.io.sockets.to(socketId).emit('state-snapshot', {
             table: table,
             gameInProgress: this.gameInProgress,
+            player: playerName,
         });
     }
 
