@@ -25,7 +25,7 @@ class TableStateManager {
     }
 
     get playerStates() {
-        return this.table.allPlayers.map(p => p === null ? null: p.getPublicInfo());
+        return this.table.playerStates;
     }
 
     get bigBlindSeat() {
@@ -89,6 +89,10 @@ class TableStateManager {
         console.log('losers!');
         console.log(losers);
         return losers;
+    }
+
+    getPlayer(playerName) {
+        return this.table.getPlayer(playerName);
     }
 
     getPlayerBySeat(seat) {

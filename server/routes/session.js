@@ -95,6 +95,7 @@ class SessionManager extends TableManager {
     }
 
     emitAction(action, playerName, betAmount) {
+        this.sendTableState();
         this.io.sockets.to(this.sid).emit(action, {
             username: playerName,
             stack: this.getStack(playerName),
@@ -109,6 +110,31 @@ class SessionManager extends TableManager {
         });
     }
 
+    sendTableState() {
+        this.io.sockets.to(this.sid).emit('state-snapshot', this.table.getPublicInfo())
+        // send each active player
+        for (let p of this.table.players) {
+            this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
+        }
+    }
+
+    // sends playerName a snapshot that includes their private data (cards)
+    sendTableStateTo(socketId, playerName) {
+        let table = this.table.getPublicInfo();
+
+        const p = this.table.getPlayer(playerName);
+        if (p) {
+            table = Object.assign({}, table); // shallow copy
+            table.allPlayers = Array.from(table.allPlayers); // shallow copy
+            table.allPlayers[p.seat] = p;
+        }
+
+        this.io.sockets.to(socketId).emit('state-snapshot', {
+            table: table,
+            gameInProgress: this.gameInProgress,
+        });
+    }
+
     addPlayer(playerName) {
         const newPlayer = this.table.getPlayer(playerName);
         this.io.sockets.to(this.sid).emit('update-player', {player: newPlayer.getPublicInfo(), buyIn: true});
@@ -119,6 +145,7 @@ class SessionManager extends TableManager {
         // io.sockets.to(sid).emit('render-players', s.playersInfo());
         // // highlight cards of player in action seat and get available buttons for players
         // s.renderActionSeatAndPlayerActions();
+        this.sendTableState();
     }
 
     kickPlayer(playerId) {
@@ -167,6 +194,7 @@ class SessionManager extends TableManager {
                 }
             }, 500);
         }
+        this.sendTableState();
     }
     
     // private method
@@ -180,6 +208,9 @@ class SessionManager extends TableManager {
         const stack = this.getStack(playerName);
         super.addBuyOut(playerName, playerId, stack);
         super.removePlayer(playerName);
+
+        this.sendTableState();
+
         if (modLeavingGame) {
             if (super.getModId() != null){
                 this.io.sockets.to(this.getSocketId(super.getModId())).emit('add-mod-abilities');
@@ -202,6 +233,7 @@ class SessionManager extends TableManager {
     //checks if round has ended (reveals next card)
     check_round (prev_round) {
         let data = super.checkwin();
+        this.sendTableState();
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
             // TODO: ANYONE CAN REVEAL HAND HERE
@@ -218,6 +250,7 @@ class SessionManager extends TableManager {
                 for (let i = 0; i < losers.length; i++){
                     this.handlePlayerExit(losers[i].playerName);
                 }
+                this.sendTableState();
 
                 for (let i = 0; i < winners.length; i++){
                     // update client's stack size
@@ -255,6 +288,7 @@ class SessionManager extends TableManager {
             while (super.getRoundName() !== 'showdown'){
                super.call(super.getNameByActionSeat());
             }
+            this.sendTableState();
             this.io.sockets.to(this.sid).emit('render-all-in', {
                 street: super.getRoundName(),
                 board: super.getDeal(),
@@ -270,7 +304,6 @@ class SessionManager extends TableManager {
             let winnings = super.getWinnings(prev_round);
             // console.log(data.winner);
             console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-
             // tell clients who won the pot
             this.io.sockets.to(this.sid).emit('folds-through', {
                 username: data.winner.playerName,
@@ -290,6 +323,7 @@ class SessionManager extends TableManager {
                 console.log(`Player has ${super.getStack(data.winner.playerName)}`);
                 console.log('Updating player\'s stack on the server...');
                 super.updateStack(data.winner.playerName, winnings);
+                this.sendTableState();
                 console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
 
                 // next round
@@ -303,6 +337,7 @@ class SessionManager extends TableManager {
                 board: super.getDeal(),
                 sound: true
             });
+            // TODO: don't think we need to send update-rank is we call this.sendTableState
             for (let i = 0; i < this.table.players.length; i++) {
                 const p = this.table.players[i];
                 this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('update-rank', {
@@ -310,6 +345,7 @@ class SessionManager extends TableManager {
                 });
             }
         }
+        this.sendTableState();
     }
 
     startNextRoundOrWaitingForPlayers () {
@@ -327,6 +363,7 @@ class SessionManager extends TableManager {
             this.io.sockets.to(this.sid).emit('render-action-buttons', super.getAvailableActions());
             console.log('waiting for more players to rejoin!');
         }
+        this.sendTableState();
     }
 
     begin_round() {
@@ -542,19 +579,6 @@ router.route('/:id').get((req, res) => {
             // io.removeAllListeners('connection');
         });
 
-        socket.on('request-state', (data) => {
-            let result = {};
-            if (data.gameState) {
-                result.gameState = s.gameState;
-            }
-            if (data.playerStates)
-                result.playerStates = s.playerStates;
-            if (data.handState) {
-                result.handState = s.playerHandState(s.getPlayerById(playerId));
-            }
-            io.sockets.to(s.getSocketId(playerId)).emit('state-snapshot', result);
-        });
-
         // make sure host has a socketid associate with name (player who sent in login form)
 
         if (s.getModId() != null && s.getModId() === 6969) {
@@ -568,6 +592,7 @@ router.route('/:id').get((req, res) => {
         if (s.getModId(sid) != null){
             io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
         }
+        s.sendTableStateTo(socket.id, '');
         io.sockets.to(sid).emit('render-players', s.playersInfo());
         // highlight cards of player in action seat and get available buttons for players
         s.renderActionSeatAndPlayerActions();
@@ -625,10 +650,12 @@ router.route('/:id').get((req, res) => {
             } else {
                 console.log('buyin returned false for data:', JSON.stringify(data));
             }
+            s.sendTableState();
         });
 
         socket.on('straddle-switch', (data) => {
-            s.setPlayerStraddling(playerId, data.isStraddling)
+            s.setPlayerStraddling(playerId, data.isStraddling);
+            s.sendTableState();
         });
 
         socket.on('kick-player', (data) => {
@@ -656,8 +683,9 @@ router.route('/:id').get((req, res) => {
             console.log(`players in next hand: ${playersInNextHand}`);
             if (playersInNextHand >= 2 && playersInNextHand <= 10) {
                 s.startGame();
-                io.sockets.to(sid).emit('start-game');
                 s.begin_round();
+                s.sendTableState();
+                io.sockets.to(sid).emit('start-game');
             } else {
                 console.log("waiting on players");
             }

@@ -734,45 +734,17 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
-/**
- * {
- *     gameState: {
- *          //smallBlind: this.table.smallBlind,
-            //bigBlind: this.table.bigBlind,
-            dealer: this.getDealerSeat(),
-            actionSeat: this.actionSeat,
-            pot: this.getPot(),
-            street: this.getRoundName(),
-            board: this.getDeal()
- *     },
- *     playerStates: Array<{
-            playerName: p.playerName,
-            chips: p.chips,
-            folded: p.folded,
-            allIn: p.allIn,
-            talked: p.talked,
-            inHand: p.inHand,
-            bet: p.bet,
-            seat: p.seat,
-            leavingGame: p.leavingGame,
-       }>,
- *     handState: {
- *         cards: ['QH', '4S'],
- *         playerHandRank: 'Two Pair'
- *     }
- * }
- */
-function stateSnapshotHandler(data) {
-    // TODO: how should we deal with a player joining when street === 'showdown'
-    if (data.hasOwnProperty('gameState')) {
-        initializeGameState(data.gameState);
-    }
-    if (data.hasOwnProperty('playerStates'))
-        updatePlayers(data.playerStates);
-    if (data.hasOwnProperty('handState')) {
-        updateHand(data.handState);
-    }
-}
+// function stateSnapshotHandler(data) {
+//     // TODO: how should we deal with a player joining when street === 'showdown'
+//     if (data.hasOwnProperty('gameState')) {
+//         initializeGameState(data.gameState);
+//     }
+//     if (data.hasOwnProperty('playerStates'))
+//         updatePlayers(data.playerStates);
+//     if (data.hasOwnProperty('handState')) {
+//         updateHand(data.handState);
+//     }
+// }
 
 const whichStreet = (board) => {
     let street = 'deal';
@@ -941,27 +913,21 @@ class TableRenderer {
     }
 }
 
-function initializeGameState(data) {
-    if (data.hasOwnProperty('dealer'))
-        setDealerSeat(data.dealer);
-    if (data.hasOwnProperty('actionSeat'))
-        setActionSeat(data.actionSeat);
-    if (data.hasOwnProperty('pot'))
-        updatePot(data.pot);
-    if (data.hasOwnProperty('street'))
-        dealStreet(data);
+// function initializeGameState(data) {
+//     if (data.hasOwnProperty('dealer'))
+//         setDealerSeat(data.dealer);
+//     if (data.hasOwnProperty('actionSeat'))
+//         setActionSeat(data.actionSeat);
+//     if (data.hasOwnProperty('pot'))
+//         updatePot(data.pot);
+//     if (data.hasOwnProperty('street'))
+//         dealStreet(data);
+//
+// }
 
-}
-function updatePlayers(players) {
-    for (let i=0; i < players.length; i++) {
-        const p = players[i];
-        if (p.folded || (p.hasOwnProperty('inHand') && !p.inHand)) outHand(p.seat);
-        else showBet(p.seat, p.bet);
-
-    }
-}
-function updateHand(data) {
-
+let unrendederedState = null; // not used for rendering.
+function setState(data) {
+    unrendederedState = data;
 }
 
 let renderer = new TableRenderer(null, null); //TODO: properly instantiate
@@ -977,9 +943,8 @@ socket.on('update-self', (data) => {
     renderer.player = data.player;
 });
 
-socket.on('state-snapshot', stateSnapshotHandler);
-
-socket.on('update-state', stateSnapshotHandler);
+socket.on('state-snapshot', setState)
+// socket.on('update-state', stateSnapshotHandler);
 
 socket.on('init-table', initializeTable);
 

@@ -47,6 +47,24 @@ class TableState {
         }
     }
 
+    getPublicInfo() {
+        return {
+            smallBlind: this.smallBlind,
+            bigBlind: this.bigBlind,
+            allPlayers: this.playerStates,
+            dealer: this.dealer,
+            currentPlayer: this.currentPlayer,
+            minBuyIn: this.minBuyIn,
+            maxBuyIn: this.maxBuyIn,
+            straddleLimit: this.straddleLimit,
+            game: this.game.getPublicInfo(),
+        }
+    }
+
+    get playerStates() {
+        return this.allPlayers.map(p => p === null ? null: p.getPublicInfo());
+    }
+
     get players() {
         return this.allPlayers.filter(p => p !== null && p.inHand);
     }
@@ -791,17 +809,45 @@ function turnCards(table, count) {
     // table.eventEmitter.emit( "deal" );
 }
 
-function Game(smallBlind, bigBlind) {
-    this.smallBlind = smallBlind;
-    this.bigBlind = bigBlind;
-    this.pot = 0;
-    this.roundName = 'deal'; //Start the first round
-    this.betName = 'bet'; //bet,raise,re-raise,cap
-    this.roundBets = [];
-    this.deck = [];
-    this.board = [];
-    fillDeck(this.deck);
+class Game {
+    constructor(smallBlind, bigBlind) {
+        this.smallBlind = smallBlind;
+        this.bigBlind = bigBlind;
+        this.pot = 0;
+        this.roundName = 'deal'; //Start the first round
+        this.betName = 'bet'; //bet,raise,re-raise,cap
+        this.roundBets = [];
+        this.deck = [];
+        this.board = [];
+        fillDeck(this.deck);
+    }
+
+    getPublicInfo() {
+        // everything except for this.deck
+        return {
+            smallBlind: this.smallBlind,
+            bigBlind: this.bigBlind,
+            pot: this.pot,
+            roundName: this.roundName,
+            roundBets: this.roundBets,
+            board: this.board,
+        }
+    }
 }
+
+// function Game(smallBlind, bigBlind) {
+//     this.smallBlind = smallBlind;
+//     this.bigBlind = bigBlind;
+//     this.pot = 0;
+//     this.roundName = 'deal'; //Start the first round
+//     this.betName = 'bet'; //bet,raise,re-raise,cap
+//     this.roundBets = [];
+//     this.deck = [];
+//     this.board = [];
+//     fillDeck(this.deck);
+//
+//
+// }
 
 /*
  * Helper Methods Public
