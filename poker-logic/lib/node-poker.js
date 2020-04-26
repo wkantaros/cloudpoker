@@ -588,7 +588,7 @@ function checkForWinner(table) {
     let part = getSidePotBet(table, winners);
     let prize = getSidePotPrize(table, part);
 
-    const winnerPrize = Math.floor(prize / winners.length);
+    const winnerPrize =prize / winners.length;
     // TODO: make the next pot start with extraChips, not 0.
     // const extraChips = prize - (winnerPrize * winners.length);
     for (let i = 0; i < winners.length; i += 1) {
@@ -607,7 +607,7 @@ function checkForWinner(table) {
         console.log('player ' + table.players[winners[i]].playerName + ' wins !!');
     }
 
-    let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length > 0;
+    let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length === 0;
     if (roundEnd === false) {
         checkForWinner(table);
     }
