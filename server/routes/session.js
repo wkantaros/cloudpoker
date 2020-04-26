@@ -230,7 +230,7 @@ class SessionManager extends TableManager {
                 time = 3000;
             }
             console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-            let playersInHand = this.players.filter(p=>p.allIn || !p.folded).map(p=>{
+            let playersInHand = this.table.players.filter(p=>p.allIn || !p.folded).map(p=>{
                 return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
             });
             this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand);
