@@ -142,16 +142,26 @@ class SessionManager extends TableManager {
     }
 
     addPlayer(playerName) {
+        this.sendTableState();
+
+        const socketId = this.getSocketId(this.getPlayerId(playerName));
         const newPlayer = this.table.getPlayer(playerName);
-        this.io.sockets.to(this.sid).emit('update-player', {player: newPlayer.getPublicInfo(), buyIn: true});
+        if (newPlayer.isMod) this.io.sockets.to(socketId).emit('add-mod-abilities');
+        this.io.sockets.to(this.sid).emit('buy-in', {
+            playerName: playerName,
+            stack: newPlayer.chips,
+        });
+        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        this.renderActionSeatAndPlayerActions()
+
+        // this.io.sockets.to(this.sid).emit('update-player', {player: newPlayer.getPublicInfo(), buyIn: true});
         // send user their private data. set buyIn to false so buy in message does not get logged twice.
-        this.io.sockets.to(this.getSocketId(this.getPlayerId(newPlayer.playerName))).emit('update-self', {player: newPlayer, buyIn: false});
+        // this.io.sockets.to(socketId).emit('update-self', {player: newPlayer, buyIn: false});
         // io.sockets.to(sid).emit('buy-in', data);
         // TODO: do not send playersInfo to front end. it contains secure playerIds.
         // io.sockets.to(sid).emit('render-players', s.playersInfo());
         // // highlight cards of player in action seat and get available buttons for players
         // s.renderActionSeatAndPlayerActions();
-        this.sendTableState();
     }
 
     kickPlayer(playerId) {

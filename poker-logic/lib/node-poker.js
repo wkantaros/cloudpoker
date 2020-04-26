@@ -91,6 +91,11 @@ class TableState {
         return [];
     };
 
+    /**
+     *
+     * @param playerName
+     * @return {Player|null}
+     */
     getPlayer( playerName ){
         const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
         if (i >= 0) return this.allPlayers[i];

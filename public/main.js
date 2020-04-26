@@ -783,10 +783,10 @@ function Game(smallBlind, bigBlind) {
  * @param {Game|null} game
  */
 function initializeTable({smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game}) {
-    let table = new TableState(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game);
-    let tableManager = new TableStateManager(table, game !== null);
-    let renderer = new TableRenderer(tableManager, null);
-    renderer.initialize();
+    // let table = new TableState(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game);
+    // let tableManager = new TableStateManager(table, game !== null);
+    // let renderer = new TableRenderer(tableManager, null);
+    // renderer.initialize();
 }
 
 class TableRenderer {
@@ -932,20 +932,20 @@ function setState(data) {
     tableState = data;
 }
 
-let renderer = new TableRenderer(null, null); //TODO: properly instantiate
-socket.on('update-player', (data) => {
-    renderer.updatePlayer(data.player);
-    if (data.buyIn) {
-        feedback.innerHTML = '';
-        message_output.innerHTML += '<p><em>' + data.playerName + ' buys in for ' + data.stack +'</em></p>';
-    }
-});
-socket.on('update-self', (data) => {
-    renderer.updatePlayer(data);
-    renderer.player = data.player;
-});
+// let renderer = new TableRenderer(null, null); //TODO: properly instantiate
+// socket.on('update-player', (data) => {
+//     renderer.updatePlayer(data.player);
+//     if (data.buyIn) {
+//         feedback.innerHTML = '';
+//         message_output.innerHTML += '<p><em>' + data.playerName + ' buys in for ' + data.stack +'</em></p>';
+//     }
+// });
+// socket.on('update-self', (data) => {
+//     renderer.updatePlayer(data);
+//     renderer.player = data.player;
+// });
 
-socket.on('state-snapshot', setState)
+socket.on('state-snapshot', setState);
 // socket.on('update-state', stateSnapshotHandler);
 
 socket.on('init-table', initializeTable);
