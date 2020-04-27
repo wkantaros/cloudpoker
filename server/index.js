@@ -24,7 +24,6 @@ app.set('view engine', 'ejs');
 app.use(cors());
 app.use(express.json());
 app.use('/public', express.static(__dirname + '/../public'));
-app.use('/sharedjs', express.static(__dirname + '/../sharedjs'));
 
 //handling login
 const loginRouter = require('./routes/login');

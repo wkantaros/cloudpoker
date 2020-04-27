@@ -1,15 +1,17 @@
 const {rankHandInt} = require('../poker-logic/lib/deck');
 const {Hand} = require('../poker-logic/lib/node-poker');
 
-class TableStateManager {
-    /**
-     *
-     * @param {TableState} table
-     * @param {boolean} gameInProgress
-     */
-    constructor(table, gameInProgress) {
+class TableManager {
+    constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
         this.table = table;
-        this.gameInProgress = gameInProgress;
+        this.hostName = hostName;
+        this.hostStack = hostStack;
+        this.gameInProgress = false;
+        this.trackBuyins = [];
+        this.playerids = {};
+        table.AddPlayer(hostName, hostStack, hostIsStraddling);
+        this.addToPlayerIds(hostName, playerid);
+        this.addToBuyins(hostName, playerid, hostStack);
     }
 
     get gameState() {
@@ -25,125 +27,27 @@ class TableStateManager {
     }
 
     get playerStates() {
-        return this.table.playerStates;
+        return this.table.allPlayers.filter(p => p !== null).map(p => {
+            return {
+                playerName: p.playerName,
+                chips: p.chips,
+                folded: p.folded,
+                allIn: p.allIn,
+                talked: p.talked,
+                inHand: p.inHand,
+                bet: p.bet,
+                seat: p.seat,
+                leavingGame: p.leavingGame,
+            }})
     }
 
     get bigBlindSeat() {
-        return this.table.bigBlindSeat;
+        const t = this.table;
+        return t.players[(t.dealer + 2) % t.players.length].seat;
     };
-
-    get actionSeat() {
-        if (this.gameInProgress){
-            return this.table.actionSeat;
-        } else {
-            return -1;
-        }
-    }
 
     get allIn() {
         return this.table.allPlayers.map(p => p != null && p.inHand && p.allIn);
-    }
-
-    playersInNextHand () {
-        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
-    }
-
-    getStraddleLimit() {
-        return this.table.straddleLimit;
-    };
-
-    getRoundName() {
-        if (this.gameInProgress){
-            return this.table.game.roundName.toLowerCase();
-        } else {
-            return 'deal';
-        }
-    }
-
-    getDeal() {
-        return this.table.getDeal();
-    }
-
-    getDealerSeat() {
-        // console.log('GET DEALER');
-        // console.log(this.table);
-        // console.log('----------');
-        if (this.gameInProgress) {
-            const t = this.table;
-            return t.players[t.dealer].seat;
-        } else {
-            return -1;
-        }
-    }
-
-    getPot() {
-        return this.gameInProgress ? this.table.game.pot : 0;
-    }
-
-    checkwin() {
-        return this.table.checkwin();
-    }
-
-    getLosers() {
-        let losers = this.table.getLosers();
-        console.log('losers!');
-        console.log(losers);
-        return losers;
-    }
-
-    getPlayer(playerName) {
-        return this.table.getPlayer(playerName);
-    }
-
-    getPlayerBySeat(seat) {
-        const p = this.table.allPlayers[seat];
-        if (p) return p.playerName;
-        return 'guest';
-    }
-
-    getPlayerSeat(playerName) {
-        const p = this.table.getPlayer(playerName);
-        if (p) return p.seat;
-        return -1;
-    };
-
-    getBet (playerName) {
-        if (!this.gameInProgress) return 0;
-        return this.table.getPlayer(playerName).bet;
-    }
-
-    getStack(playerName) {
-        const p = this.table.getPlayer(playerName);
-        if (!p) return -1;
-        return p.chips;
-    }
-
-    getNameByActionSeat() {
-        let seat = this.actionSeat;
-        if (seat === -1) return 'guest';
-        return this.table.allPlayers[seat].playerName;
-    };
-}
-
-class TableManager extends TableStateManager {
-    /**
-     *
-     * @param {Table} table
-     * @param {string} hostName
-     * @param {number} hostStack
-     * @param {boolean} hostIsStraddling
-     * @param {*} playerid
-     */
-    constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
-        super(table, false);
-        this.hostName = hostName;
-        this.hostStack = hostStack;
-        this.trackBuyins = [];
-        this.playerids = {};
-        table.AddPlayer(hostName, hostStack, hostIsStraddling);
-        table.getPlayer(hostName).isMod = true;
-        this.addToPlayerIds(hostName, playerid);
-        this.addToBuyins(hostName, playerid, hostStack);
     }
 
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
@@ -151,10 +55,6 @@ class TableManager extends TableStateManager {
     addToPlayerIds(playerName, playerid) {
         this.playerids[playerName] = {playerid};
     }
-
-    isPlayerNameUsed(playerName) {
-        return Object.keys(this.playerids).includes(playerName)
-    };
 
     addToBuyins(playerName, playerid, playerStack) {
         let obj = {
@@ -244,21 +144,15 @@ class TableManager extends TableStateManager {
 
     transferHost(newHostName) {
         console.log(this.playerids);
-        const previousHost = this.getPlayer(this.hostName);
-        if (previousHost !== null) {
-            previousHost.isMod = false;
-        }
         if (newHostName in this.playerids){
             this.hostName = newHostName;
             this.hostStack = this.getStack(newHostName);
-            this.table.getPlayer(newHostName).isMod = true;
             console.log('successfully transferred host to ' + newHostName);
             return true;
         } else if (Object.keys(this.playerids).length > 0) {
             const playerName = Object.keys(this.playerids)[0];
             this.hostName = playerName;
             this.hostStack = this.getStack(playerName);
-            this.table.getPlayer(playerName).isMod = true;
             console.log('transferred host to ' + playerName);
             return true;
         } else {
@@ -268,6 +162,25 @@ class TableManager extends TableStateManager {
         }
         return false;
     }
+
+    getLosers() {
+        let losers = this.table.getLosers();
+        console.log('losers!');
+        console.log(losers);
+        return losers;
+    }
+
+    playersInNextHand () {
+        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
+    }
+
+    isPlayerNameUsed(playerName) {
+        return Object.keys(this.playerids).includes(playerName)
+    };
+
+    getStraddleLimit() {
+        return this.table.straddleLimit;
+    };
 
     getPlayerId(playerName) {
         if (Object.keys(this.playerids).includes(playerName))
@@ -304,6 +217,18 @@ class TableManager extends TableStateManager {
         }
         return 'guest';
     }
+
+    getPlayerBySeat(seat) {
+        const p = this.table.allPlayers[seat];
+        if (p) return p.playerName;
+        return 'guest';
+    }
+
+    getPlayerSeat(playerName) {
+        const p = this.table.getPlayer(playerName);
+        if (p) return p.seat;
+        return -1;
+    };
 
     updatePlayerId(playerName, playerid) {
         let oldplayerid = this.playerids[playerName].playerid;
@@ -355,6 +280,17 @@ class TableManager extends TableStateManager {
         return info;
     };
 
+    getBet (playerName) {
+        if (!this.gameInProgress) return 0;
+        return this.table.getPlayer(playerName).bet;
+    }
+
+    getStack(playerName) {
+        const p = this.table.getPlayer(playerName);
+        if (!p) return -1;
+        return p.chips;
+    }
+
     startGame() {
         this.gameInProgress = true;
         this.table.StartGame();
@@ -368,6 +304,47 @@ class TableManager extends TableStateManager {
 
     getCardsByPlayerName(playerName) {
         return this.table.getHandForPlayerName(playerName);
+    }
+
+    get actionSeat() {
+        if (this.gameInProgress){
+            const t = this.table;
+            return t.players[t.currentPlayer].seat;
+        } else {
+            return -1;
+        }
+    }
+
+    getDealerSeat() {
+        // console.log('GET DEALER');
+        // console.log(this.table);
+        // console.log('----------');
+        if (this.gameInProgress) {
+            const t = this.table;
+            return t.players[t.dealer].seat;
+        } else {
+            return -1;
+        }
+    }
+
+    getPot() {
+        return this.gameInProgress ? this.table.game.pot : 0;
+    }
+
+    checkwin() {
+        return this.table.checkwin();
+    }
+
+    getRoundName() {
+        if (this.gameInProgress){
+            return this.table.game.roundName.toLowerCase();
+        } else {
+            return 'deal';
+        }
+    }
+
+    getDeal() {
+        return this.table.getDeal();
     }
 
     callBlind(playerName) {
@@ -423,7 +400,6 @@ class TableManager extends TableStateManager {
         this.table.getPlayer(playerName).GetChips(winnings);
     }
 
-    // Idk why this returns bigBlind if game is not in progress. I don't want to break anything.
     get maxBet() {
         if (this.gameInProgress)
             return this.table.getMaxBet();
@@ -431,12 +407,26 @@ class TableManager extends TableStateManager {
             return this.table.bigBlind;
     };
 
+    getNameByActionSeat() {
+        let seat = this.actionSeat;
+        if (seat === -1) return 'guest';
+        return this.table.allPlayers[seat].playerName;
+    };
+
     // return an array of seat, bet objects
     // may lead to a bug down the line still unsure
     getInitialBets() {
-        return this.table.players.filter(p=>p.bet > 0).map(p=> {
-            return {seat: p.seat, bet: p.bet,}
-        });
+        let bets = this.table.players.map(x => x.bet);
+        let toReturn = [];
+        for (let i = 0; i < bets.length; i++){
+            if (bets[i]){
+                toReturn.push({
+                    seat: this.table.players[i].seat,
+                    bet: bets[i]
+                });
+            }
+        }
+        return toReturn;
     }
 
     getWinners() {
@@ -456,18 +446,58 @@ class TableManager extends TableStateManager {
             'straddle-switch': this.getStraddleLimit() !== 0,
         };
 
+        let canPerformPremoves = false;
         // if player is at the table
         if (this.isActivePlayerId(playerid)){
-            if (this.gameInProgress) {
-                return this.table.getAvailableActions(this.getPlayerById(playerid));
-            }
+            // console.log('player at table');
             // case where game hasnt started yet, player is mod and there are enough players
-            else if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
+            if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
                 console.log('game can start');
                 availableActions['start'] = true;
             }
+            // cases where it's the player's action and game is in progress
+            else if (this.gameInProgress && (this.actionSeat === this.getPlayerSeat(this.getPlayerById(playerid)))) {
+                // player is in big blind
+                if (this.actionSeat === this.bigBlindSeat && this.maxBet === this.table.bigBlind && this.getRoundName() === 'deal') {
+                    availableActions['check'] = true;
+                    availableActions['raise'] = true;
+                    availableActions['fold'] = true;
+                    availableActions['your-action'] = true;
+                }
+                // bet on table
+                else if (this.maxBet){
+                    availableActions['call'] = true;
+                    availableActions['raise'] = true;
+                    availableActions['fold'] = true;
+                    availableActions['your-action'] = true;
+                }
+                // no bets yet
+                else {
+                    availableActions['check'] = true;
+                    availableActions['bet'] = true;
+                    availableActions['min-bet'] = true;
+                    availableActions['fold'] = true;
+                    availableActions['your-action'] = true;
+                }
+            }
+            // cases where its not the players action and game is in progress
+            else if (this.gameInProgress) {
+                let playerName = this.getPlayerById(playerid);
+                let playerFolded = this.table.getPlayer(playerName).folded;
+                let playerAllIn = this.allIn[this.getPlayerSeat(playerName)];
+                // if (getTableById(sid).table.getPlayer(playerName) == null) {
+                //     console.log('player waiting for seat');
+                //     canPerformPremoves = false
+                // } else {
+                //     playerFolded = getTableById(sid).table.getPlayer(playerName).folded;
+                //     playerAllIn = getTableById(sid).allIn[getPlayerSeat(sid, playerName)];
+                // }
+                if (!playerFolded && !playerAllIn){
+                    canPerformPremoves = true;
+                }
+            }
         }
-        return {availableActions: availableActions, canPerformPremoves: false};
+        return {availableActions, canPerformPremoves};
     }
 
     // if thats the case, just call and move forward with game
@@ -482,8 +512,10 @@ class TableManager extends TableStateManager {
         }
     }
 
-    isEveryoneAllIn() {
-        return this.table.isEveryoneAllIn();
+    everyoneAllIn() {
+        const playersIn = this.table.players.filter(p=>!p.folded);
+        const playersWhoCanAct = playersIn.filter(p=>!p.allIn);
+        return playersIn.length >= 2 && playersWhoCanAct.length <= 1;
     }
 
     playerFolded(playerName) {
@@ -495,5 +527,4 @@ class TableManager extends TableStateManager {
     }
 }
 
-module.exports.TableStateManager = TableStateManager;
 module.exports.TableManager = TableManager;
