@@ -1,5 +1,6 @@
-import {TableState, Player} from "../poker-logic";
-import {TableStateManager} from "../server/server-logic";
+// import {TableState} from "../poker-logic";
+// import {TableStateManager} from "../server/server-logic";
+const {TableState, Player} = require('../sharedjs');
 
 let socket = io();
 
@@ -168,6 +169,16 @@ function copyStringToClipboard(str) {
     document.body.removeChild(el);
 }
 
+const getMaximumAllowedBet = () => {
+    if (!tableState.gameInProgress || !tableState.player) return 0;
+    return Math.min(tableState.player.chips, tableState.table.maxBetPossible(tableState.player.playerName));
+};
+
+const getMinimumAllowedBet = () => {
+    if (!tableState.gameInProgress || !tableState.player) return 0;
+    return Math.min(tableState.player.chips, tableState.table.minimumBet(tableState.player.playerName));
+};
+
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
@@ -198,10 +209,14 @@ $('#bet').on('click', () => {
         let output = document.getElementById("bet-input-val");
         slider.value = output.value;
         output.focus();
-        output.value = getBigBlind(); // Display the default slider value
-        slider.min = getBigBlind();
+        const minimum = getMinimumAllowedBet();
+        output.value = minimum; // Display the default slider value
+        // slider.min = getBigBlind();
+        slider.min = minimum;
 
-        slider.max = Math.min(tableState.player.chips, tableState.table.maxBetPossible());
+        // console.log(tableState);
+        // console.log('mbp', tableState.table.maxBetPossible(tableState.player.playerName));
+        slider.max = getMaximumAllowedBet();
         // slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
@@ -309,16 +324,13 @@ const handleRaiseSliderButtons = (outputVal) => {
 const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
-    let minBetAmount = getBigBlind();
-    let playerStack = getStack();
-    if (betAmount > playerStack) { // if player bet more than stack, go all in
-        betAmount = playerStack;
-    } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
-        if (playerStack <= minBetAmount) { // if player bet < stack <= min bet then must go all in b/c stack <= min bet
-            alert(`must go all in or fold. stack is less than minimum bet amount`);
-        } else {
-            alert(`minimum bet size is ${minBetAmount}`);
-        }
+    let minBetAmount = getMinimumAllowedBet();
+    let maxBetAmount = getMaximumAllowedBet();
+
+    if (betAmount > maxBetAmount) { // if player bet more than max amount, bet max amount
+        betAmount = maxBetAmount;
+    } else if (betAmount < minBetAmount) { // if player bet < min bet
+        alert(`minimum bet size is ${minBetAmount}`);
         return false;
     } else if (!betAmount) { // if player did not enter a bet
         alert(`minimum bet size is ${minBetAmount}`);
@@ -360,9 +372,14 @@ $('#raise').on('click', () => {
         let output = document.getElementById("raise-input-val");
         slider.value = output.value;
         output.focus();
-        output.value = getMinRaiseAmount(); // Display the default slider value
-        slider.min = getMinRaiseAmount();
-        slider.max = getStack();
+        console.log('ts', tableState);
+        const minAmount = Math.min(getMinRaiseAmount(), tableState.player.bet + tableState.player.chips);
+        output.value = minAmount; // Display the default slider value
+        slider.min = minAmount;
+        console.log('gmra', getMinRaiseAmount());
+        console.log('gs', getStack());
+        console.log('opms', tableState.table.otherPlayersMaxStack(tableState.player.playerName));
+        slider.max = Math.min(tableState.player.bet + tableState.player.chips, tableState.table.otherPlayersMaxStack(tableState.player.playerName));
 
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -866,11 +883,11 @@ class TableRenderer {
     renderPlayers() {
         for (let p of this.table.allPlayers) {
             if (p===null) return;
-            this.#renderPlayer(p);
+            this.renderPlayer(p);
         }
     }
 
-    #renderPlayer(p) {
+    renderPlayer(p) {
         let hand = document.getElementById(p.seat);
         hand.classList.remove('hidden');
         hand.querySelector('.username').innerHTML = p.playerName;
@@ -894,7 +911,7 @@ class TableRenderer {
     // TODO: call this on('buy-in')
     updatePlayer(player) {
         this.manager.table.allPlayers[player.seat] = player;
-        this.#renderPlayer(player);
+        this.renderPlayer(player);
     }
 
     renderBoard() {
@@ -927,9 +944,23 @@ class TableRenderer {
 //
 // }
 
-let tableState; // not used for rendering.
+let tableState = {}; // not used for rendering.
 function setState(data) {
-    tableState = data;
+    if (data.table) {
+        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+    }
+    if (data.player) {
+        tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
+        tableState.player.folded = data.player.folded;
+        tableState.player.allIn = data.player.allIn;
+        tableState.player.talked = data.player.talked;
+        tableState.player.inHand = data.player.inHand;
+        tableState.player.cards = data.player.cards;
+        tableState.player.bet = data.player.bet;
+        tableState.player.leavingGame = data.player.leavingGame;
+        tableState.player.showingCards = data.player.showingCards;
+    }
+    tableState.gameInProgress = data.gameInProgress;
 }
 
 // let renderer = new TableRenderer(null, null); //TODO: properly instantiate
@@ -1449,10 +1480,10 @@ const displayButtons = (data) => {
         $('.pm-btn').removeClass('pm');
         $('.pm-btn').addClass('collapse');
     }
-    let maxBetAmount = getMaxRoundBet();
     
     // active player keys
-    $('#call .number').html(maxBetAmount);
+    $('#call .number').html(getMaxRoundBet());
+    $('#min-bet .number').html(getMinimumAllowedBet());
     for (let key of Object.keys(data.availableActions)) {
         if (data.availableActions[key]){
             $(`#${key}`).removeClass('collapse');

@@ -483,9 +483,7 @@ class TableManager extends TableStateManager {
     }
 
     isEveryoneAllIn() {
-        const playersIn = this.table.players.filter(p=>!p.folded);
-        const playersWhoCanAct = playersIn.filter(p=>!p.allIn);
-        return playersIn.length >= 2 && playersWhoCanAct.length <= 1;
+        return this.table.isEveryoneAllIn();
     }
 
     playerFolded(playerName) {

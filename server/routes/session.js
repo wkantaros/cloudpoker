@@ -111,14 +111,14 @@ class SessionManager extends TableManager {
     }
 
     sendTableState() {
-        let data = {
-            table: this.table.getPublicInfo(),
-            gameInProgress: this.gameInProgress,
-            playerName: 'guest',
-        };
-        this.io.sockets.to(this.sid).emit('state-snapshot', data);
+        // let data = {
+        //     table: this.table.getPublicInfo(),
+        //     gameInProgress: this.gameInProgress,
+        // };
+        // this.io.sockets.to(this.sid).emit('state-snapshot', data);
         // send each active player
-        for (let p of this.table.players) {
+        for (let p of this.table.allPlayers) {
+            if (!p) continue;
             this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
         }
     }
@@ -137,7 +137,7 @@ class SessionManager extends TableManager {
         this.io.sockets.to(socketId).emit('state-snapshot', {
             table: table,
             gameInProgress: this.gameInProgress,
-            player: playerName,
+            player: p,
         });
     }
 
@@ -383,6 +383,7 @@ class SessionManager extends TableManager {
     }
 
     begin_round() {
+        this.sendTableState();
         this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: true});
         this.io.sockets.to(this.sid).emit('remove-out-players', {});
         this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
@@ -608,7 +609,6 @@ router.route('/:id').get((req, res) => {
         if (s.getModId(sid) != null){
             io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
         }
-        s.sendTableStateTo(socket.id, '');
         io.sockets.to(sid).emit('render-players', s.playersInfo());
         // highlight cards of player in action seat and get available buttons for players
         s.renderActionSeatAndPlayerActions();
@@ -632,6 +632,7 @@ router.route('/:id').get((req, res) => {
             // TODO: get returning player in sync with hand.
             //  render his cards, etc.
             console.log(`syncing ${s.getPlayerById(playerId)}`);
+            s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
             io.sockets.to(sid).emit('player-reconnect', {
                 playerName: s.getPlayerById(playerId),
             });
@@ -645,7 +646,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(playerName),
                 seat: s.getPlayerSeat(playerName),
-                handRankMessage: this.playerHandState(playerName).handRankMessage,
+                handRankMessage: s.playerHandState(playerName).handRankMessage,
             });
 
             // highlight cards of player in action seat and get available buttons for players
