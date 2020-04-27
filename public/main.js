@@ -1,7 +1,3 @@
-// import {TableState} from "../poker-logic";
-// import {TableStateManager} from "../server/server-logic";
-const {TableState, Player} = require('../sharedjs');
-
 let socket = io();
 
 let host = document.getElementById('host'),
@@ -18,7 +14,7 @@ let host = document.getElementById('host'),
     call = document.getElementById('call'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
-    minBet = document.getElementById('min-bet'),
+    minBet = document.getElementById('min-bet');
     straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
@@ -108,13 +104,13 @@ const logOut = () => {
 
 $('#buyin-btn').on('click', () => {
     console.log('here!');
-    let regex = RegExp(/^\w+(?:\s+\w+)*$/);
+    regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
         alert('name must be between 2 and 10 characters');
     } else if (!regex.test(playerName)){
         alert('no punctuation in username');
-    } else if (playerName === 'guest'){
+    } else if (playerName == 'guest'){
         alert("'guest' cannot be a username");
     } else if (alreadyExistingName(playerName)){
         alert('please enter a username that is not already at the table')
@@ -169,16 +165,6 @@ function copyStringToClipboard(str) {
     document.body.removeChild(el);
 }
 
-const getMaximumAllowedBet = () => {
-    if (!tableState.gameInProgress || !tableState.player) return 0;
-    return Math.min(tableState.player.chips, tableState.table.maxBetPossible(tableState.player.playerName));
-};
-
-const getMinimumAllowedBet = () => {
-    if (!tableState.gameInProgress || !tableState.player) return 0;
-    return Math.min(tableState.player.chips, tableState.table.minimumBet(tableState.player.playerName));
-};
-
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
@@ -209,15 +195,9 @@ $('#bet').on('click', () => {
         let output = document.getElementById("bet-input-val");
         slider.value = output.value;
         output.focus();
-        const minimum = getMinimumAllowedBet();
-        output.value = minimum; // Display the default slider value
-        // slider.min = getBigBlind();
-        slider.min = minimum;
-
-        // console.log(tableState);
-        // console.log('mbp', tableState.table.maxBetPossible(tableState.player.playerName));
-        slider.max = getMaximumAllowedBet();
-        // slider.max = getStack();
+        output.value = getBigBlind(); // Display the default slider value
+        slider.min = getBigBlind();
+        slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -324,13 +304,16 @@ const handleRaiseSliderButtons = (outputVal) => {
 const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
-    let minBetAmount = getMinimumAllowedBet();
-    let maxBetAmount = getMaximumAllowedBet();
-
-    if (betAmount > maxBetAmount) { // if player bet more than max amount, bet max amount
-        betAmount = maxBetAmount;
-    } else if (betAmount < minBetAmount) { // if player bet < min bet
-        alert(`minimum bet size is ${minBetAmount}`);
+    let minBetAmount = getBigBlind();
+    let playerStack = getStack();
+    if (betAmount > playerStack) { // if player bet more than stack, go all in
+        betAmount = playerStack;
+    } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
+        if (playerStack <= minBetAmount) { // if player bet < stack <= min bet then must go all in b/c stack <= min bet
+            alert(`must go all in or fold. stack is less than minimum bet amount`);
+        } else {
+            alert(`minimum bet size is ${minBetAmount}`);
+        }
         return false;
     } else if (!betAmount) { // if player did not enter a bet
         alert(`minimum bet size is ${minBetAmount}`);
@@ -372,14 +355,9 @@ $('#raise').on('click', () => {
         let output = document.getElementById("raise-input-val");
         slider.value = output.value;
         output.focus();
-        console.log('ts', tableState);
-        const minAmount = Math.min(getMinRaiseAmount(), tableState.player.bet + tableState.player.chips);
-        output.value = minAmount; // Display the default slider value
-        slider.min = minAmount;
-        console.log('gmra', getMinRaiseAmount());
-        console.log('gs', getStack());
-        console.log('opms', tableState.table.otherPlayersMaxStack(tableState.player.playerName));
-        slider.max = Math.min(tableState.player.bet + tableState.player.chips, tableState.table.otherPlayersMaxStack(tableState.player.playerName));
+        output.value = getMinRaiseAmount(); // Display the default slider value
+        slider.min = getMinRaiseAmount();
+        slider.max = getStack();
 
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -494,7 +472,9 @@ let placeRaise = () => {
 
 start_btn.addEventListener('click', () => {
     console.log('starting game');
-    socket.emit('start-game', {});
+    socket.emit('start-game', {
+        amount: 0
+    });
 });
 
 call.addEventListener('click', () => {
@@ -753,47 +733,86 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
-let tableState = {}; // not used for rendering.
-function setState(data) {
-    if (data.table) {
-        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+/**
+ * {
+ *     gameState: {
+ *          //smallBlind: this.table.smallBlind,
+            //bigBlind: this.table.bigBlind,
+            dealer: this.getDealerSeat(),
+            actionSeat: this.actionSeat,
+            pot: this.getPot(),
+            street: this.getRoundName(),
+            board: this.getDeal()
+ *     },
+ *     playerStates: Array<{
+            playerName: p.playerName,
+            chips: p.chips,
+            folded: p.folded,
+            allIn: p.allIn,
+            talked: p.talked,
+            inHand: p.inHand,
+            bet: p.bet,
+            seat: p.seat,
+            leavingGame: p.leavingGame,
+       }>,
+ *     handState: {
+ *         cards: ['QH', '4S'],
+ *         playerHandRank: 'Two Pair'
+ *     }
+ * }
+ */
+function stateResponseHandler(data) {
+    // TODO: how should we deal with a player joining when street === 'showdown'
+    if (data.hasOwnProperty('gameState')) {
+        updateGameState(data.gameState);
     }
-    if (data.player) {
-        tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
-        tableState.player.folded = data.player.folded;
-        tableState.player.allIn = data.player.allIn;
-        tableState.player.talked = data.player.talked;
-        tableState.player.inHand = data.player.inHand;
-        tableState.player.cards = data.player.cards;
-        tableState.player.bet = data.player.bet;
-        tableState.player.leavingGame = data.player.leavingGame;
-        tableState.player.showingCards = data.player.showingCards;
+    if (data.hasOwnProperty('playerStates'))
+        updatePlayers(data.playerStates);
+    if (data.hasOwnProperty('handState')) {
+        updateHand(data.handState);
     }
-    tableState.gameInProgress = data.gameInProgress;
 }
+function updateGameState(data) {
+    if (data.hasOwnProperty('dealer'))
+        setDealerSeat(data.dealer);
+    if (data.hasOwnProperty('actionSeat'))
+        setActionSeat(data.actionSeat);
+    if (data.hasOwnProperty('pot'))
+        updatePot(data.pot);
+    if (data.hasOwnProperty('street'))
+        dealStreet(data);
 
-socket.on('state-snapshot', setState);
+}
+function updatePlayers(players) {
+    for (let i=0; i < players.length; i++) {
+        const p = players[i];
+        if (p.folded || (p.hasOwnProperty('inHand') && !p.inHand)) outHand(p.seat);
+        else showBet(p.seat, p.bet);
 
-const addModAbilities = () => {
+    }
+}
+function updateHand(data) {
+
+}
+socket.on('state-response', stateResponseHandler);
+
+socket.on('update-state', stateResponseHandler);
+
+// add additional abilities for mod
+socket.on('add-mod-abilities', (data) => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
     $('#bomb-pot').removeClass('collapse');
     // TODO: show mod panel or set turn timer button
-};
-
-const removeModAbilities = () => {
-    $('#bomb-pot').addClass('collapse');
-    $('#start').addClass('collapse');
-};
-
-// add additional abilities for mod
-socket.on('add-mod-abilities', addModAbilities);
+});
 
 socket.on('bust', (data) => {
     logOut();
     // remove additional abilities for mod when mod leaves
-    if (data.removeModAbilities)
-        removeModAbilities();
+    if (data.removeModAbilities) {
+        $('#bomb-pot').addClass('collapse');
+        $('#start').addClass('collapse');
+    }
 });
 
 // remove additional abilities for mod when mod leaves
@@ -831,6 +850,7 @@ socket.on('buy-out', (data) => {
     // outHand(data.seat);
     $(`#${data.seat}`).addClass('out');
 });
+
 
 // render players at a table
 socket.on('render-players', (data) => {
@@ -1177,13 +1197,11 @@ socket.on('folds-through', function (data) {
     showWinnings(data.amount, data.seat);
 });
 
-const clearEarnings = () => {
+//remove earnings span from previous hand
+socket.on('clear-earnings', function (data) {
     $('.earnings').empty();
     $('.earnings').addClass('hidden');
-};
-
-//remove earnings span from previous hand
-socket.on('clear-earnings', clearEarnings);
+});
 
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
@@ -1273,10 +1291,10 @@ const displayButtons = (data) => {
         $('.pm-btn').removeClass('pm');
         $('.pm-btn').addClass('collapse');
     }
+    let maxBetAmount = getMaxRoundBet();
     
     // active player keys
-    $('#call .number').html(getMaxRoundBet());
-    $('#min-bet .number').html(getMinimumAllowedBet());
+    $('#call .number').html(maxBetAmount);
     for (let key of Object.keys(data.availableActions)) {
         if (data.availableActions[key]){
             $(`#${key}`).removeClass('collapse');
@@ -1338,9 +1356,7 @@ const inHand = () => {
     $('.back-card').removeClass('hidden');
 };
 
-// TODO: grey out the cards if folded is true to indicate which players
-// have folded
-const renderHand = (seat, cards, folded) => {
+const renderHand = (seat, cards) => {
         let leftCardRank = cards[0].charAt(0);
         let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
         let leftCardColor = getColor(cards[0].charAt(1));
