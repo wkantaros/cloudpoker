@@ -35,6 +35,10 @@
     color: #293132;
 }
 
+.card.folded {
+    background-color: #b2b2b2;
+}
+
 .card-topleft {
     font-family: 'Muli', sans-serif;
     position: absolute;

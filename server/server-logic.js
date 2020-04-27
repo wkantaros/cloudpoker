@@ -123,6 +123,36 @@ class TableStateManager {
         if (seat === -1) return 'guest';
         return this.table.allPlayers[seat].playerName;
     };
+    canPlayersRevealHand() {
+        return this.gameInProgress && this.table.canPlayersRevealHands();
+    }
+    getAvailableActions(playerName) {
+        let availableActions = {
+            'min-bet': false,
+            'bet': false,
+            'raise': false,
+            'fold': false,
+            'call': false,
+            'start': false,
+            'check': false,
+            'your-action': false,
+            'straddle-switch': this.getStraddleLimit() !== 0,
+            'show-hand': false,
+        };
+        const p = this.getPlayer(playerName);
+        // if player is at the table
+        if (p) {
+            if (this.gameInProgress) {
+                return this.table.getAvailableActions(playerName);
+            }
+            // case where game hasnt started yet, player is mod and there are enough players
+            else if (!this.gameInProgress && p.isMod && this.playersInNextHand().length >= 2) {
+                console.log('game can start');
+                availableActions['start'] = true;
+            }
+        }
+        return {availableActions: availableActions, canPerformPremoves: false};
+    }
 }
 
 class TableManager extends TableStateManager {
@@ -243,22 +273,17 @@ class TableManager extends TableStateManager {
     }
 
     transferHost(newHostName) {
-        console.log(this.playerids);
         const previousHost = this.getPlayer(this.hostName);
         if (previousHost !== null) {
             previousHost.isMod = false;
         }
         if (newHostName in this.playerids){
-            this.hostName = newHostName;
-            this.hostStack = this.getStack(newHostName);
-            this.table.getPlayer(newHostName).isMod = true;
+            this.setHost(newHostName);
             console.log('successfully transferred host to ' + newHostName);
             return true;
         } else if (Object.keys(this.playerids).length > 0) {
             const playerName = Object.keys(this.playerids)[0];
-            this.hostName = playerName;
-            this.hostStack = this.getStack(playerName);
-            this.table.getPlayer(playerName).isMod = true;
+            this.setHost(playerName);
             console.log('transferred host to ' + playerName);
             return true;
         } else {
@@ -267,6 +292,13 @@ class TableManager extends TableStateManager {
             console.log('no player to transfer game to :(');
         }
         return false;
+    }
+
+    // private method
+    setHost(playerName) {
+        this.hostName = playerName;
+        this.hostStack = this.getStack(playerName);
+        this.table.getPlayer(playerName).isMod = true;
     }
 
     getPlayerId(playerName) {
@@ -323,8 +355,8 @@ class TableManager extends TableStateManager {
             handRankMessage: '',
         };
         if (this.gameInProgress) {
-            const cards = p.cards.concat(this.table.game.board);
-            result.handRankMessage = rankHandInt(new Hand(cards)).message;
+            const playableCards = p.cards.concat(this.table.game.board);
+            result.handRankMessage = rankHandInt(new Hand(playableCards)).message;
         }
         return result;
     }
@@ -443,33 +475,6 @@ class TableManager extends TableStateManager {
         return this.table.getWinners();
     }
 
-    getAvailableActions(playerid) {
-        let availableActions = {
-            'min-bet': false,
-            'bet': false,
-            'raise': false,
-            'fold': false,
-            'call': false,
-            'start': false,
-            'check': false,
-            'your-action': false,
-            'straddle-switch': this.getStraddleLimit() !== 0,
-        };
-
-        // if player is at the table
-        if (this.isActivePlayerId(playerid)){
-            if (this.gameInProgress) {
-                return this.table.getAvailableActions(this.getPlayerById(playerid));
-            }
-            // case where game hasnt started yet, player is mod and there are enough players
-            else if (!this.gameInProgress && (this.getModId() === playerid) && this.playersInNextHand().length >= 2) {
-                console.log('game can start');
-                availableActions['start'] = true;
-            }
-        }
-        return {availableActions: availableActions, canPerformPremoves: false};
-    }
-
     // if thats the case, just call and move forward with game
     actionOnAllInPlayer() {
         let actionSeat = this.actionSeat;
@@ -486,7 +491,7 @@ class TableManager extends TableStateManager {
         return this.table.isEveryoneAllIn();
     }
 
-    playerFolded(playerName) {
+    hasPlayerFolded(playerName) {
         return this.table.getPlayer(playerName).folded;
     }
 

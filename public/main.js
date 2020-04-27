@@ -19,6 +19,7 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet'),
+    showHand = document.getElementById('show-hand'),
     straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
@@ -521,6 +522,11 @@ fold.addEventListener('click', () => {
     });
 });
 
+showHand.addEventListener('click', () => {
+    console.log('click show hand');
+    socket.emit('show-hand', {});
+});
+
 minBet.addEventListener('click', () => {
     console.log('min bet');
     console.log(getBigBlind());
@@ -678,6 +684,9 @@ $(document).keydown(function (event) {
     // f key (premove fold)
     if (event.keyCode === 70 && !$('#pm-fold').hasClass('collapse')){
         $('#pm-fold').click();
+    }
+    if (event.keyCode === 83 && $('#show-hand').hasClass('collapse')) {
+        $('#show-hand').click();
     }
 });
 
@@ -948,6 +957,9 @@ let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
         tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+        if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
+            displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
+        }
     }
     if (data.player) {
         tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
@@ -1135,10 +1147,11 @@ const hideBoardPreFlop = () => {
 };
 
 // when the players joins in the middle of a hand
-// data: {street, board, sound}
+// data: {street, board, sound, logIn}
 socket.on('sync-board', (data) => {
     $('.pm-btn').removeClass('pm');
-    logIn();
+    if (data.logIn)
+        logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     dealStreet(data);
@@ -1204,10 +1217,16 @@ socket.on('update-rank', (data) => {
     console.log(`hand rank update: ${data.handRankMessage}`)
 });
 
-// renders a players hand
+// renders a players hand. data is formatted like so:
+//{
+//  cards: ["4H","QD"],
+//  seat: 1,
+//  folded: false,
+//  handRankMessage: "High Card",
+// }
 socket.on('render-hand', (data) => {
-    console.log(data.cards);
-    renderHand(data.seat, data.cards);
+    console.log(data.cards, data.handRankMessage);
+    renderHand(data.seat, data.cards, data.folded);
 });
 
 // removes the waiting tag from player
@@ -1300,7 +1319,13 @@ socket.on('check', (data) => {
 socket.on('fold', (data) => {
     outputEmphasizedMessage(data.username + ' folds');
     playSoundIfVolumeOn('fold');
-    outHand(data.seat);
+
+    let cards = null;
+    if (data.seat === tableState.player.seat) {
+        cards = tableState.player.cards;
+    }
+    // renders grayed out cards if this user folded. renders turned-over grey cards if a different user folded.
+    renderCardsForSeat(cards, data.seat, false);
 });
 
 function outputMessage(s) {
@@ -1512,7 +1537,21 @@ const getSuitSymbol = (input) => {
     return 'yikes';
 };
 
-const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red'; 
+function renderCardsForSeat(cards, seat, inHand) {
+    console.log('c', cards);
+    // if we do not know what the card is, show the back side of the card.
+    if (!cards || cards.length < 1 || cards[0] === null) {
+        if (!inHand) {
+            outHand(seat);
+        } else {
+            renderCardbackForHand(seat);
+        }
+    } else {
+        renderHand(seat, cards, !inHand);
+    }
+}
+
+const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
 
 const flipCard = (name) => {
     setTimeout(() => {
@@ -1534,10 +1573,25 @@ const outHand = (seat) => {
     $(`#${seat}`).find('.card-bottomright').addClass('hidden');
 };
 
+// renderCardbackForHand does what inHand does but for one seat
+const renderCardbackForHand = (seat) => {
+    renderInHand($(`#${seat}`));
+};
+
+const renderInHand = (locator) => {
+    locator.find('.back-card').removeClass('waiting');
+    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
+    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
+    locator.find('.card-corner-rank').html('A');
+    locator.find('.card-corner-suit').html('S');
+    locator.find('.card-topleft').addClass('hidden');
+    locator.find('.card-bottomright').addClass('hidden');
+    locator.find('.back-card').removeClass('hidden');
+};
+
 const inHand = () => {
     $('.hand').find('.back-card').removeClass('waiting');
-    $('.hand').find('.back-card').removeClass('waiting');
-    $('.card').removeClass('red').addClass('black');
+    $('.card').removeClass('red').removeClass('folded').addClass('black');
     $('.card-corner-rank').html('A');
     $('.card-corner-suit').html('S');
     $('.card-topleft').addClass('hidden');
@@ -1548,33 +1602,29 @@ const inHand = () => {
 // TODO: grey out the cards if folded is true to indicate which players
 // have folded
 const renderHand = (seat, cards, folded) => {
-        let leftCardRank = cards[0].charAt(0);
-        let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
-        let leftCardColor = getColor(cards[0].charAt(1));
-        let rightCardRank = cards[1].charAt(0);
-        let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
-        let rightCardColor = getColor(cards[1].charAt(1));
-        $(`#${seat}`).find('.back-card').addClass('hidden');
-        $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
-        $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
-        $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
-        $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
-        $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
-        $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
-        $(`#${seat}`).find('.card-topleft').removeClass('hidden');
-        $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
-};
+    let leftCardRank = cards[0].charAt(0);
+    let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
+    let leftCardColor = getColor(cards[0].charAt(1));
+    let rightCardRank = cards[1].charAt(0);
+    let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
+    let rightCardColor = getColor(cards[1].charAt(1));
 
-const hideHand = (seat) => {
-    $(`#${seat}`).find('.back-card').removeClass('hidden');
-    $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
-    $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
-    $(`#${seat}`).find('.card-topleft').addClass('hidden');
-    $(`#${seat}`).find('.card-bottomright').addClass('hidden');
+    console.log('scf', seat, cards, folded);
+    if (folded) {
+        $(`#${seat}`).find('.card').addClass('folded');
+    } else {
+        $(`#${seat}`).find('.card').removeClass('folded');
+    }
+
+    $(`#${seat}`).find('.back-card').addClass('hidden');
+    $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
+    $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
+    $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
+    $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
+    $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
+    $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
+    $(`#${seat}`).find('.card-topleft').removeClass('hidden');
+    $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
 };
 
 const showWinnings = (winnings, seat) => {

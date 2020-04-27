@@ -87,14 +87,10 @@ class TableState {
     };
 
     /**
-     *
-     * @param playerName
      * @return {Player|null}
      */
     getPlayer( playerName ){
-        const i = this.allPlayers.findIndex(elem => elem !== null && elem.playerName === playerName);
-        if (i >= 0) return this.allPlayers[i];
-        return null;
+        return this.allPlayers.find(elem => elem !== null && elem.playerName === playerName) || null;
     };
     getDeal(){
         return this.game.board;
@@ -114,6 +110,10 @@ class TableState {
         const playersWhoCanAct = playersIn.filter(p=>!p.allIn);
         return playersIn.length >= 2 && playersWhoCanAct.length <= 1;
     }
+    // Precondition: A game is in progress.
+    canPlayersRevealHands() {
+        return this.game.roundName.toLowerCase() === 'showdown' || this.isEveryoneAllIn() || this.players.filter(p=>!p.folded).length <= 1
+    }
 
     // Precondition: A game is in progress.
     getAvailableActions(playerName) {
@@ -127,11 +127,14 @@ class TableState {
             'check': false,
             'your-action': false,
             'straddle-switch': this.straddleLimit !== 0,
+            'show-hand': false,
         };
 
         let canPerformPremoves = false;
         const p = this.getPlayer(playerName);
-        if (p === null || !p.inHand || p.folded)
+        availableActions['show-hand'] = p !== null && p.inHand && this.canPlayersRevealHands();
+        // no action can be performed if players can show hands because betting is over
+        if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
             return {availableActions, canPerformPremoves};
 
         // cases where it's the player's action

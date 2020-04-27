@@ -171,18 +171,13 @@ class SessionManager extends TableManager {
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
     playerLeaves(playerId) {
-        // if (!s.isActivePlayerId(playerId)) {
-        //     console.log(`error: ${playerId} is inactive but received leave-game.`);
-        //     return;
-        // }
-        if (!this.gameInProgress){
-            let playerName = super.getPlayerById(playerId);
+        let playerName = super.getPlayerById(playerId);
+        if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
             this.handlePlayerExit(playerName);
             // highlight cards of player in action seat and get available buttons for players
             this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
         } else {
-            let playerName = super.getPlayerById(playerId);
             let stack = super.getStack(playerName);
             let prev_round = super.getRoundName();
             console.log(`${playerName} leaves game for ${stack}`);
@@ -250,6 +245,7 @@ class SessionManager extends TableManager {
     check_round (prev_round) {
         let data = super.checkwin();
         this.sendTableState();
+
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
             // TODO: ANYONE CAN REVEAL HAND HERE
@@ -398,6 +394,7 @@ class SessionManager extends TableManager {
             this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
                 cards: super.getCardsByPlayerName(name),
                 seat: data[i].seat,
+                folded: false,
                 handRankMessage: this.playerHandState(name).handRankMessage,
             });
             this.io.sockets.to(this.sid).emit('update-stack', {
@@ -419,10 +416,10 @@ class SessionManager extends TableManager {
         });
         // get available actions for player to act
         // TODO: allow players to premove
-        let playerIds = super.getPlayerIds();
-        for (let i = 0; i < playerIds.length; i++){
-            let pid = playerIds[i];
-            this.io.sockets.to(this.getSocketId(pid)).emit('render-action-buttons', super.getAvailableActions(pid));
+        for (let playerName in this.playerids) {
+            if (this.playerids.hasOwnProperty(playerName)) {
+                this.io.sockets.to(this.getSocketId(this.playerids[playerName].playerid)).emit('render-action-buttons', super.getAvailableActions(playerName));
+            }
         }
     }
 
@@ -628,32 +625,39 @@ router.route('/:id').get((req, res) => {
             socket.broadcast.to(sid).emit('typing', s.getPlayerById(playerId));
         });
 
-        if (!isNewPlayer && s.gameInProgress) {
-            // TODO: get returning player in sync with hand.
-            //  render his cards, etc.
-            console.log(`syncing ${s.getPlayerById(playerId)}`);
-            s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
-            io.sockets.to(sid).emit('player-reconnect', {
-                playerName: s.getPlayerById(playerId),
-            });
+        s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
+        if (s.gameInProgress) {
             io.sockets.to(s.getSocketId(playerId)).emit('sync-board', {
+                logIn: !isNewPlayer, // only log in if player is returning (not new). otherwise, player is a guest.
                 street: s.getRoundName(),
                 board: s.getDeal(),
                 sound: false
             });
+        }
+
+        if (!isNewPlayer && s.gameInProgress) {
+            // TODO: get returning player in sync with hand.
+            //  render his cards, etc.
+            console.log(`syncing ${s.getPlayerById(playerId)}`);
+            io.sockets.to(sid).emit('player-reconnect', {
+                playerName: s.getPlayerById(playerId),
+            });
             // render player's hand
             const playerName = s.getPlayerById(playerId);
-            io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
-                cards: s.getCardsByPlayerName(playerName),
-                seat: s.getPlayerSeat(playerName),
-                handRankMessage: s.playerHandState(playerName).handRankMessage,
-            });
+            if (s.getPlayer(playerName).inHand) {
+                io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
+                    cards: s.getCardsByPlayerName(playerName),
+                    seat: s.getPlayerSeat(playerName),
+                    folded: s.hasPlayerFolded(playerName),
+                    handRankMessage: s.playerHandState(playerName).handRankMessage,
+                });
 
-            // highlight cards of player in action seat and get available buttons for players
-            s.renderActionSeatAndPlayerActions();
-            // Play sound for action seat player
-            if (s.getPlayerId(s.getNameByActionSeat()) === playerId) {
-                io.sockets.to(s.getSocketId(playerId)).emit('players-action-sound', {});
+                // highlight cards of player in action seat and get available buttons for players
+                s.renderActionSeatAndPlayerActions();
+                // Play sound for action seat player
+                if (s.getPlayerId(s.getNameByActionSeat()) === playerId) {
+                    io.sockets.to(s.getSocketId(playerId)).emit('players-action-sound', {});
+                }
             }
         }
 
@@ -671,6 +675,10 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('straddle-switch', (data) => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted straddle-switch but is not an active player`);
+                return;
+            }
             s.setPlayerStraddling(playerId, data.isStraddling);
             s.sendTableState();
         });
@@ -682,6 +690,10 @@ router.route('/:id').get((req, res) => {
         });
 
         socket.on('leave-game', (data) => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
+                return;
+            }
             s.playerLeaves(playerId);
         });
         
@@ -708,12 +720,38 @@ router.route('/:id').get((req, res) => {
             }
         });
 
+        socket.on('show-hand', () => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted show-hand but is not an active player`);
+                return;
+            }
+            const playerName = s.getPlayerById(playerId);
+            console.log(playerName, 'emits show-hand');
+            if (!s.canPlayersRevealHand()) {
+                console.log('players not allowed to reveal hand.');
+                return;
+            } else if (!s.getPlayer(playerName) || !s.getPlayer(playerName).inHand) {
+                console.log('player is null or not in hand');
+                return;
+            }
+            io.sockets.to(sid).emit('render-hand', {
+                cards: s.getCardsByPlayerName(playerName),
+                seat: s.getPlayerSeat(playerName),
+                folded: s.hasPlayerFolded(playerName),
+                handRankMessage: s.playerHandState(playerName).handRankMessage,
+            });
+        });
+
         socket.on('get-buyin-info', () => {
             console.log('here!mf');
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         })
         
         socket.on('action', (data) => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted action but is not an active player`);
+                return;
+            }
             // console.log(`data:\n${JSON.stringify(data)}`);
             let playerName = s.getPlayerById(playerId);
             if (!s.gameInProgress) {

@@ -72,10 +72,10 @@ class Table extends TableState{
         if( playerName === this.players[ currentPlayer ].playerName){
             console.log('here!');
             if (cancheck){
+                console.log(`${playerName} checks`);
                 this.players[currentPlayer].Check();
                 progress(this);
-                console.log(`${playerName} checks`);
-                progress(this);
+                // progress(this);
                 return true;
             } else {
                 console.log(`${playerName} unable to check`);
