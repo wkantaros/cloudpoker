@@ -368,11 +368,11 @@ h3 {
     /* background: #f00; */
 }
 
-#degen-poker {
+#deep-stack-poker {
     position: absolute;
     z-index: 1;
     left: 50%;
-    margin-left: -165px;
+    margin-left: -210px;
     text-align: center;
     font-size: 3em;
     color: rgba(85, 85, 85, 0.2);
