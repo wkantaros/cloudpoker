@@ -177,7 +177,7 @@ const getMaximumAllowedBet = () => {
 
 const getMinimumAllowedBet = () => {
     if (!tableState.gameInProgress || !tableState.player) return 0;
-    return Math.min(tableState.player.chips, tableState.table.minimumBet(tableState.player.playerName));
+    return Math.min(tableState.player.chips, tableState.table.minimumBetAllowed(tableState.player.playerName));
 };
 
 //action buttons ------------------------------------------------------------------------------------------------------------
@@ -830,10 +830,18 @@ class TableRenderer {
     }
 
     set player(v) {
-        if (v.isMod) {
-            addModAbilities();
+        if (v === null) {
+            logOut();
         } else {
-            removeModAbilities();
+            if (!loggedIn) {
+                logIn();
+            }
+            if (v.isMod) {
+                addModAbilities();
+            } else {
+                removeModAbilities();
+            }
+            renderHand(v.seat, )
         }
         this._player = v;
     }
@@ -851,7 +859,7 @@ class TableRenderer {
     }
 
     initialize() {
-        this.renderBoard();
+        this.renderBoard(false);
         this.renderPlayers();
         this.setActionSeat(this.manager.actionSeat);
         this.setDealer(this.manager.table.dealer);
@@ -923,11 +931,10 @@ class TableRenderer {
         this.renderPlayer(player);
     }
 
-    renderBoard() {
+    renderBoard(sound) {
         $('.pm-btn').removeClass('pm');
         let board = this.table.game ? this.table.game.board : [];
         let street = this.manager.getRoundName();
-        let sound = false;
         dealStreet({board, street, sound});
     }
 
@@ -1075,6 +1082,12 @@ socket.on('waiting', (data) => {
     }
 });
 
+function hideSeat(seat) {
+    $(`#${seat}`).addClass('hidden');
+    $(`#${seat}`).find('.username').text('guest');
+    $(`#${seat}`).find('.stack').text('stack');
+}
+
 // removes old players (that have busted or quit)
 socket.on('remove-out-players', (data) => {
     $('.out').each(function(){
@@ -1084,9 +1097,7 @@ socket.on('remove-out-players', (data) => {
     $('.out').addClass('hidden').removeClass('out');
     // if seat passed in remove it
     if (data.hasOwnProperty('seat')){
-        $(`#${data.seat}`).addClass('hidden');
-        $(`#${data.seat}`).find('.username').text('guest');
-        $(`#${data.seat}`).find('.stack').text('stack');
+        hideSeat(data.seat);
     }
 });
 

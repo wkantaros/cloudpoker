@@ -170,7 +170,7 @@ class TableState {
         return {availableActions, canPerformPremoves};
     }
 
-    minimumBet(playerName) {
+    minimumBetAllowed(playerName) {
         const player = this.getPlayer(playerName);
         if (player === null) return 0;
         if (player.bet + player.chips >= this.bigBlind) {
@@ -183,7 +183,7 @@ class TableState {
 
     otherPlayersMaxStack(playerName) {
         return Math.max(...this.players
-            .filter(p=>p.playerName !== playerName)
+            .filter(p=>p.playerName !== playerName && !p.folded)
             .map(x => x.bet + x.chips)
         );
     }
