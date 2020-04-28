@@ -782,10 +782,16 @@ main p {
     position: relative;
     /* background: #293132; */
     /* background: #272932; */
-    background: #272932;
+    /* background: #272932; */
+    background: #071013;
     background-image: radial-gradient(circle at top center,
+        #2f3637,
+        #071013 75%);
+    /* background-image: radial-gradient(circle at top center,
         #3e3e3e,
-        #071013);
+        #071013); */
+    /* background-size: 100% 70%; */
+    background-repeat: no-repeat;
     /* background-image: radial-gradient(circle at top center,
         #3e3e3e,
         #23252d); */

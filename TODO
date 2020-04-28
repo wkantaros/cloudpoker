@@ -107,6 +107,7 @@ DISTINGUISHING FEATURES FROM COMPETITORS:
     [ ] on all ins, show odds of winning (preflop, post flop, turn)
     [ ] ability to run it twice
     [ ] stores messages if you refresh page
+    [ ] ability to download game log (of just hands you've played in as well)
 
 GAME FEATURES TO ADD:
     [ ] implement tokyo
