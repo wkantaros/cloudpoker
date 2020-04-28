@@ -1,9 +1,10 @@
 body {
     /* dark slate grey */
-    background-color: #424C55;
-    background-color: rgb(41, 47, 53);
-    background-color: #272932;
-    /* background-color: #293132; */
+    /* background-color: #424C55;
+    background-color: rgb(41, 47, 53); */
+    background-color: #071013;
+    background-color: #101010;
+    /* background-color: #272932; */
     font-family: 'Lato', sans-serif;
     margin: 0;
     overflow-x: hidden;
@@ -15,7 +16,22 @@ body {
     max-width: 1200px;
     /* margin: 0 20px; */
     margin: 0 auto;
-    /* max-width: 960px; */
+    background-color: inherit;
+    border-radius: 10em 10em 80em 80em;
+}
+
+#backdrop {
+    height: 20em;
+    width: 55em;
+    background-color: #212121;
+    position: absolute;
+    z-index: -1;
+    bottom: 4em;
+    left: 6em;
+    border-radius: 50%;
+    -webkit-box-shadow: 0px 0px 40px 80px #151515a1;
+    -moz-box-shadow: 0px 0px 40px 80px #151515a1;
+    box-shadow: 0px 0px 40px 80px #151515a1;
 }
 
 #getLink {
@@ -146,8 +162,8 @@ h3 {
     width: 90%;
     height: 50rem;
     margin: 10px auto;
-    background-color: #1B3022;
-    background-color: rgb(52, 165, 127);
+    /* background-color: #1B3022;
+    background-color: rgb(52, 165, 127); */
     -moz-border-radius: 50% / 40rem;
     -webkit-border-radius: 50% / 40rem;
     border-radius: 50% / 40rem;
@@ -156,8 +172,15 @@ h3 {
         -webkit-border-radius: 60% / 30rem;
         border-radius: 60% / 30rem; */
 
-    border: 10px solid #555;
+    border: 10px solid rgba(85, 85, 85, 0);
 
+}
+
+#table-img {
+    background-image: url("/public/img/table.png");
+    background-size: 93% 100%;
+    background-position: 37.5% 0px;
+    background-repeat: no-repeat;
 }
 
 .button {
@@ -306,7 +329,8 @@ h3 {
     font-size: 3rem;
     /* border-radius: 8rem / 6rem; */
     border-radius: 6rem / 6rem;
-    margin: 0 auto;
+    margin: -1em auto 0;
+    /* margin: 0 auto; */
 }
 
 #pot-amount {
@@ -465,8 +489,10 @@ h3 {
     top: -1.6em;
     left: 60%;
     z-index: 1;
-    background-color: #272932;
-    border-radius: 25px;
+    /* background-color: #272932; */
+    background-color: #071013;
+    /* background-color: #272932; */
+    border-radius: 50%;
 }
 
 #bet .key-shrtct {
@@ -755,7 +781,14 @@ main p {
     resize: both;
     position: relative;
     /* background: #293132; */
+    /* background: #272932; */
     background: #272932;
+    background-image: radial-gradient(circle at top center,
+        #3e3e3e,
+        #071013);
+    /* background-image: radial-gradient(circle at top center,
+        #3e3e3e,
+        #23252d); */
     height: 100%;
     width: 98vw;
 }
