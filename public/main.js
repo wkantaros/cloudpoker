@@ -910,7 +910,7 @@ socket.on('render-timer', (data) => {
 });
 
 const showCard = (card, locator) => {
-    let cardRank = card.charAt(0);
+    let cardRank = (card.charAt(0) == 'T') ? '10' : card.charAt(0);
     let cardSuit = getSuitSymbol(card.charAt(1));
     let cardColor = getColor(card.charAt(1));
     $(locator).removeClass('black').addClass(cardColor);
@@ -1357,10 +1357,10 @@ const inHand = () => {
 };
 
 const renderHand = (seat, cards) => {
-        let leftCardRank = cards[0].charAt(0);
+        let leftCardRank = (cards[0].charAt(0) == 'T') ? '10' : cards[0].charAt(0);
         let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
         let leftCardColor = getColor(cards[0].charAt(1));
-        let rightCardRank = cards[1].charAt(0);
+        let rightCardRank = (cards[1].charAt(0) == 'T') ? '10' : cards[1].charAt(0);
         let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
         let rightCardColor = getColor(cards[1].charAt(1));
         $(`#${seat}`).find('.back-card').addClass('hidden');

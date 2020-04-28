@@ -323,14 +323,14 @@ h3 {
     /* height: 8rem; */
     height: 6rem;
     /* background-color: rgb(52, 165, 127); */
-    background-color: rgb(38, 121, 93);
+    background-color: rgba(38, 121, 93, 0.502);
     color: rgba(255, 255, 255, 0.863);
     text-align: center;
     font-size: 3rem;
     /* border-radius: 8rem / 6rem; */
     border-radius: 6rem / 6rem;
-    margin: -1em auto 0;
-    /* margin: 0 auto; */
+    /* margin: -1em auto 0; */
+    margin: 0 auto;
 }
 
 #pot-amount {
