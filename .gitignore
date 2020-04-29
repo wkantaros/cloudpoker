@@ -8,4 +8,7 @@
 node_modules/
 server/node_modules/
 
+public/bundle.js
+test.html
+
 ngrok
