@@ -135,7 +135,6 @@ class TableState {
         availableActions['show-hand'] = (p !== null) && p.inHand && this.canPlayersRevealHands();
         // no action can be performed if players can show hands because betting is over
         if (availableActions['show-hand']){
-            console.log('yo no way we\'re here')
             return {availableActions, canPerformPremoves};
         }
         // if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())

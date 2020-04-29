@@ -1855,3 +1855,8 @@ function openLog() {
 function closeLog() {
     document.getElementById("game-log").style.width = "0%";
 }
+
+$('#buyin-log-opn').click( () => openBuyin());
+$('#closeBuyin').click(() => closeBuyin());
+$('#game-log-opn').click(() => openLog());
+$('#closeLog').click(() => closeLog());
