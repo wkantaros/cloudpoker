@@ -1,20 +1,31 @@
 ranked in level of severity
 
-With show hand:
-    [ ] if a game ends (player busts for example) and I start a new game, the 'show hand' aciton is the only action
-    [ ] when a player calls an all-in and they start to race the action buttons should be removed
-    [ ] when an all in "runout" is occuring there should not be the show hand feature
+Bugs needing to be fixed before launch:
+    [ ] With show hand:
+        [ ] if a game ends (player busts for example) and I start a new game, the 'show hand' aciton is the only action
+        [ ] when a player calls an all-in and they start to race the action buttons should be removed
+        [ ] when an all in "runout" is occuring there should not be the show hand feature
 
-With premoves
-    [ ] if a player premove folds and the player before him folds it will still show a flop
+    [ ] With premoves
+        [ ] if a player premove folds and the player before him folds it will still show a flop
 
-With handrankmessage:
-    [ ] on all ins the handrankmessage doesnt appear
-    [ ] on all ins the handrankmessage doesnt update for user
-    [ ] handrankmessage stays if game ends bc of all in
+    [ ] With handrankmessage:
+        [ ] on all ins the handrankmessage doesnt appear
+        [ ] on all ins the handrankmessage doesnt update for user
+        [ ] handrankmessage stays if game ends bc of all in
 
-With refresh:
-    [ ] if somebody checked and I refresh the page, the 'check chip' shouldn't be removed from on the table
+Features needed to be added before launch:
+    [ ] host page
+        [ ] adjust blinds
+        [ ] remove player
+        [ ] update player stack
+    [ ] player stand up
+    [ ] straddle front end
+    [ ] move game log from chatroom to game log 
 
-Front end/style:
-    [ ] the max bet should be the largest stack still in the hand thats not your own
+Down the line bugs needing to be fixed:
+    With refresh:
+        [ ] if somebody checked and I refresh the page, the 'check chip' shouldn't be removed from on the table
+
+    Front end/style:
+        [ ] the max bet should be the largest stack still in the hand thats not your own
