@@ -5,6 +5,9 @@ With show hand:
     [ ] when a player calls an all-in and they start to race the action buttons should be removed
     [ ] when an all in "runout" is occuring there should not be the show hand feature
 
+With premoves
+    [ ] if a player premove folds and the player before him folds it will still show a flop
+
 With refresh:
     [ ] if somebody checked and I refresh the page, the 'check chip' shouldn't be removed from on the table
 

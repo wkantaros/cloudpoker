@@ -524,6 +524,7 @@ fold.addEventListener('click', () => {
 showHand.addEventListener('click', () => {
     console.log('click show hand');
     socket.emit('show-hand', {});
+    $('#show-hand').addClass('collapse');
 });
 
 minBet.addEventListener('click', () => {
@@ -684,7 +685,7 @@ $(document).keydown(function (event) {
     if (event.keyCode === 70 && !$('#pm-fold').hasClass('collapse')){
         $('#pm-fold').click();
     }
-    if (event.keyCode === 83 && $('#show-hand').hasClass('collapse')) {
+    if (event.keyCode === 83 && !$('#show-hand').hasClass('collapse')) {
         $('#show-hand').click();
     }
 });
@@ -1226,6 +1227,7 @@ const renderAllIn = (board) => {
 socket.on('update-rank', (data) => {
     // TODO: update rank on front end
     console.log(`hand rank update: ${data.handRankMessage}`)
+    renderHandRank(data.seat, data.handRankMessage);
 });
 
 // renders a players hand. data is formatted like so:
@@ -1236,8 +1238,10 @@ socket.on('update-rank', (data) => {
 //  handRankMessage: "High Card",
 // }
 socket.on('render-hand', (data) => {
+    console.log('rendering hand');
     console.log(data.cards, data.handRankMessage);
     renderHand(data.seat, data.cards, data.folded);
+    renderHandRank(data.seat, data.handRankMessage);
 });
 
 // removes the waiting tag from player
@@ -1602,12 +1606,15 @@ const renderInHand = (locator) => {
     locator.find('.card-topleft').addClass('hidden');
     locator.find('.card-bottomright').addClass('hidden');
     locator.find('.back-card').removeClass('hidden');
+    locator.find('.hand-rank-message-container').addClass('collapse');
 };
 
 const inHand = () => {
     $('.hand').find('.back-card').removeClass('waiting');
     $('.hand-rank-message').removeClass('waiting');
     $('.card').removeClass('red').removeClass('folded').addClass('black');
+    $('.hand-rank-message').removeClass('folded')
+    $('.hand-rank-message-container').addClass('collapse')
     $('.card-corner-rank').html('A');
     $('.card-corner-suit').html('S');
     $('.card-topleft').addClass('hidden');
@@ -1628,8 +1635,10 @@ const renderHand = (seat, cards, folded) => {
     console.log('scf', seat, cards, folded);
     if (folded) {
         $(`#${seat}`).find('.card').addClass('folded');
+        $(`#${seat}`).find('.hand-rank-message').addClass('folded');
     } else {
         $(`#${seat}`).find('.card').removeClass('folded');
+        $(`#${seat}`).find('.hand-rank-message').removeClass('folded');
     }
 
     $(`#${seat}`).find('.back-card').addClass('hidden');
@@ -1642,6 +1651,16 @@ const renderHand = (seat, cards, folded) => {
     $(`#${seat}`).find('.card-topleft').removeClass('hidden');
     $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
 };
+
+const renderHandRank = (seat, handRankMessage) => {
+    // hacky fix
+    if (!handRankMessage) {
+        console.log('here oh no!');
+        handRankMessage = "high card";
+    }
+    $(`#${seat}`).find('.hand-rank-message-container').removeClass('collapse');
+    $(`#${seat}`).find('.hand-rank-message').html(handRankMessage);
+}
 
 const showWinnings = (winnings, seat) => {
     console.log('show winnings');

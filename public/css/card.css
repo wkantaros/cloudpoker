@@ -97,11 +97,7 @@
     border: 1.5px solid #fff;
 }
 
-.back-card.waiting {
-    filter: grayscale(100%);
-}
-
-.hand-rank-message.waiting {
+.waiting {
     filter: grayscale(100%);
 }
 
