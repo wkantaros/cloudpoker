@@ -37,6 +37,10 @@
     /* color: #293132; */
 }
 
+.folded {
+    filter: grayscale(100%);
+}
+
 .card-topleft {
     /* font-family: 'Muli', sans-serif; */
     font-weight: bold;

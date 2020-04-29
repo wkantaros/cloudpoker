@@ -1,3 +1,7 @@
+// import {TableState} from "../poker-logic";
+// import {TableStateManager} from "../server/server-logic";
+const {TableState, Player} = require('../sharedjs');
+
 let socket = io();
 
 let host = document.getElementById('host'),
@@ -14,7 +18,8 @@ let host = document.getElementById('host'),
     call = document.getElementById('call'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
-    minBet = document.getElementById('min-bet');
+    minBet = document.getElementById('min-bet'),
+    showHand = document.getElementById('show-hand'),
     straddleSwitch = document.getElementById('straddle-switch');
     // standup = document.getElementById('standup-btn');
 
@@ -104,13 +109,13 @@ const logOut = () => {
 
 $('#buyin-btn').on('click', () => {
     console.log('here!');
-    regex = RegExp(/^\w+(?:\s+\w+)*$/);
+    let regex = RegExp(/^\w+(?:\s+\w+)*$/);
     let playerName = newPlayer.value.trim();
     if (playerName.length < 2 || playerName.length > 10) {
         alert('name must be between 2 and 10 characters');
     } else if (!regex.test(playerName)){
         alert('no punctuation in username');
-    } else if (playerName == 'guest'){
+    } else if (playerName === 'guest'){
         alert("'guest' cannot be a username");
     } else if (alreadyExistingName(playerName)){
         alert('please enter a username that is not already at the table')
@@ -165,6 +170,16 @@ function copyStringToClipboard(str) {
     document.body.removeChild(el);
 }
 
+const getMaximumAllowedBet = () => {
+    if (!tableState.gameInProgress || !tableState.player) return 0;
+    return Math.min(tableState.player.chips, tableState.table.maxBetPossible(tableState.player.playerName));
+};
+
+const getMinimumAllowedBet = () => {
+    if (!tableState.gameInProgress || !tableState.player) return 0;
+    return Math.min(tableState.player.chips, tableState.table.minimumBetAllowed(tableState.player.playerName));
+};
+
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
 //action buttons ------------------------------------------------------------------------------------------------------------
@@ -195,9 +210,15 @@ $('#bet').on('click', () => {
         let output = document.getElementById("bet-input-val");
         slider.value = output.value;
         output.focus();
-        output.value = getBigBlind(); // Display the default slider value
-        slider.min = getBigBlind();
-        slider.max = getStack();
+        const minimum = getMinimumAllowedBet();
+        output.value = minimum; // Display the default slider value
+        // slider.min = getBigBlind();
+        slider.min = minimum;
+
+        // console.log(tableState);
+        // console.log('mbp', tableState.table.maxBetPossible(tableState.player.playerName));
+        slider.max = getMaximumAllowedBet();
+        // slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -304,16 +325,13 @@ const handleRaiseSliderButtons = (outputVal) => {
 const placeBet = () => {
     console.log('bet');
     let betAmount = parseInt($('#bet-input-val').val());
-    let minBetAmount = getBigBlind();
-    let playerStack = getStack();
-    if (betAmount > playerStack) { // if player bet more than stack, go all in
-        betAmount = playerStack;
-    } else if (betAmount < minBetAmount && betAmount < playerStack) { // if player bet < min bet and is not all in
-        if (playerStack <= minBetAmount) { // if player bet < stack <= min bet then must go all in b/c stack <= min bet
-            alert(`must go all in or fold. stack is less than minimum bet amount`);
-        } else {
-            alert(`minimum bet size is ${minBetAmount}`);
-        }
+    let minBetAmount = getMinimumAllowedBet();
+    let maxBetAmount = getMaximumAllowedBet();
+
+    if (betAmount > maxBetAmount) { // if player bet more than max amount, bet max amount
+        betAmount = maxBetAmount;
+    } else if (betAmount < minBetAmount) { // if player bet < min bet
+        alert(`minimum bet size is ${minBetAmount}`);
         return false;
     } else if (!betAmount) { // if player did not enter a bet
         alert(`minimum bet size is ${minBetAmount}`);
@@ -355,9 +373,14 @@ $('#raise').on('click', () => {
         let output = document.getElementById("raise-input-val");
         slider.value = output.value;
         output.focus();
-        output.value = getMinRaiseAmount(); // Display the default slider value
-        slider.min = getMinRaiseAmount();
-        slider.max = getStack();
+        console.log('ts', tableState);
+        const minAmount = Math.min(getMinRaiseAmount(), tableState.player.bet + tableState.player.chips);
+        output.value = minAmount; // Display the default slider value
+        slider.min = minAmount;
+        console.log('gmra', getMinRaiseAmount());
+        console.log('gs', getStack());
+        console.log('opms', tableState.table.otherPlayersMaxStack(tableState.player.playerName));
+        slider.max = Math.min(tableState.player.bet + tableState.player.chips, tableState.table.otherPlayersMaxStack(tableState.player.playerName));
 
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -472,9 +495,7 @@ let placeRaise = () => {
 
 start_btn.addEventListener('click', () => {
     console.log('starting game');
-    socket.emit('start-game', {
-        amount: 0
-    });
+    socket.emit('start-game', {});
 });
 
 call.addEventListener('click', () => {
@@ -499,6 +520,11 @@ fold.addEventListener('click', () => {
         amount: 0,
         action: 'fold'
     });
+});
+
+showHand.addEventListener('click', () => {
+    console.log('click show hand');
+    socket.emit('show-hand', {});
 });
 
 minBet.addEventListener('click', () => {
@@ -659,6 +685,9 @@ $(document).keydown(function (event) {
     if (event.keyCode === 70 && !$('#pm-fold').hasClass('collapse')){
         $('#pm-fold').click();
     }
+    if (event.keyCode === 83 && $('#show-hand').hasClass('collapse')) {
+        $('#show-hand').click();
+    }
 });
 
 function isVolumeOn() {
@@ -733,86 +762,264 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
+// function stateSnapshotHandler(data) {
+//     // TODO: how should we deal with a player joining when street === 'showdown'
+//     if (data.hasOwnProperty('gameState')) {
+//         initializeGameState(data.gameState);
+//     }
+//     if (data.hasOwnProperty('playerStates'))
+//         updatePlayers(data.playerStates);
+//     if (data.hasOwnProperty('handState')) {
+//         updateHand(data.handState);
+//     }
+// }
+
+const whichStreet = (board) => {
+    let street = 'deal';
+    if (board.length === 3) street = 'flop';
+    else if (board.length === 4) street = 'turn';
+    else if (board.length === 5) street = 'river';
+    return street;
+};
+
+function Game(smallBlind, bigBlind) {
+    // this.smallBlind = smallBlind;
+    // this.bigBlind = bigBlind;
+    // this.pot = 0;
+    // this.roundName = 'deal'; //Start the first round
+    // this.betName = 'bet'; //bet,raise,re-raise,cap
+    // this.roundBets = [];
+    // this.deck = [];
+    // this.board = [];
+    // fillDeck(this.deck);
+}
+
 /**
- * {
- *     gameState: {
- *          //smallBlind: this.table.smallBlind,
-            //bigBlind: this.table.bigBlind,
-            dealer: this.getDealerSeat(),
-            actionSeat: this.actionSeat,
-            pot: this.getPot(),
-            street: this.getRoundName(),
-            board: this.getDeal()
- *     },
- *     playerStates: Array<{
-            playerName: p.playerName,
-            chips: p.chips,
-            folded: p.folded,
-            allIn: p.allIn,
-            talked: p.talked,
-            inHand: p.inHand,
-            bet: p.bet,
-            seat: p.seat,
-            leavingGame: p.leavingGame,
-       }>,
- *     handState: {
- *         cards: ['QH', '4S'],
- *         playerHandRank: 'Two Pair'
- *     }
- * }
+ *
+ * @param {number} smallBlind
+ * @param {number} bigBlind
+ * @param {number} minPlayers
+ * @param {number} maxPlayers
+ * @param {number} minBuyIn
+ * @param {number} maxBuyIn
+ * @param {number} straddleLimit
+ * @param {number} dealer
+ * @param {Player[]} allPlayers
+ * @param {number} currentPlayer
+ * @param {Game|null} game
  */
-function stateResponseHandler(data) {
-    // TODO: how should we deal with a player joining when street === 'showdown'
-    if (data.hasOwnProperty('gameState')) {
-        updateGameState(data.gameState);
+function initializeTable({smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game}) {
+    // let table = new TableState(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game);
+    // let tableManager = new TableStateManager(table, game !== null);
+    // let renderer = new TableRenderer(tableManager, null);
+    // renderer.initialize();
+}
+
+class TableRenderer {
+    /**
+     * @param {TableStateManager} manager
+     * @param {Player} player
+     */
+    constructor(manager, player) {
+        this.manager = manager;
+        this._player = player;
     }
-    if (data.hasOwnProperty('playerStates'))
-        updatePlayers(data.playerStates);
-    if (data.hasOwnProperty('handState')) {
-        updateHand(data.handState);
+
+    get player() {
+        return this._player;
+    }
+
+    set player(v) {
+        if (v === null) {
+            logOut();
+        } else {
+            if (!loggedIn) {
+                logIn();
+            }
+            if (v.isMod) {
+                addModAbilities();
+            } else {
+                removeModAbilities();
+            }
+            renderHand(v.seat, )
+        }
+        this._player = v;
+    }
+
+    /**
+     * @return {TableState}
+     */
+    get table() {
+        return this.manager.table;
+    }
+
+    setDealer(seat) {
+        setDealerSeat(seat);
+        this.table.dealer = seat;
+    }
+
+    initialize() {
+        this.renderBoard(false);
+        this.renderPlayers();
+        this.setActionSeat(this.manager.actionSeat);
+        this.setDealer(this.manager.table.dealer);
+        this.renderActionButtons();
+    }
+
+    setActionSeat(seat) {
+        if (seat >= 0 && seat === this.player.seat)
+            playSoundIfVolumeOn('action');
+
+        $('.name').removeClass('action');
+        $(`#${seat} > .name`).addClass('action');
+    }
+
+    renderActionButtons() {
+        let availableActions = {
+            'min-bet': false,
+            'bet': false,
+            'raise': false,
+            'fold': false,
+            'call': false,
+            'start': true, // note start is true
+            'check': false,
+            'your-action': false,
+            'straddle-switch': this.manager.getStraddleLimit() !== 0,
+        };
+        if (!this.manager.gameInProgress && this.player.isMod && this.manager.playersInNextHand().length >= 2) {
+            availableActions['start'] = false;
+            displayButtons({availableActions, canPerformPremoves: false})
+        } else if (this.manager.gameInProgress && this.player !== null && this.player.inHand) {
+            displayButtons(this.table.getAvailableActions(this.player.playerName));
+        } else { // if player is not in hand or not in a seat
+            console.log('viewer not in seat, no actions.');
+            displayButtons(availableActions);
+        }
+    }
+
+    renderPlayers() {
+        for (let p of this.table.allPlayers) {
+            if (p===null) return;
+            this.renderPlayer(p);
+        }
+    }
+
+    renderPlayer(p) {
+        let hand = document.getElementById(p.seat);
+        hand.classList.remove('hidden');
+        hand.querySelector('.username').innerHTML = p.playerName;
+        hand.querySelector('.stack').innerHTML = p.chips;
+        const isWaiting = p.folded || !p.inHand;
+        if (isWaiting) {
+            outHand(p.seat);
+            // $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        } else if (p.bet <= 0) {
+            hideBet(p.seat)
+        } else if (p.bet > 0) {
+            showBet(p.seat, p.bet);
+        }
+        if (p.cards !== null && p.cards.length > 0) {
+            renderHand(p.seat, p.cards, p.folded);
+            // TODO: show handrankmessage on GUI
+            // console.log(`player in seat ${p.seat} shows ${p.cards}. has a ${p.handRankMessage}`)
+        }
+    }
+
+    // TODO: call this on('buy-in')
+    updatePlayer(player) {
+        this.manager.table.allPlayers[player.seat] = player;
+        this.renderPlayer(player);
+    }
+
+    renderBoard(sound) {
+        $('.pm-btn').removeClass('pm');
+        let board = this.table.game ? this.table.game.board : [];
+        let street = this.manager.getRoundName();
+        dealStreet({board, street, sound});
+    }
+
+    endHand() {
+        clearEarnings();
+        this.removePlayers();
+    }
+
+    removePlayers() {
+
     }
 }
-function updateGameState(data) {
-    if (data.hasOwnProperty('dealer'))
-        setDealerSeat(data.dealer);
-    if (data.hasOwnProperty('actionSeat'))
-        setActionSeat(data.actionSeat);
-    if (data.hasOwnProperty('pot'))
-        updatePot(data.pot);
-    if (data.hasOwnProperty('street'))
-        dealStreet(data);
 
-}
-function updatePlayers(players) {
-    for (let i=0; i < players.length; i++) {
-        const p = players[i];
-        if (p.folded || (p.hasOwnProperty('inHand') && !p.inHand)) outHand(p.seat);
-        else showBet(p.seat, p.bet);
+// function initializeGameState(data) {
+//     if (data.hasOwnProperty('dealer'))
+//         setDealerSeat(data.dealer);
+//     if (data.hasOwnProperty('actionSeat'))
+//         setActionSeat(data.actionSeat);
+//     if (data.hasOwnProperty('pot'))
+//         updatePot(data.pot);
+//     if (data.hasOwnProperty('street'))
+//         dealStreet(data);
+//
+// }
 
+let tableState = {}; // not used for rendering.
+function setState(data) {
+    if (data.table) {
+        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+        if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
+            displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
+        }
     }
+    if (data.player) {
+        tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
+        tableState.player.folded = data.player.folded;
+        tableState.player.allIn = data.player.allIn;
+        tableState.player.talked = data.player.talked;
+        tableState.player.inHand = data.player.inHand;
+        tableState.player.cards = data.player.cards;
+        tableState.player.bet = data.player.bet;
+        tableState.player.leavingGame = data.player.leavingGame;
+        tableState.player.showingCards = data.player.showingCards;
+    }
+    tableState.gameInProgress = data.gameInProgress;
 }
-function updateHand(data) {
 
-}
-socket.on('state-response', stateResponseHandler);
+// let renderer = new TableRenderer(null, null); //TODO: properly instantiate
+// socket.on('update-player', (data) => {
+//     renderer.updatePlayer(data.player);
+//     if (data.buyIn) {
+//         feedback.innerHTML = '';
+//         message_output.innerHTML += '<p><em>' + data.playerName + ' buys in for ' + data.stack +'</em></p>';
+//     }
+// });
+// socket.on('update-self', (data) => {
+//     renderer.updatePlayer(data);
+//     renderer.player = data.player;
+// });
 
-socket.on('update-state', stateResponseHandler);
+socket.on('state-snapshot', setState);
+// socket.on('update-state', stateSnapshotHandler);
 
-// add additional abilities for mod
-socket.on('add-mod-abilities', (data) => {
+socket.on('init-table', initializeTable);
+
+const addModAbilities = () => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
     $('#host-btn').removeClass('collapse');
     // TODO: show mod panel or set turn timer button
-});
+};
+
+const removeModAbilities = () => {
+    $('#bomb-pot').addClass('collapse');
+    $('#start').addClass('collapse');
+};
+
+// add additional abilities for mod
+socket.on('add-mod-abilities', addModAbilities);
 
 socket.on('bust', (data) => {
     logOut();
     // remove additional abilities for mod when mod leaves
-    if (data.removeModAbilities) {
-        $('#host-btn').addClass('collapse');
-        $('#start').addClass('collapse');
-    }
+    if (data.removeModAbilities)
+        removeModAbilities();
 });
 
 // remove additional abilities for mod when mod leaves
@@ -851,7 +1058,6 @@ socket.on('buy-out', (data) => {
     $(`#${data.seat}`).addClass('out');
 });
 
-
 // render players at a table
 socket.on('render-players', (data) => {
     for (let i = 0; i < data.length; i++){
@@ -877,6 +1083,12 @@ socket.on('waiting', (data) => {
     }
 });
 
+function hideSeat(seat) {
+    $(`#${seat}`).addClass('hidden');
+    $(`#${seat}`).find('.username').text('guest');
+    $(`#${seat}`).find('.stack').text('stack');
+}
+
 // removes old players (that have busted or quit)
 socket.on('remove-out-players', (data) => {
     $('.out').each(function(){
@@ -886,9 +1098,7 @@ socket.on('remove-out-players', (data) => {
     $('.out').addClass('hidden').removeClass('out');
     // if seat passed in remove it
     if (data.hasOwnProperty('seat')){
-        $(`#${data.seat}`).addClass('hidden');
-        $(`#${data.seat}`).find('.username').text('guest');
-        $(`#${data.seat}`).find('.stack').text('stack');
+        hideSeat(data.seat);
     }
 });
 
@@ -949,10 +1159,11 @@ const hideBoardPreFlop = () => {
 };
 
 // when the players joins in the middle of a hand
-// data: {street, board, sound}
+// data: {street, board, sound, logIn}
 socket.on('sync-board', (data) => {
     $('.pm-btn').removeClass('pm');
-    logIn();
+    if (data.logIn)
+        logIn();
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     dealStreet(data);
@@ -1018,10 +1229,16 @@ socket.on('update-rank', (data) => {
     console.log(`hand rank update: ${data.handRankMessage}`)
 });
 
-// renders a players hand
+// renders a players hand. data is formatted like so:
+//{
+//  cards: ["4H","QD"],
+//  seat: 1,
+//  folded: false,
+//  handRankMessage: "High Card",
+// }
 socket.on('render-hand', (data) => {
-    console.log(data.cards);
-    renderHand(data.seat, data.cards);
+    console.log(data.cards, data.handRankMessage);
+    renderHand(data.seat, data.cards, data.folded);
 });
 
 // removes the waiting tag from player
@@ -1118,7 +1335,13 @@ socket.on('check', (data) => {
 socket.on('fold', (data) => {
     outputEmphasizedMessage(data.username + ' folds');
     playSoundIfVolumeOn('fold');
-    outHand(data.seat);
+
+    let cards = null;
+    if (data.seat === tableState.player.seat) {
+        cards = tableState.player.cards;
+    }
+    // renders grayed out cards if this user folded. renders turned-over grey cards if a different user folded.
+    renderCardsForSeat(cards, data.seat, false);
 });
 
 function outputMessage(s) {
@@ -1201,11 +1424,13 @@ socket.on('folds-through', function (data) {
     showWinnings(data.amount, data.seat);
 });
 
-//remove earnings span from previous hand
-socket.on('clear-earnings', function (data) {
+const clearEarnings = () => {
     $('.earnings').empty();
     $('.earnings').addClass('hidden');
-});
+};
+
+//remove earnings span from previous hand
+socket.on('clear-earnings', clearEarnings);
 
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
@@ -1295,10 +1520,10 @@ const displayButtons = (data) => {
         $('.pm-btn').removeClass('pm');
         $('.pm-btn').addClass('collapse');
     }
-    let maxBetAmount = getMaxRoundBet();
     
     // active player keys
-    $('#call .number').html(maxBetAmount);
+    $('#call .number').html(getMaxRoundBet());
+    $('#min-bet .number').html(getMinimumAllowedBet());
     for (let key of Object.keys(data.availableActions)) {
         if (data.availableActions[key]){
             $(`#${key}`).removeClass('collapse');
@@ -1327,7 +1552,21 @@ const getSuitSymbol = (input) => {
     return 'yikes';
 };
 
-const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red'; 
+function renderCardsForSeat(cards, seat, inHand) {
+    console.log('c', cards);
+    // if we do not know what the card is, show the back side of the card.
+    if (!cards || cards.length < 1 || cards[0] === null) {
+        if (!inHand) {
+            outHand(seat);
+        } else {
+            renderCardbackForHand(seat);
+        }
+    } else {
+        renderHand(seat, cards, !inHand);
+    }
+}
+
+const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
 
 const flipCard = (name) => {
     setTimeout(() => {
@@ -1350,10 +1589,26 @@ const outHand = (seat) => {
     $(`#${seat}`).find('.card-bottomright').addClass('hidden');
 };
 
+// renderCardbackForHand does what inHand does but for one seat
+const renderCardbackForHand = (seat) => {
+    renderInHand($(`#${seat}`));
+};
+
+const renderInHand = (locator) => {
+    locator.find('.back-card').removeClass('waiting');
+    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
+    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
+    locator.find('.card-corner-rank').html('A');
+    locator.find('.card-corner-suit').html('S');
+    locator.find('.card-topleft').addClass('hidden');
+    locator.find('.card-bottomright').addClass('hidden');
+    locator.find('.back-card').removeClass('hidden');
+};
+
 const inHand = () => {
     $('.hand').find('.back-card').removeClass('waiting');
     $('.hand-rank-message').removeClass('waiting');
-    $('.card').removeClass('red').addClass('black');
+    $('.card').removeClass('red').removeClass('folded').addClass('black');
     $('.card-corner-rank').html('A');
     $('.card-corner-suit').html('S');
     $('.card-topleft').addClass('hidden');
@@ -1361,34 +1616,32 @@ const inHand = () => {
     $('.back-card').removeClass('hidden');
 };
 
-const renderHand = (seat, cards) => {
-        let leftCardRank = (cards[0].charAt(0) == 'T') ? '10' : cards[0].charAt(0);
-        let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
-        let leftCardColor = getColor(cards[0].charAt(1));
-        let rightCardRank = (cards[1].charAt(0) == 'T') ? '10' : cards[1].charAt(0);
-        let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
-        let rightCardColor = getColor(cards[1].charAt(1));
-        $(`#${seat}`).find('.back-card').addClass('hidden');
-        $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
-        $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
-        $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
-        $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
-        $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
-        $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
-        $(`#${seat}`).find('.card-topleft').removeClass('hidden');
-        $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
-};
+// TODO: grey out the cards if folded is true to indicate which players
+// have folded
+const renderHand = (seat, cards, folded) => {
+    let leftCardRank = cards[0].charAt(0);
+    let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
+    let leftCardColor = getColor(cards[0].charAt(1));
+    let rightCardRank = cards[1].charAt(0);
+    let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
+    let rightCardColor = getColor(cards[1].charAt(1));
 
-const hideHand = (seat) => {
-    $(`#${seat}`).find('.back-card').removeClass('hidden');
-    $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
-    $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
-    $(`#${seat}`).find('.card-topleft').addClass('hidden');
-    $(`#${seat}`).find('.card-bottomright').addClass('hidden');
+    console.log('scf', seat, cards, folded);
+    if (folded) {
+        $(`#${seat}`).find('.card').addClass('folded');
+    } else {
+        $(`#${seat}`).find('.card').removeClass('folded');
+    }
+
+    $(`#${seat}`).find('.back-card').addClass('hidden');
+    $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
+    $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
+    $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
+    $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
+    $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
+    $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
+    $(`#${seat}`).find('.card-topleft').removeClass('hidden');
+    $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
 };
 
 const showWinnings = (winnings, seat) => {

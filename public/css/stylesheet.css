@@ -633,6 +633,22 @@ h3 {
     color: white;
 }
 
+/*#show-hand's css is currently a copy of #check. you can change it if you want*/
+#show-hand {
+    background-color: transparent;
+    border: 2px solid #FBF2C0;
+    color: #FBF2C0;
+    -webkit-transition: background-color .3s;
+    -moz-transition: background-color .3s;
+    -o-transition: background-color .3s;
+    transition: background-color .3s;
+}
+
+#show-hand:hover {
+    background-color: #FBF2C0;
+    color: white;
+}
+
 #check {
     background-color: transparent;
     border: 2px solid #FBF2C0;
