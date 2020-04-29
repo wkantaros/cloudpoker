@@ -1120,7 +1120,7 @@ socket.on('render-timer', (data) => {
 });
 
 const showCard = (card, locator) => {
-    let cardRank = card.charAt(0);
+    let cardRank = (card.charAt(0) == 'T') ? '10' : card.charAt(0);
     let cardSuit = getSuitSymbol(card.charAt(1));
     let cardColor = getColor(card.charAt(1));
     $(locator).removeClass('black').addClass(cardColor);
@@ -1743,7 +1743,7 @@ function distributeHands(firstRender) {
     fields.each(function () {
         // note consider changing width/455 to 2.5
         var x = Math.round(width / 2 + radius * ((width/400) * Math.cos(angle)) - $(this).width() / 2);
-        var y = Math.round(height / 2 + radius * (1.30 * Math.sin(angle)) - $(this).height() / 2);
+        var y = Math.round(height / 2 + radius * (1.30 * Math.sin(angle)) - $(this).height() / 2) + 10;
         // if (window.console) {
         //     console.log($(this).text(), x, y);
         // }
@@ -1788,7 +1788,7 @@ function distributeBets() {
     betFields.each(function () {
         // note consider changing width/455 to 2.5
         var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
-        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 20;
+        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 10;
         // if (window.console) {
         //     console.log($(this).text(), x, y);
         // }

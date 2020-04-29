@@ -1,3 +1,3 @@
 # Poker Server
 
-Currently building a full stack poker website. Should be fun
+Currently building a full stack poker website. Website coming soon
