@@ -802,7 +802,7 @@ socket.on('update-state', stateResponseHandler);
 socket.on('add-mod-abilities', (data) => {
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
-    $('#bomb-pot').removeClass('collapse');
+    $('#host-btn').removeClass('collapse');
     // TODO: show mod panel or set turn timer button
 });
 
@@ -810,14 +810,14 @@ socket.on('bust', (data) => {
     logOut();
     // remove additional abilities for mod when mod leaves
     if (data.removeModAbilities) {
-        $('#bomb-pot').addClass('collapse');
+        $('#host-btn').addClass('collapse');
         $('#start').addClass('collapse');
     }
 });
 
 // remove additional abilities for mod when mod leaves
 socket.on('remove-mod-abilities', (data) => {
-    $('#bomb-pot').addClass('collapse');
+    $('#host-btn').addClass('collapse');
     $('#start').addClass('collapse');
 });
 
@@ -861,6 +861,7 @@ socket.on('render-players', (data) => {
         hand.querySelector('.stack').innerHTML = data[i].stack;
         if (data[i].waiting){
             $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
+            $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
         } else if (data[i].betAmount <= 0) {
             hideBet(data[i].seat)
         } else if (data[i].betAmount > 0) {
@@ -1026,7 +1027,10 @@ socket.on('render-hand', (data) => {
 // removes the waiting tag from player
 socket.on('game-in-progress', (data) => {
     console.log(data.waiting);
-    if (!data.waiting) $('.back-card').removeClass('waiting');
+    if (!data.waiting) {
+        $('.back-card').removeClass('waiting');
+        $('.hand-rank-message').removeClass('waiting');
+    }
 });
 
 // updates stack when a bet is placed, for example
@@ -1051,6 +1055,7 @@ socket.on('update-pot', (data) => {
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
     $('.back-card').removeClass('waiting');
+    $('.hand-rank-message').removeClass('waiting');
     $('#start').addClass('collapse');
 });
 
@@ -1183,7 +1188,6 @@ socket.on('showdown', function (data) {
 socket.on('turn-cards-all-in', function (data) {
     // console.log(data);
     feedback.innerHTML = '';
-    message_output.innerHTML += `<p>All in, lets dance</p>`;
     for (let i = 0; i < data.length; i++) {
         renderHand(data[i].seat, data[i].cards);
         $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
@@ -1335,6 +1339,7 @@ const flipCard = (name) => {
 
 const outHand = (seat) => {
     $(`#${seat}`).find('.back-card').removeClass('hidden').addClass('waiting');
+    $(`#${seat}`).find('.hand-rank-message').addClass('waiting');
     $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
     $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
     $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
@@ -1347,7 +1352,7 @@ const outHand = (seat) => {
 
 const inHand = () => {
     $('.hand').find('.back-card').removeClass('waiting');
-    $('.hand').find('.back-card').removeClass('waiting');
+    $('.hand-rank-message').removeClass('waiting');
     $('.card').removeClass('red').addClass('black');
     $('.card-corner-rank').html('A');
     $('.card-corner-suit').html('S');

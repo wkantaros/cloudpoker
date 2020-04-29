@@ -97,6 +97,10 @@
     filter: grayscale(100%);
 }
 
+.hand-rank-message.waiting {
+    filter: grayscale(100%);
+}
+
 .back-card-ring {
     height: 78%;
     width: 70%;

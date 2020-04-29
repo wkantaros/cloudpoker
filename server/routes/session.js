@@ -592,8 +592,7 @@ router.route('/:id').get((req, res) => {
             io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
                 cards: s.getCardsByPlayerName(playerName),
                 seat: s.getPlayerSeat(playerName),
-                handRankMessage: 'pair'
-                // handRankMessage: this.playerHandState(playerName).handRankMessage,
+                handRankMessage: s.playerHandState(playerName).handRankMessage,
             });
 
             // highlight cards of player in action seat and get available buttons for players
