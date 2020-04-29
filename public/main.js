@@ -76,9 +76,6 @@ const getMaxRoundBet = () => {
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
     let buyinInfo = $('#buyin-info');
-    let betConsole =$('#myPopup1');
-    let raiseConsole =$('#myPopup2');
-
     // if the target of the click isn't the container nor a descendant of the container
     if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
         buyinInfo.removeClass('show');
@@ -140,6 +137,8 @@ quit.addEventListener('click', () => {
     socket.emit('leave-game', {});
     logOut();
 });
+
+$('#getLink').click(() => copyLink());
 
 let copyLink = () => {
     copyStringToClipboard(window.location.href);
