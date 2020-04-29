@@ -112,7 +112,7 @@ class TableState {
     }
     // Precondition: A game is in progress.
     canPlayersRevealHands() {
-        return this.game.roundName.toLowerCase() === 'showdown' || this.isEveryoneAllIn() || this.players.filter(p=>!p.folded).length <= 1
+        return this.game.roundName.toLowerCase() === 'showdown' || this.players.filter(p => !p.folded).length <= 1
     }
 
     // Precondition: A game is in progress.
@@ -132,10 +132,14 @@ class TableState {
 
         let canPerformPremoves = false;
         const p = this.getPlayer(playerName);
-        availableActions['show-hand'] = p !== null && p.inHand && this.canPlayersRevealHands();
+        availableActions['show-hand'] = (p !== null) && p.inHand && this.canPlayersRevealHands();
         // no action can be performed if players can show hands because betting is over
-        if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
+        if (availableActions['show-hand']){
+            console.log('yo no way we\'re here')
             return {availableActions, canPerformPremoves};
+        }
+        // if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
+        //     return {availableActions, canPerformPremoves};
 
         // cases where it's the player's action
         if (this.players[this.currentPlayer].playerName === playerName) {

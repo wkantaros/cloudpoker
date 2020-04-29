@@ -122,10 +122,12 @@ class TableStateManager {
         let seat = this.actionSeat;
         if (seat === -1) return 'guest';
         return this.table.allPlayers[seat].playerName;
-    };
+    }
+
     canPlayersRevealHand() {
         return this.gameInProgress && this.table.canPlayersRevealHands();
     }
+    
     getAvailableActions(playerName) {
         let availableActions = {
             'min-bet': false,

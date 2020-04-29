@@ -250,6 +250,7 @@ class SessionManager extends TableManager {
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
             // TODO: ANYONE CAN REVEAL HAND HERE
+            this.renderActionSeatAndPlayerActions();
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             let winners = this.getWinners();
             console.log('winners');
@@ -308,6 +309,7 @@ class SessionManager extends TableManager {
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
             // TODO: ANYONE CAN REVEAL HAND HERE
+            this.renderActionSeatAndPlayerActions();
             console.log(prev_round);
             // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
             let winnings = super.getWinnings(prev_round);

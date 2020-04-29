@@ -1619,10 +1619,10 @@ const inHand = () => {
 // TODO: grey out the cards if folded is true to indicate which players
 // have folded
 const renderHand = (seat, cards, folded) => {
-    let leftCardRank = cards[0].charAt(0);
+    let leftCardRank = (cards[0].charAt(0) == 'T') ? '10' : cards[0].charAt(0);
     let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
     let leftCardColor = getColor(cards[0].charAt(1));
-    let rightCardRank = cards[1].charAt(0);
+    let rightCardRank = (cards[1].charAt(0) == 'T') ? '10' : cards[1].charAt(0);
     let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
     let rightCardColor = getColor(cards[1].charAt(1));
 
