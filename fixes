@@ -8,6 +8,11 @@ With show hand:
 With premoves
     [ ] if a player premove folds and the player before him folds it will still show a flop
 
+With handrankmessage:
+    [ ] on all ins the handrankmessage doesnt appear
+    [ ] on all ins the handrankmessage doesnt update for user
+    [ ] handrankmessage stays if game ends bc of all in
+
 With refresh:
     [ ] if somebody checked and I refresh the page, the 'check chip' shouldn't be removed from on the table
 
