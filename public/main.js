@@ -231,6 +231,10 @@ const getBetInput = () => {
     return parseInt(document.getElementById("bet-input-val").value);
 };
 
+const getRaiseInput = () => {
+    return parseInt(document.getElementById("raise-input-val").value);
+};
+
 $('#betplus').on('click', () => {
     let bb = getBigBlind();
     let maxval = getStack();
@@ -306,6 +310,7 @@ $('#bet-input-val').keydown(function (e) {
 });
 
 const handleBetSliderButtons = (outputVal) => {
+    console.log('val', outputVal);
     let slider = document.getElementById("betRange");
     let output = document.getElementById("bet-input-val");
     output.value = outputVal;
@@ -314,6 +319,7 @@ const handleBetSliderButtons = (outputVal) => {
 };
 
 const handleRaiseSliderButtons = (outputVal) => {
+    console.log('rval', outputVal);
     let slider = document.getElementById("raiseRange");
     let output = document.getElementById("raise-input-val");
     output.value = outputVal;
@@ -397,8 +403,8 @@ $('#raiseplus').on('click', () => {
 });
 
 $('#raiseminus').on('click', () => {
-    handleRaiseSliderButtons(Math.max(getBetInput() - getBigBlind(), getMinRaiseAmount()));
-
+    let bb = getBigBlind();
+    handleRaiseSliderButtons(Math.max(getRaiseInput() - bb, getMinRaiseAmount()));
 });
 
 $('#rai').on('click', () => {
@@ -456,12 +462,12 @@ const requestState = () => {
 };
 
 let placeRaise = () => {
-    console.log('raise');
     let raiseAmount = parseInt($('#raise-input-val').val());
-    console.log(raiseAmount);
+    console.log('raise', raiseAmount);
+    // console.log(raiseAmount);
     let minRaiseAmount = getMinRaiseAmount();
     let maxRaiseAmount = getStack();
-    console.log(maxRaiseAmount);
+    console.log('maxRaiseAmount', maxRaiseAmount);
     if (raiseAmount > maxRaiseAmount) {
         raiseAmount = maxRaiseAmount;
     }
@@ -476,7 +482,6 @@ let placeRaise = () => {
     } else if (!raiseAmount || raiseAmount < minRaiseAmount) {
         alert(`minimum raise amount is ${minRaiseAmount}`);
     } else if (raiseAmount == maxRaiseAmount) { // player is going all in
-        console.log('all in mothafucka');
         socket.emit('action', {
             amount: raiseAmount,
             action: 'bet'
