@@ -101,7 +101,6 @@ const logIn = (standingUp) => {
     } else {
         showStandUpButton();
     }
-
 };
 
 const logOut = () => {
@@ -884,27 +883,31 @@ socket.on('sit-down', data => {
     outputEmphasizedMessage(data.playerName + 'sits down.');
 });
 
+function renderPlayer(p) {
+    let hand = document.getElementById(p.seat);
+    hand.classList.remove('hidden');
+    hand.querySelector('.username').innerHTML = p.playerName;
+    hand.querySelector('.stack').innerHTML = p.stack;
+    if (p.standingUp) {
+        // TODO: how do we want to display when a player is standing up?
+        $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
+        console.log(p.playerName + 'is standing up.');
+        // hideCards(p.seat);
+    } else if (p.waiting){
+        $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
+    } else if (p.betAmount <= 0) {
+        hideBet(p.seat)
+    } else if (p.betAmount > 0) {
+        showBet(p.seat, p.betAmount);
+    }
+}
+
 // render players at a table
 socket.on('render-players', (data) => {
     for (let i = 0; i < data.length; i++){
-        let hand = document.getElementById(data[i].seat);
-        hand.classList.remove('hidden');
-        hand.querySelector('.username').innerHTML = data[i].playerName;
-        hand.querySelector('.stack').innerHTML = data[i].stack;
-        if (data[i].standingUp) {
-            // TODO: how do we want to display when a player is standing up?
-            $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
-            $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
-            console.log(data[i].playerName + 'is standing up.');
-            // hideCards(data[i].seat);
-        } else if (data[i].waiting){
-            $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
-            $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
-        } else if (data[i].betAmount <= 0) {
-            hideBet(data[i].seat)
-        } else if (data[i].betAmount > 0) {
-            showBet(data[i].seat, data[i].betAmount);
-        }
+        renderPlayer(data[i]);
     }
 });
 
@@ -1012,6 +1015,23 @@ socket.on('sync-board', (data) => {
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     dealStreet(data);
+
+    // for (let i = 0; i < tableState.table.allPlayers.length; i++) {
+    //     const p = tableState.table.allPlayers[i];
+    //     if (p === null) {
+    //         hideSeat(i);
+    //         continue;
+    //     }
+    //     if (!p.inHand) {
+    //         if (p.standingUp) { // players that stood up in a previous hand or before the game started
+    //
+    //         } else { // waiting players
+    //
+    //         }
+    //     } else { // players in the current hand
+    //
+    //     }
+    // }
 });
 
 const dealStreet = (data) => {
