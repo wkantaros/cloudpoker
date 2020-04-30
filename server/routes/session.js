@@ -681,12 +681,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
         });
 
-        socket.on('leave-game', (data) => {
+        socket.on('leave-game', async (data) => {
             if (!s.isActivePlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
                 return;
             }
-            s.playerLeaves(playerId);
+            await s.playerLeaves(playerId);
         });
         
         socket.on('set-turn-timer', (data) => { // delay
@@ -739,7 +739,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         });
         
-        socket.on('action', (data) => {
+        socket.on('action', async (data) => {
             if (!s.isActivePlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted action but is not an active player`);
                 return;
@@ -750,7 +750,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 console.log('game hasn\'t started yet');
             } else if (s.actionSeat === s.getPlayerSeat(playerName)) {
                 console.log('action data', JSON.stringify(data));
-                s.performAction(playerName, data.action, data.amount);
+                await s.performAction(playerName, data.action, data.amount);
             } else {
                 console.log(`not ${playerName}'s action`);
             }
