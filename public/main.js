@@ -94,7 +94,6 @@ $('#buyin').on('click', () => {
  * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
  */
 const logIn = (standingUp) => {
-    console.log('standingUp', standingUp)
     loggedIn = true;
     $('#buyin-info').removeClass('show');
     $('#quit-btn').removeClass('collapse');
@@ -1008,8 +1007,6 @@ const hideBoardPreFlop = () => {
 socket.on('sync-board', (data) => {
     $('.pm-btn').removeClass('pm');
     if (data.logIn) {
-        console.log('logging in');
-        console.log(tableState);
         logIn(tableState.player.standingUp);
     }
     console.log('syncing board', JSON.stringify(data));
