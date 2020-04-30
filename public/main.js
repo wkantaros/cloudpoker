@@ -1,6 +1,4 @@
-// import {TableState} from "../poker-logic";
-// import {TableStateManager} from "../server/server-logic";
-const {TableState, Player} = require('../sharedjs');
+const {TableState, Player, GameState} = require('../sharedjs');
 
 let socket = io();
 
@@ -770,7 +768,9 @@ socket.on('player-reconnect', (data) => {
 let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
-        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+        let game = new GameState(data.table.smallBlind, data.table.bigBlind);
+        Object.assign(game, data.table.game);
+        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, game);
         if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
             displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
         }
