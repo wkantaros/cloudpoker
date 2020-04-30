@@ -65,7 +65,7 @@ class TableState {
     }
 
     get waitingPlayers() {
-        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
+        return this.allPlayers.filter(p => p!== null && p.isWaiting);
     }
 
     get leavingPlayers() {
@@ -134,7 +134,7 @@ class TableState {
         const p = this.getPlayer(playerName);
         availableActions['show-hand'] = (p !== null) && p.inHand && this.canPlayersRevealHands();
         // no action can be performed if players can show hands because betting is over
-        if (availableActions['show-hand']){
+        if (availableActions['show-hand'] || p === null || !p.inHand){
             return {availableActions, canPerformPremoves};
         }
         // if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
@@ -263,8 +263,10 @@ class Player {
         this.folded = false;
         this.allIn = false;
         this.talked = false;
-        // If the player is in the current hand. False is they are standing up or just joined.
+        // If the player is in the current hand. False is they just joined and are waiting for the next hand.
         this.inHand = false;
+        // If the player is standing up from the table
+        this.standingUp = false;
         this.cards = [];
         this.bet = 0;
         this.isStraddling = isStraddling;
@@ -275,6 +277,19 @@ class Player {
         this.showingCards = false;
     }
 
+    // Clear data from the previous hand.
+    clearHandState() {
+        this.bet = 0;
+        this.folded = false;
+        this.talked = false;
+        this.allIn = false;
+        this.cards.splice(0, this.cards.length);
+    }
+
+    get isWaiting() {
+        return !this.inHand && !this.leavingGame && !this.standingUp;
+    }
+
     getPublicInfo() {
         return {
             playerName: this.playerName,
@@ -283,6 +298,7 @@ class Player {
             allIn: this.allIn,
             talked: this.talked,
             inHand: this.inHand,
+            standingUp: this.standingUp,
             bet: this.bet,
             seat: this.seat,
             leavingGame: this.leavingGame,
