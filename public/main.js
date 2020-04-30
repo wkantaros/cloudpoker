@@ -1013,7 +1013,7 @@ const addModAbilities = () => {
 };
 
 const removeModAbilities = () => {
-    $('#bomb-pot').addClass('collapse');
+    $('#host-btn').addClass('collapse');
     $('#start').addClass('collapse');
 };
 
@@ -1029,8 +1029,7 @@ socket.on('bust', (data) => {
 
 // remove additional abilities for mod when mod leaves
 socket.on('remove-mod-abilities', (data) => {
-    $('#host-btn').addClass('collapse');
-    $('#start').addClass('collapse');
+    removeModAbilities();
 });
 
 //incoming chat
