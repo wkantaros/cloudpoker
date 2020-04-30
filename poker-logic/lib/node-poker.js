@@ -183,6 +183,20 @@ class Table extends TableState{
             this.players[i].clearHandState();
         }
         fillDeck(this.game.deck);
+
+        this.gameWinners = [];
+        this.gameLosers = [];
+
+        //Deal 2 cards to each player
+        for (let i = 0; i < this.players.length; i += 1) {
+            this.players[i].cards.push(this.game.deck.pop());
+            this.players[i].cards.push(this.game.deck.pop());
+            this.players[i].bet = 0;
+            this.game.roundBets[i] = 0;
+        }
+        this.initializeBlinds();
+
+        // this.eventEmitter.emit( "newRound" );
         this.NewRound();
     };
 
@@ -197,7 +211,7 @@ class Table extends TableState{
         //If there is no current game and we have enough players, start a new game.
         if (!this.game) {
             this.game = new Game(this.smallBlind, this.bigBlind);
-            this.NewRound();
+            this.initNewRound();
         }
     };
     standUpPlayer(playerName) {
@@ -284,29 +298,6 @@ class Table extends TableState{
             this.dealer = 0;
         }
     }
-
-    NewRound() {
-        this.removeAndAddPlayers();
-        // EDITED
-        if (this.players.length < 2){
-            console.log('not enough players (NewRound)');
-            this.game = null;
-            return;
-        }
-        this.gameWinners = [];
-        this.gameLosers = [];
-
-        //Deal 2 cards to each player
-        for (let i = 0; i < this.players.length; i += 1) {
-            this.players[i].cards.push(this.game.deck.pop());
-            this.players[i].cards.push(this.game.deck.pop());
-            this.players[i].bet = 0;
-            this.game.roundBets[i] = 0;
-        }
-        this.initializeBlinds();
-
-        // this.eventEmitter.emit( "newRound" );
-    };
 
     initializeBlinds() {
         // Small and Big Blind player indexes
