@@ -20,7 +20,9 @@ let host = document.getElementById('host'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet'),
     showHand = document.getElementById('show-hand'),
-    straddleSwitch = document.getElementById('straddle-switch');
+    straddleSwitch = document.getElementById('straddle-switch'),
+    standUp = document.getElementById('stand-up'),
+    sitDown = document.getElementById('sit-down');
     // standup = document.getElementById('standup-btn');
 
 
@@ -91,17 +93,26 @@ $('#buyin').on('click', () => {
 /**
  * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
  */
-const logIn = () => {
+const logIn = (standingUp) => {
+    console.log('standingUp', standingUp)
     loggedIn = true;
     $('#buyin-info').removeClass('show');
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
+    if (standingUp) {
+        showSitDownButton();
+    } else {
+        showStandUpButton();
+    }
+
 };
 
 const logOut = () => {
     loggedIn = false;
     $('#quit-btn').addClass('collapse');
     $('#buyin').removeClass('collapse');
+    $('#sit-down').addClass('collapse');
+    $('#stand-up').addClass('collapse');
 };
 
 $('#buyin-btn').on('click', () => {
@@ -119,7 +130,7 @@ $('#buyin-btn').on('click', () => {
     } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
         alert("Please enter valid stackinformation");
     } else {
-        logIn();
+        logIn(false);
         let playerName = newPlayer.value;
         let stack = parseInt(newStack.value);
         socket.emit('buy-in', {
@@ -136,6 +147,26 @@ $('#buyin-info').keydown(function (e){
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {});
     logOut();
+});
+
+const showSitDownButton = () => {
+    $('#stand-up').addClass('collapse');
+    $('#sit-down').removeClass('collapse');
+};
+
+const showStandUpButton = () => {
+    $('#sit-down').addClass('collapse');
+    $('#stand-up').removeClass('collapse');
+};
+
+standUp.addEventListener('click', () => {
+    socket.emit('stand-up');
+    showSitDownButton();
+});
+
+sitDown.addEventListener('click', () => {
+    socket.emit('sit-down');
+    showStandUpButton()
 });
 
 $('#getLink').click(() => copyLink());
@@ -769,6 +800,7 @@ socket.on('player-reconnect', (data) => {
 
 let tableState = {}; // not used for rendering.
 function setState(data) {
+    console.log(data);
     if (data.table) {
         tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
         if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
@@ -776,15 +808,9 @@ function setState(data) {
         }
     }
     if (data.player) {
-        tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
-        tableState.player.folded = data.player.folded;
-        tableState.player.allIn = data.player.allIn;
-        tableState.player.talked = data.player.talked;
-        tableState.player.inHand = data.player.inHand;
-        tableState.player.cards = data.player.cards;
-        tableState.player.bet = data.player.bet;
-        tableState.player.leavingGame = data.player.leavingGame;
-        tableState.player.showingCards = data.player.showingCards;
+        if (!tableState.player)
+            tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
+        Object.assign(tableState.player, data.player);
     }
     tableState.gameInProgress = data.gameInProgress;
 }
@@ -849,6 +875,16 @@ socket.on('buy-out', (data) => {
     $(`#${data.seat}`).addClass('out');
 });
 
+socket.on('stand-up', data => {
+    // TODO: do we want to do anything here?
+    outputEmphasizedMessage(data.playerName + 'stands up.');
+});
+
+socket.on('sit-down', data => {
+    // TODO: do we want to do anything here?
+    outputEmphasizedMessage(data.playerName + 'sits down.');
+});
+
 // render players at a table
 socket.on('render-players', (data) => {
     for (let i = 0; i < data.length; i++){
@@ -856,7 +892,13 @@ socket.on('render-players', (data) => {
         hand.classList.remove('hidden');
         hand.querySelector('.username').innerHTML = data[i].playerName;
         hand.querySelector('.stack').innerHTML = data[i].stack;
-        if (data[i].waiting){
+        if (data[i].standingUp) {
+            // TODO: how do we want to display when a player is standing up?
+            $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
+            $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
+            console.log(data[i].playerName + 'is standing up.');
+            // hideCards(data[i].seat);
+        } else if (data[i].waiting){
             $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
             $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
         } else if (data[i].betAmount <= 0) {
@@ -878,6 +920,18 @@ function hideSeat(seat) {
     $(`#${seat}`).addClass('hidden');
     $(`#${seat}`).find('.username').text('guest');
     $(`#${seat}`).find('.stack').text('stack');
+}
+
+function hideCards(seat) {
+    $(`#${seat} > .left-card`).addClass('hidden');
+    $(`#${seat} > .right-card`).addClass('hidden');
+    $(`#${seat} > .hand-rank-message-container`).addClass('hidden');
+}
+
+function unhideCards(seat) {
+    $(`#${seat} > .left-card`).removeClass('hidden');
+    $(`#${seat} > .right-card`).removeClass('hidden');
+    $(`#${seat} > .hand-rank-message-container`).removeClass('hidden');
 }
 
 // removes old players (that have busted or quit)
@@ -953,8 +1007,11 @@ const hideBoardPreFlop = () => {
 // data: {street, board, sound, logIn}
 socket.on('sync-board', (data) => {
     $('.pm-btn').removeClass('pm');
-    if (data.logIn)
-        logIn();
+    if (data.logIn) {
+        console.log('logging in');
+        console.log(tableState);
+        logIn(tableState.player.standingUp);
+    }
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     dealStreet(data);

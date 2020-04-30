@@ -170,6 +170,31 @@ class SessionManager extends TableManager {
         await this.playerLeaves(playerId);
     }
 
+    async standUpPlayer(playerName) {
+        if (this.isPlayerStandingUp(playerName)) return;
+
+        if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
+            this.emitAction('fold', playerName, 0);
+        }
+        let prev_round = super.getRoundName();
+        super.standUpPlayer(playerName);
+        // check if round has ended
+        await this.check_round(prev_round);
+        this.sendTableState();
+        this.renderActionSeatAndPlayerActions();
+        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        this.io.sockets.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+    }
+    sitDownPlayer(playerName) {
+        if (!this.isPlayerStandingUp(playerName)) return;
+
+        super.sitDownPlayer(playerName);
+        this.sendTableState();
+        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        this.io.sockets.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+        this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
+    }
+
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
     async playerLeaves(playerId) {
         let playerName = super.getPlayerById(playerId);
@@ -356,6 +381,14 @@ class SessionManager extends TableManager {
         this.sendTableState();
     }
 
+    resetAfterRound() {
+        this.io.sockets.to(this.sid).emit('remove-out-players', {});
+        this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
+        this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
+        this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
+        this.io.sockets.to(this.sid).emit('clear-earnings', {});
+    }
+
     startNextRoundOrWaitingForPlayers () {
         // start new round
         super.startRound();
@@ -363,11 +396,7 @@ class SessionManager extends TableManager {
             this.begin_round();
         } else {
             this.io.sockets.to(this.sid).emit('waiting', {});
-            this.io.sockets.to(this.sid).emit('remove-out-players', {});
-            this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: false});
-            this.io.sockets.to(this.sid).emit('new-dealer', {seat: -1});
-            this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-            this.io.sockets.to(this.sid).emit('clear-earnings', {});
+            this.resetAfterRound();
             this.io.sockets.to(this.sid).emit('render-action-buttons', super.getAvailableActions());
             console.log('waiting for more players to rejoin!');
         }
@@ -376,23 +405,24 @@ class SessionManager extends TableManager {
 
     begin_round() {
         this.sendTableState();
-        this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: true});
-        this.io.sockets.to(this.sid).emit('remove-out-players', {});
-        this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
         this.io.sockets.to(this.sid).emit('nobody-waiting', {});
-        this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-        this.io.sockets.to(this.sid).emit('clear-earnings', {});
+        this.resetAfterRound();
         // this.io.sockets.to(this.sid).emit('hide-hands', {});
         this.io.sockets.to(this.sid).emit('initial-bets', {seats: super.getInitialBets()});
         let data = super.playersInfo();
         for (let i = 0; i < data.length; i++) {
             let name = data[i].playerName;
-            this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
-                cards: super.getCardsByPlayerName(name),
-                seat: data[i].seat,
-                folded: false,
-                handRankMessage: this.playerHandState(name).handRankMessage,
-            });
+            if (this.getPlayer(name).inHand) {
+                this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
+                    cards: super.getCardsByPlayerName(name),
+                    seat: data[i].seat,
+                    folded: false,
+                    handRankMessage: this.playerHandState(name).handRankMessage,
+                });
+            }
+            // else {
+            //     this.io.sockets.to(this.sid).emit()
+            // }
             this.io.sockets.to(this.sid).emit('update-stack', {
                 seat: data[i].seat,
                 stack: data[i].stack
@@ -556,7 +586,8 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         waiting: !s.gameInProgress,
         pot: s.getPot(),
         roundName: s.getRoundName(),
-        callAmount: s.maxBet
+        callAmount: s.maxBet,
+        standingUp: s.isActivePlayerId(playerId) && s.isPlayerStandingUp(s.getPlayerById(playerId)), // todo soon
     });
 
     // hacky
@@ -681,12 +712,28 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
         });
 
-        socket.on('leave-game', (data) => {
+        socket.on('leave-game', async (data) => {
             if (!s.isActivePlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
                 return;
             }
             s.playerLeaves(playerId);
+        });
+
+        socket.on('stand-up', () => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted stand-up but is not an active player`);
+                return;
+            }
+            s.standUpPlayer(s.getPlayerById(playerId));
+        });
+
+        socket.on('sit-down', () => {
+            if (!s.isActivePlayerId(playerId)) {
+                console.log(`playerid ${playerId} emitted sit-down but is not an active player`);
+                return;
+            }
+            s.sitDownPlayer(s.getPlayerById(playerId));
         });
         
         socket.on('set-turn-timer', (data) => { // delay

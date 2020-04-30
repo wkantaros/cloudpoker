@@ -26,6 +26,16 @@
                     <!-- <span class="popuptext" id="buyin">Popup text...</span> -->
                 </div>
             </div>
+        <% if (!joinedGame) { %>
+            <button class="button popup collapse" id="stand-up">Stand Up</button>
+            <button class="button popup collapse" id="sit-down">Sit Down</button>
+        <% } else if (standingUp) { %>
+            <button class="button popup collapse" id="stand-up">Stand Up</button>
+            <button class="button popup" id="sit-down">Sit Down</button>
+        <% } else { %>
+            <button class="button popup" id="stand-up">Stand Up</button>
+            <button class="button popup collapse" id="sit-down">Sit Down</button>
+        <% } %>
         <button class="button collapse" id="host-btn">Host Options</button>
         <%- include('../partials/hostPage'); %>
         <!-- <anchor class="button popup hidden" id="standup-btn">Standup</anchor> -->

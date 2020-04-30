@@ -176,12 +176,11 @@ class Table extends TableState{
         this.game.deck.splice(0, this.game.deck.length);
         this.game.board.splice(0, this.game.board.length);
         for (let i = 0; i < this.players.length; i += 1) {
+            if (this.players[i].standingUp) {
+                console.log('MASSIVE ERROR PLAYER IS STANDING UP', this.players[i]);
+            }
             this.players[i].inHand = true;
-            this.players[i].bet = 0;
-            this.players[i].folded = false;
-            this.players[i].talked = false;
-            this.players[i].allIn = false;
-            this.players[i].cards.splice(0, this.players[i].cards.length);
+            this.players[i].clearHandState();
         }
         fillDeck(this.game.deck);
         this.NewRound();
@@ -201,6 +200,23 @@ class Table extends TableState{
             this.NewRound();
         }
     };
+    standUpPlayer(playerName) {
+        const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
+        if (!p) return false;
+        p.standingUp = true;
+        if (this.game !== null) {
+            this.game.pot += p.bet;
+            p.Fold();
+            progress(this);
+        }
+        return true;
+    }
+    sitDownPlayer(playerName) {
+        const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
+        if (!p) return false;
+        p.standingUp = false;
+        return true;
+    }
     AddPlayer(playerName, chips, isStraddling) {
         // console.log(`adding player ${playerName}`);
         // Check if playerName already exists
@@ -238,15 +254,24 @@ class Table extends TableState{
         }
         return true;
     }
-
     removeAndAddPlayers() {
         const playersToRemove = this.leavingPlayers;
+        // TODO: possible edge case if player clicks stand up before the game starts because inHand would be false.
+        //   to circumvent this, send all standing up players to the front end, not just an update with players
+        //   that are newly standing up.
+        const playersToStandUp = this.allPlayers.filter(p => p !== null && !p.leavingGame && p.inHand && p.standingUp);
         const playersToAdd = this.waitingPlayers;
 
         for (const p of playersToRemove) {
             if (p.seat <= this.dealer)
                 this.dealer--;
             this.allPlayers[p.seat] = null;
+        }
+        for (const p of playersToStandUp) {
+            if (p.seat <= this.dealer)
+                this.dealer--;
+            p.inHand = false;
+            p.clearHandState(); // this will not be called in initNewRound because p.inHand is false
         }
         for (const p of playersToAdd) {
             if (p.seat <= this.dealer)
