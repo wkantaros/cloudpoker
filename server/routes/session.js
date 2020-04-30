@@ -524,7 +524,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
     let sid = req.params.id;
     const s = sessionManagers.get(sid);
     if (!s) {
-        // res.status(404).render('pages/404');
         res.redirect('/');
         return;
     }
