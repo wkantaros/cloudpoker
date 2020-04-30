@@ -1723,11 +1723,11 @@ const getStack = () => {
 };
 
 const getBigBlind = () => {
-  return parseInt($('#bb').html());
+    return tableState.table.bigBlind;
 };
 
 const getSmallBlind = () => {
-  return parseInt($('#sb').html());
+    return tableState.table.smallBlind;
 };
 
 const getPotSize = () => {
@@ -2001,6 +2001,17 @@ gamePrefForm.addEventListener('submit', (event) => {
 
 let handleUpdatedGamePreferences = (gamePref) => {
     // todo: update big blind, small blind for next turn, if things change
+    let bb = gamePref.bigBlind;
+    let sb = gamePref.smallBlind;
+    if (bb != getBigBlind() || sb != getSmallBlind){
+        socket.emit('update-blinds-next-round', {smallBlind: sb, bigBlind: bb});
+    }
     // todo: update straddle rules if selected for next turn
     // todo: queue bombpot for next hand
 }
+
+socket.on('update-header-blinds', (data) => {
+    console.log(data);
+    $('#sb').html(data.smallBlind);
+    $('#bb').html(data.bigBlind);
+});

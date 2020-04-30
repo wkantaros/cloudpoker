@@ -19,7 +19,7 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
         // username: Joi.string().alphanum().min(2).max(10)
         username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
-        bigBlind: Joi.number().integer().min(0),
+        bigBlind: Joi.number().integer().min(1),
         stack: Joi.number().integer().min(1),
         straddleLimit: Joi.number().integer().min(-1)
     });
@@ -376,6 +376,7 @@ class SessionManager extends TableManager {
 
     begin_round() {
         this.sendTableState();
+        this.io.sockets.to(this.sid).emit('update-header-blinds', {bigBlind: this.table.bigBlind, smallBlind: this.table.smallBlind});
         this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: true});
         this.io.sockets.to(this.sid).emit('remove-out-players', {});
         this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
@@ -753,6 +754,30 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 s.performAction(playerName, data.action, data.amount);
             } else {
                 console.log(`not ${playerName}'s action`);
+            }
+        });
+
+        socket.on('update-blinds-next-round', (data) => {
+            if (s.getModId() && s.getModId() != playerId){
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                if (data && data.smallBlind && data.bigBlind){
+                    if (data.smallBlind <= data.bigBlind){
+                        console.log('updating blinds next hand');
+                        s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
+                        // if game isnt in progress change blinds in header immediately
+                        if (!s.gameInProgress){
+                            io.sockets.to(sid).emit('update-header-blinds', {
+                                bigBlind: s.table.bigBlind,
+                                smallBlind: s.table.smallBlind
+                            });
+                        }
+                    } else {
+                        console.log('big blind must be greater than small blind');
+                    }
+                } else {
+                    console.log('error with data input from update blinds');
+                }
             }
         });
 
