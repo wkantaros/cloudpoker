@@ -17,6 +17,7 @@ Bugs needing to be fixed before launch:
     [ ] number doesnt show occaisonally on a raise
     [ ] all ins can render the winning player before hand finishes
     [ ] raise/bet buttons (1/2 pot, 2x pot, etc) dont yield a value
+    [*] raise minus button doesnt yield a value
 
 Features needed to be added before launch:
     [ ] host page

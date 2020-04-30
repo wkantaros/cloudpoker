@@ -1080,6 +1080,149 @@ input::-webkit-inner-spin-button {
     margin-top: 30px;
 }
 
+.overlay .hostpage-header {
+    color: #f1f1f1;
+    position: relative;
+    top: 5%;
+    width: 90%;
+    margin: 30px auto 100px;
+}
+
+.hostpage-header .button {
+    padding: 20px 5px;
+    height: 10%;
+}
+
+.overlay .closebtn-hd {
+    font-size: 5em;
+    height: 15%;
+    border: none;
+}
+
+.overlay .game-pref {
+    /* font-size: 5em; */
+    /* height: 15%; */
+    width: 90%;
+    /* color: #33C3F0; */
+    color: linen;
+    margin: 10px auto;
+    position: relative;
+    border: none;
+    /* background: red; */
+}
+
+.game-pref .row{
+    margin-bottom: 2rem;
+}
+
+.game-pref .inp {
+    padding: 2.5rem 10px;
+    margin: 0;
+    /* background-color: #BCE7FD; */
+    /* background-color: #555555; */
+    background-color: inherit;
+    /* text-align: center; */
+    color: #fff;
+    /* font-weight: bold; */
+    font-size: 4rem;
+    font-weight: lighter;
+}
+
+.game-pref #straddle-input {
+    padding: 2.5rem 10px;
+    height: 5.2rem;
+    margin: 0;
+    /* background-color: #BCE7FD; */
+    /* background-color: #555555; */
+    background-color: inherit;
+    /* text-align: center; */
+    color: #fff;
+    /* font-weight: bold; */
+    font-size: 3rem;
+    font-weight: lighter;
+}
+
+.overlay .players-host-page {
+    /* font-size: 5em; */
+    /* height: 15%; */
+    width: 90%;
+    /* color: #33C3F0; */
+    color: linen;
+    margin: 10px auto;
+    position: relative;
+    border: none;
+    /* background: red; */
+}
+
+.players-host-page .row{
+    margin-bottom: 2rem;
+}
+
+.players-host-page .inp {
+    padding: .63em 10px;
+    /* padding: 2.5rem 10px; */
+    /* margin: 0; */
+    /* background-color: #BCE7FD; */
+    /* background-color: #555555; */
+    background-color: inherit;
+    /* text-align: center; */
+    color: #ddd;
+    /* font-weight: bold; */
+    font-size: 4rem;
+    font-weight: lighter;
+}
+
+.kick-option-btn {
+    background-color: rgb(179, 24, 42);
+    border: none;
+    color: white;
+}
+
+.kick-option-btn:hover {
+    background-color: #E71D36;
+    color: white;
+}
+.u-q-width {
+    width: 35%;
+    margin-right: 2%;
+    box-sizing: border-box;
+}
+
+.u-tq-width {
+    width: 60%;
+    /* box-sizing: border-box; */
+}
+
+.players-host-page button {
+    /* height: 5.2rem; */
+    height: 4.7em;
+    padding: 0 20px;
+    margin-right: 20px;
+}
+
+.update-stack-host {
+    float: left;
+}
+
+.update-stack-host .submit-row {
+    float: right;
+    height: 4.7em;
+}
+
+.players-host-page .transfer-ownership-btn {
+    background-color: #5BBA6F;
+    border: #5BBA6F;
+}
+
+.players-host-page .transfer-ownership-btn:hover {
+    background-color: rgb(85, 160, 101);
+    border: #5BBA6F;
+}
+
+#players-form .row {
+    margin-bottom: .5em;
+}
+
 .overlay a {
     padding: 8px;
     text-decoration: none;

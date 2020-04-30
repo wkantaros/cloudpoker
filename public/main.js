@@ -1726,6 +1726,10 @@ const getBigBlind = () => {
   return parseInt($('#bb').html());
 };
 
+const getSmallBlind = () => {
+  return parseInt($('#sb').html());
+};
+
 const getPotSize = () => {
     let pot = parseInt($("#pot-amount").html()) || 0;
     $('.player-bet').each(function () {
@@ -1879,7 +1883,124 @@ function closeLog() {
     document.getElementById("game-log").style.width = "0%";
 }
 
+function openHostPage() {
+    renderGamePrefVals();
+    renderHostPlayerVals();
+    document.getElementById("host-page").style.width = "100%";
+}
+
+let renderGamePrefVals = () => {
+    $('#checkbp').prop("checked", false);
+    $('#smallblind-input').val(getSmallBlind());
+    $('#bigblind-input').val(getBigBlind());
+    $('#straddle-input').val('');
+}
+
+let renderHostPlayerVals = () => {
+    //TODO
+    for (let i = 0; i < 10; i++) {
+        let rowplayerid = `#player${i}`
+        $(rowplayerid).addClass('collapse');
+        let seat = `#${i}`
+        if (!$(seat).hasClass('hidden')){
+            let name = $(seat).find('.username').html();
+            let stack = parseInt($(seat).find('.stack').html());
+            console.log(name);
+            console.log('stack', stack);
+            // console.log($(rowplayerid).find('.playername-input'));
+            $(rowplayerid).find('.playername-input').val(name);
+            $(rowplayerid).find('.stack-input').val(stack);
+            $(rowplayerid).removeClass('collapse');
+        }
+    }
+    // iterate through each seat
+    //      if seat has player have him show up as a row with name and stack
+}
+
+let closeGamePrefVals = () => {
+    $('#successfully-submitted').addClass('collapse');
+    $('#game-pref-form').removeClass('collapse');
+    $('.game-pref').addClass('collapse');
+}
+
+let closePlayerVals = () => {
+    $('#successfully-submitted-players').addClass('collapse');
+    $('.player-rows').removeClass('collapse');
+    $('.players-host-page').addClass('collapse');
+}
+
+function closeHostPage() {
+    closeGamePrefVals();
+    closePlayerVals();
+    document.getElementById("host-page").style.width = "0%";
+}
+
+$('#game-pref-btn').click(() => {
+    $('#successfully-submitted').addClass('collapse');
+    $('#game-pref-form').removeClass('collapse');
+    $('.game-pref').removeClass('collapse');
+    closePlayerVals();
+});
+
+$('#host-players-btn').click(() => {
+    $('#successfully-submitted-players').addClass('collapse');
+    $('.player-rows').removeClass('collapse');
+    $('.players-host-page').removeClass('collapse');
+    closeGamePrefVals();
+    if (!$('#player0').hasClass('collapse')){
+        $('#player0').find('.stack-input').focus();
+    }
+});
+
 $('#buyin-log-opn').click( () => openBuyin());
 $('#closeBuyin').click(() => closeBuyin());
 $('#game-log-opn').click(() => openLog());
 $('#closeLog').click(() => closeLog());
+$('#host-btn').click(() => openHostPage());
+$('#closeHostPage').click(() => closeHostPage());
+
+// host page capabilities
+const gamePrefForm = document.getElementById('game-pref-form');
+gamePrefForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    console.log('form successfully submitted');
+    const formData = new FormData(gamePrefForm);
+    const smallBlind = parseInt(formData.get('smallblind-input')) || 25;
+    const bigBlind = parseInt(formData.get('bigblind-input')) || 50;
+    const straddleLimit = formData.get('straddle-inp');
+    const bombPotNextHand = formData.get('bombpot-nexthand') != null ? true : false;
+
+    const gamePref = {
+        smallBlind,
+        bigBlind,
+        straddleLimit,
+        bombPotNextHand
+    };
+
+    console.log(gamePref);
+    $('#successfully-submitted').removeClass('collapse');
+    $('#game-pref-form').addClass('collapse');
+
+    // fetch(`${window.location.href}session`, {
+    //         method: 'POST',
+    //         body: JSON.stringify(game),
+    //         headers: {
+    //             'content-type': 'application/json'
+    //         }
+    //     }).then(res => res.json())
+    //     .then(data => {
+    //         if (!data.isValid) {
+    //             alert(data.message);
+    //         } else {
+    //             //   console.log(data.shortid);
+    //             window.location.href = `/session/${data.shortid}`;
+    //         }
+    //     });
+    handleUpdatedGamePreferences(gamePref);
+});
+
+let handleUpdatedGamePreferences = (gamePref) => {
+    // todo: update big blind, small blind for next turn, if things change
+    // todo: update straddle rules if selected for next turn
+    // todo: queue bombpot for next hand
+}
