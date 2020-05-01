@@ -781,6 +781,16 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
         });
 
+        socket.on('update-straddle-next-round', (data) => {
+            if (s.getModId() && s.getModId() != playerId) {
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                console.log('setting straddle limit to ', data.straddleLimit);
+                s.updateStraddleLimit(data.straddleLimit);
+                s.sendTableState();
+            }
+        })
+
         // this if else statement is a nonsense fix need to find a better one
         } else {
             console.log('already connected');

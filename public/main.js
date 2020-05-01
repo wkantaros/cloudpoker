@@ -19,8 +19,7 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet'),
-    showHand = document.getElementById('show-hand'),
-    straddleSwitch = document.getElementById('straddle-switch');
+    showHand = document.getElementById('show-hand');
     // standup = document.getElementById('standup-btn');
 
 
@@ -541,18 +540,50 @@ minBet.addEventListener('click', () => {
     });
 });
 
-let isStraddling = false;
-straddleSwitch.addEventListener('click', () => {
-    isStraddling = !isStraddling;
-    console.log(`straddle enabled: ${isStraddling}`);
-    if (isStraddling) {
-        $('#straddle-switch').html('Disable Straddling');
+// let isStraddling = false;
+// straddleSwitch.addEventListener('click', () => {
+//     isStraddling = !isStraddling;
+//     console.log(`straddle enabled: ${isStraddling}`);
+//     if (isStraddling) {
+//         $('#straddle-switch').html('Disable Straddling');
+//     } else {
+//         $('#straddle-switch').html('Enable Straddling');
+//     }
+//     socket.emit('straddle-switch', {
+//         isStraddling: isStraddling
+//     });
+// });
+
+$('input[name=singleStraddleBox]').change(function () {
+    if ($(this).is(':checked')) {
+        console.log('player elects to straddle utg');
+        socket.emit('straddle-switch', {
+            isStraddling: true,
+            straddletype: 1
+        });
     } else {
-        $('#straddle-switch').html('Enable Straddling');
+        console.log('player elects to stop straddling utg');
+        socket.emit('straddle-switch', {
+            isStraddling: false,
+            straddletype: 0
+        });
     }
-    socket.emit('straddle-switch', {
-        isStraddling: isStraddling
-    });
+});
+
+$('input[name=multiStraddleBox]').change(function () {
+    if ($(this).is(':checked')) {
+        console.log('player elects to start multi straddling');
+        socket.emit('straddle-switch', {
+            isStraddling: true,
+            straddletype: -1
+        });
+    } else {
+        console.log('player elects to stop multi straddling');
+        socket.emit('straddle-switch', {
+            isStraddling: false,
+            straddletype: 0
+        });
+    }
 });
 
 // keyboard shortcuts for all events
@@ -889,11 +920,10 @@ class TableRenderer {
             'start': true, // note start is true
             'check': false,
             'your-action': false,
-            'straddle-switch': this.manager.getStraddleLimit() !== 0,
         };
         if (!this.manager.gameInProgress && this.player.isMod && this.manager.playersInNextHand().length >= 2) {
             availableActions['start'] = false;
-            displayButtons({availableActions, canPerformPremoves: false})
+            displayButtons({availableActions, canPerformPremoves: false, })
         } else if (this.manager.gameInProgress && this.player !== null && this.player.inHand) {
             displayButtons(this.table.getAvailableActions(this.player.playerName));
         } else { // if player is not in hand or not in a seat
@@ -985,6 +1015,11 @@ function setState(data) {
         tableState.player.showingCards = data.player.showingCards;
     }
     tableState.gameInProgress = data.gameInProgress;
+    if (tableState.gameInProgress && tableState.player) {
+        renderStraddleOptions(true);
+    } else {
+        renderStraddleOptions(false);
+    }
 }
 
 // let renderer = new TableRenderer(null, null); //TODO: properly instantiate
@@ -1885,6 +1920,8 @@ function closeLog() {
 function openHostPage() {
     renderGamePrefVals();
     renderHostPlayerVals();
+    $('#game-pref-btn').click();
+    // $('#host-players-btn').click();
     document.getElementById("host-page").style.width = "100%";
 }
 
@@ -1920,12 +1957,14 @@ let closeGamePrefVals = () => {
     $('#successfully-submitted').addClass('collapse');
     $('#game-pref-form').removeClass('collapse');
     $('.game-pref').addClass('collapse');
+    $('#game-pref-btn').removeClass('active');
 }
 
 let closePlayerVals = () => {
     $('#successfully-submitted-players').addClass('collapse');
     $('.player-rows').removeClass('collapse');
     $('.players-host-page').addClass('collapse');
+    $('#host-players-btn').removeClass('active');
 }
 
 function closeHostPage() {
@@ -1938,6 +1977,7 @@ $('#game-pref-btn').click(() => {
     $('#successfully-submitted').addClass('collapse');
     $('#game-pref-form').removeClass('collapse');
     $('.game-pref').removeClass('collapse');
+    $('#game-pref-btn').addClass('active');
     closePlayerVals();
 });
 
@@ -1945,6 +1985,7 @@ $('#host-players-btn').click(() => {
     $('#successfully-submitted-players').addClass('collapse');
     $('.player-rows').removeClass('collapse');
     $('.players-host-page').removeClass('collapse');
+    $('#host-players-btn').addClass('active');
     closeGamePrefVals();
     if (!$('#player0').hasClass('collapse')){
         $('#player0').find('.stack-input').focus();
@@ -2002,10 +2043,13 @@ let handleUpdatedGamePreferences = (gamePref) => {
     // todo: update big blind, small blind for next turn, if things change
     let bb = gamePref.bigBlind;
     let sb = gamePref.smallBlind;
-    if (bb != getBigBlind() || sb != getSmallBlind){
+    if (bb !== getBigBlind() || sb !== getSmallBlind()){
         socket.emit('update-blinds-next-round', {smallBlind: sb, bigBlind: bb});
     }
     // todo: update straddle rules if selected for next turn
+    if (gamePref.straddleLimit !== tableState.table.straddleLimit) {
+        socket.emit('update-straddle-next-round', {straddleLimit: gamePref.straddleLimit});
+    }
     // todo: queue bombpot for next hand
 }
 
@@ -2014,3 +2058,31 @@ socket.on('update-header-blinds', (data) => {
     $('#sb').html(data.smallBlind);
     $('#bb').html(data.bigBlind);
 });
+
+const renderStraddleOptions = (canRender) => {
+    console.log('tableState', tableState);
+    if (canRender){
+        if (tableState.table.straddleLimit == 1){
+            $('.single-straddle').removeClass('collapse');
+            $('.multi-straddle').addClass('collapse');
+            if (tableState.player.isStraddling){
+                $('input[name=singleStraddleBox]').prop("checked", true);
+            }
+        }
+        else if (tableState.table.straddleLimit == -1){
+            $('.single-straddle').removeClass('collapse');
+            $('.multi-straddle').removeClass('collapse');
+            if (tableState.player.isStraddling) {
+                $('input[name=singleStraddleBox]').prop("checked", true);
+                $('input[name=multiStraddleBox]').prop("checked", true);
+            }
+        }
+        else {
+            $('.single-straddle').addClass('collapse');
+            $('.multi-straddle').addClass('collapse');
+        }
+    } else {
+        $('.single-straddle').addClass('collapse');
+        $('.multi-straddle').addClass('collapse');
+    }
+}

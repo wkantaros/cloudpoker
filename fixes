@@ -23,6 +23,9 @@ Bugs needing to be fixed before launch:
     [ ] when game ends:
         [ ] remove yellow glow from player who won hand
         [ ] have all the players say waiting
+    
+    [ ] straddle:
+        [ ] if straddling is multi straddle, allow ability for user to just straddle UTG
 
 Features needed to be added before launch:
     [ ] host page
@@ -35,7 +38,7 @@ Features needed to be added before launch:
         [*] update player stack frontend
         [ ] update player stack backend
     [ ] player stand up
-    [ ] straddle front end
+    [*] straddle front end
     [ ] move game log from chatroom to game log 
 
 Down the line bugs needing to be fixed:

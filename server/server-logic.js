@@ -138,7 +138,6 @@ class TableStateManager {
             'start': false,
             'check': false,
             'your-action': false,
-            'straddle-switch': this.getStraddleLimit() !== 0,
             'show-hand': false,
         };
         const p = this.getPlayer(playerName);
@@ -263,7 +262,11 @@ class TableManager extends TableStateManager {
     setPlayerStraddling(playerid, isStraddling) {
         const player = this.table.getPlayer(this.getPlayerById(playerid));
         if (player) {
-            player.isStraddling = isStraddling;
+            if (this.getStraddleLimit() !== 0){
+                player.isStraddling = isStraddling;
+            } else {
+                player.isStraddling = false;
+            }
         }
     }
 
@@ -524,6 +527,14 @@ class TableManager extends TableStateManager {
             this.table.bigBlind = this.bigBlindNextHand;
             this.bigBlindNextHand = undefined;
         }
+    }
+
+    updateStraddleLimit(straddleLimit) {
+        // quit out of any current straddles
+        for (let name of Object.keys(this.playerids)) {
+            this.setPlayerStraddling(this.playerids[name].playerid, false);
+        }
+        this.table.straddleLimit = straddleLimit;
     }
 }
 
