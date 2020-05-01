@@ -1827,6 +1827,22 @@ $('.transfer-ownership-btn').click(function() {
     closeHostPage();
 });
 
+$('.update-stack-row').click(function() {
+    let playerid = $(this).parents('.row').attr('id');
+    let seat = parseInt(playerid.substring(6));
+    let newStackAmount = parseInt($(`#${playerid}`).find('.stack-input').val());
+    socket.emit('update-player-stack', {seat, newStackAmount});
+    if (newStackAmount > 0){
+        closeHostPage();
+    }
+});
+
+socket.on('update-player-stack', (data) => {
+    console.log(data);
+    $('#sb').html(data.smallBlind);
+    $('#bb').html(data.bigBlind);
+});
+
 socket.on('update-header-blinds', (data) => {
     console.log(data);
     $('#sb').html(data.smallBlind);

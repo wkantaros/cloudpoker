@@ -736,7 +736,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('get-buyin-info', () => {
-            console.log('here!mf');
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         });
         
@@ -758,10 +757,10 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('update-blinds-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId){
+            if (s.getModId() != playerId || !data){
                 console.log('somebody who wasnt the host attempted to update game information');
             } else {
-                if (data && data.smallBlind && data.bigBlind){
+                if (data.smallBlind && data.bigBlind){
                     if (data.smallBlind <= data.bigBlind){
                         console.log('updating blinds next hand');
                         s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
@@ -782,7 +781,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('update-straddle-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId) {
+            if (s.getModId() != playerId || !data) {
                 console.log('somebody who wasnt the host attempted to update game information');
             } else {
                 console.log('setting straddle limit to ', data.straddleLimit);
@@ -792,7 +791,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('transfer-host', (data) => {
-            if (s.getModId() && s.getModId() != playerId) {
+            if (s.getModId() != playerId || !data) {
                 console.log('somebody who wasnt the host attempted to update game information');
             } else {
                 let newHostName = s.getPlayerBySeat(data.seat);
@@ -808,6 +807,32 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                     } else {
                         console.log('unable to transfer host');
                         s.sendTableState();
+                    }
+                }
+            }
+        });
+
+        socket.on('update-player-stack', (data) => {
+            if (s.getModId() != playerId || !data) {
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                let pName = s.getPlayerBySeat(data.seat);
+                let newStack = data.newStackAmount; 
+                if (!pName || pName == 'guest'){
+                    console.log('player at seat ' + data.seat + ' doesnt exist');
+                } else {
+                    if (!newStack || isNaN(newStack) || newStack <= 0){
+                        console.log('error with newStackAmountInput');
+                    } else {
+                        console.log(`queuing to update ${pName}'s stack to ${newStack}`);
+                        s.queueUpdatePlayerStack(pName, newStack);
+                        // if game isnt in progress update players stack immediately
+                        if (!s.gameInProgress) {
+                            io.sockets.to(sid).emit('update-stack', {
+                                seat: data.seat,
+                                stack: newStack
+                            });
+                        }
                     }
                 }
             }
