@@ -126,7 +126,6 @@ class TableState {
             'start': false,
             'check': false,
             'your-action': false,
-            'straddle-switch': this.straddleLimit !== 0,
             'show-hand': false,
         };
 
