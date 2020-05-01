@@ -18,8 +18,6 @@ class Table extends TableState{
             allPlayers.push(null);
         }
         super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1, null);
-        this.gameWinners = [];
-        this.gameLosers = [];
     }
 
     callBlind(playerName) {
@@ -105,7 +103,7 @@ class Table extends TableState{
         if( playerName === p.playerName ) {
             const maxBet = this.getMaxBet();
             console.log(`${playerName} calls`);
-            if (p.chips > maxBet) {
+            if (p.chips + p.bet > maxBet) {
                 console.log(`${playerName} calls`);
                 // treat call as bet
                 const betAmount = p.Bet(maxBet - p.bet);
@@ -143,12 +141,6 @@ class Table extends TableState{
         return betAmount;
     };
 
-    getWinners(){
-        return this.gameWinners;
-    };
-    getLosers(){
-        return this.gameLosers;
-    };
     // getAllHands(){
     //     var all = this.losers.concat( this.players );
     //     var allHands = [];
@@ -176,15 +168,27 @@ class Table extends TableState{
         this.game.deck.splice(0, this.game.deck.length);
         this.game.board.splice(0, this.game.board.length);
         for (let i = 0; i < this.players.length; i += 1) {
+            if (this.players[i].standingUp) {
+                console.log('MASSIVE ERROR PLAYER IS STANDING UP', this.players[i]);
+            }
             this.players[i].inHand = true;
-            this.players[i].bet = 0;
-            this.players[i].folded = false;
-            this.players[i].talked = false;
-            this.players[i].allIn = false;
-            this.players[i].cards.splice(0, this.players[i].cards.length);
+            this.players[i].clearHandState();
         }
         fillDeck(this.game.deck);
-        this.NewRound();
+
+        this.game.winners = [];
+        this.game.losers = [];
+
+        //Deal 2 cards to each player
+        for (let i = 0; i < this.players.length; i += 1) {
+            this.players[i].cards.push(this.game.deck.pop());
+            this.players[i].cards.push(this.game.deck.pop());
+            this.players[i].bet = 0;
+            this.game.roundBets[i] = 0;
+        }
+        this.initializeBlinds();
+
+        // this.eventEmitter.emit( "newRound" );
     };
 
     canStartGame () {
@@ -198,9 +202,26 @@ class Table extends TableState{
         //If there is no current game and we have enough players, start a new game.
         if (!this.game) {
             this.game = new Game(this.smallBlind, this.bigBlind);
-            this.NewRound();
+            this.initNewRound();
         }
     };
+    standUpPlayer(playerName) {
+        const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
+        if (!p) return false;
+        p.standingUp = true;
+        if (this.game !== null) {
+            this.game.pot += p.bet;
+            p.Fold();
+            progress(this);
+        }
+        return true;
+    }
+    sitDownPlayer(playerName) {
+        const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
+        if (!p) return false;
+        p.standingUp = false;
+        return true;
+    }
     AddPlayer(playerName, chips, isStraddling) {
         // console.log(`adding player ${playerName}`);
         // Check if playerName already exists
@@ -238,15 +259,24 @@ class Table extends TableState{
         }
         return true;
     }
-
     removeAndAddPlayers() {
         const playersToRemove = this.leavingPlayers;
+        // TODO: possible edge case if player clicks stand up before the game starts because inHand would be false.
+        //   to circumvent this, send all standing up players to the front end, not just an update with players
+        //   that are newly standing up.
+        const playersToStandUp = this.allPlayers.filter(p => p !== null && !p.leavingGame && p.inHand && p.standingUp);
         const playersToAdd = this.waitingPlayers;
 
         for (const p of playersToRemove) {
             if (p.seat <= this.dealer)
                 this.dealer--;
             this.allPlayers[p.seat] = null;
+        }
+        for (const p of playersToStandUp) {
+            if (p.seat <= this.dealer)
+                this.dealer--;
+            p.inHand = false;
+            p.clearHandState(); // this will not be called in initNewRound because p.inHand is false
         }
         for (const p of playersToAdd) {
             if (p.seat <= this.dealer)
@@ -259,29 +289,6 @@ class Table extends TableState{
             this.dealer = 0;
         }
     }
-
-    NewRound() {
-        this.removeAndAddPlayers();
-        // EDITED
-        if (this.players.length < 2){
-            console.log('not enough players (NewRound)');
-            this.game = null;
-            return;
-        }
-        this.gameWinners = [];
-        this.gameLosers = [];
-
-        //Deal 2 cards to each player
-        for (let i = 0; i < this.players.length; i += 1) {
-            this.players[i].cards.push(this.game.deck.pop());
-            this.players[i].cards.push(this.game.deck.pop());
-            this.players[i].bet = 0;
-            this.game.roundBets[i] = 0;
-        }
-        this.initializeBlinds();
-
-        // this.eventEmitter.emit( "newRound" );
-    };
 
     initializeBlinds() {
         // Small and Big Blind player indexes
@@ -319,6 +326,8 @@ class Table extends TableState{
     };
 }
 
+// returns true if the next street should be dealt or the round is over.
+// does not return false if <= 1 player folded. use checkwin for that.
 function checkForEndOfRound(table) {
     let endOfRound = true;
     const maxBet = table.getMaxBet();
@@ -404,7 +413,7 @@ function checkForWinner(table) {
         winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
             winningPlayer.folded = true;
-            table.gameWinners.push( {
+            table.game.winners.push( {
                 playerName: winningPlayer.playerName,
                 amount: winnerPrize,
                 hand: winningPlayer.hand,
@@ -425,7 +434,7 @@ function checkForBankrupt(table) {
     var i;
     for (i = 0; i < table.players.length; i += 1) {
         if (table.players[i].chips === 0) {
-          table.gameLosers.push( table.players[i] );
+          table.game.losers.push( table.players[i] );
             console.log('player ' + table.players[i].playerName + ' is going bankrupt');
             // EDIT
             // rather than removing players here i thin it makes sense to call remove player on it

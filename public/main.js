@@ -17,7 +17,10 @@ let host = document.getElementById('host'),
     check = document.getElementById('check'),
     fold = document.getElementById('fold'),
     minBet = document.getElementById('min-bet'),
-    showHand = document.getElementById('show-hand');
+    showHand = document.getElementById('show-hand'),
+    straddleSwitch = document.getElementById('straddle-switch'),
+    standUp = document.getElementById('stand-up'),
+    sitDown = document.getElementById('sit-down');
     // standup = document.getElementById('standup-btn');
 
 
@@ -88,17 +91,24 @@ $('#buyin').on('click', () => {
 /**
  * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
  */
-const logIn = () => {
+const logIn = (standingUp) => {
     loggedIn = true;
     $('#buyin-info').removeClass('show');
     $('#quit-btn').removeClass('collapse');
     $('#buyin').addClass('collapse');
+    if (standingUp) {
+        showSitDownButton();
+    } else {
+        showStandUpButton();
+    }
 };
 
 const logOut = () => {
     loggedIn = false;
     $('#quit-btn').addClass('collapse');
     $('#buyin').removeClass('collapse');
+    $('#sit-down').addClass('collapse');
+    $('#stand-up').addClass('collapse');
 };
 
 $('#buyin-btn').on('click', () => {
@@ -116,7 +126,7 @@ $('#buyin-btn').on('click', () => {
     } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
         alert("Please enter valid stackinformation");
     } else {
-        logIn();
+        logIn(false);
         let playerName = newPlayer.value;
         let stack = parseInt(newStack.value);
         socket.emit('buy-in', {
@@ -133,6 +143,26 @@ $('#buyin-info').keydown(function (e){
 quit.addEventListener('click', () => {
     socket.emit('leave-game', {});
     logOut();
+});
+
+const showSitDownButton = () => {
+    $('#stand-up').addClass('collapse');
+    $('#sit-down').removeClass('collapse');
+};
+
+const showStandUpButton = () => {
+    $('#sit-down').addClass('collapse');
+    $('#stand-up').removeClass('collapse');
+};
+
+standUp.addEventListener('click', () => {
+    socket.emit('stand-up');
+    showSitDownButton();
+});
+
+sitDown.addEventListener('click', () => {
+    socket.emit('sit-down');
+    showStandUpButton()
 });
 
 $('#getLink').click(() => copyLink());
@@ -799,23 +829,28 @@ socket.on('player-reconnect', (data) => {
 let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
-        let game = new GameState(data.table.smallBlind, data.table.bigBlind);
-        Object.assign(game, data.table.game);
-        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, game);
-        if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
-            displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
+        // Make allPlayers an array of Player objects
+        data.table.allPlayers = data.table.allPlayers.map(p => p === null ? null: Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p));
+        // Make game a GameState object
+        data.table.game = data.table.game === null ? null: Object.assign(new GameState(data.table.game.bigBlind, data.table.game.smallBlind), data.table.game);
+        // If uninitialized, initialize tableState.table to a TableState object
+        if (!tableState.table) {
+            tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
         }
+        // Update properties of tableState.table
+        for (let prop of Object.keys(data.table)) {
+            if (data.table.hasOwnProperty(prop))
+                tableState.table[prop] = data.table[prop];
+        }
+
+        // if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
+        //     displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
+        // }
     }
     if (data.player) {
-        tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
-        tableState.player.folded = data.player.folded;
-        tableState.player.allIn = data.player.allIn;
-        tableState.player.talked = data.player.talked;
-        tableState.player.inHand = data.player.inHand;
-        tableState.player.cards = data.player.cards;
-        tableState.player.bet = data.player.bet;
-        tableState.player.leavingGame = data.player.leavingGame;
-        tableState.player.showingCards = data.player.showingCards;
+        if (!tableState.player)
+            tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
+        Object.assign(tableState.player, data.player);
     }
     tableState.gameInProgress = data.gameInProgress;
     if (tableState.gameInProgress && tableState.player) {
@@ -884,21 +919,41 @@ socket.on('buy-out', (data) => {
     $(`#${data.seat}`).addClass('out');
 });
 
+socket.on('stand-up', data => {
+    // TODO: do we want to do anything here?
+    outputEmphasizedMessage(data.playerName + 'stands up.');
+});
+
+socket.on('sit-down', data => {
+    // TODO: do we want to do anything here?
+    outputEmphasizedMessage(data.playerName + 'sits down.');
+});
+
+function renderPlayer(p) {
+    let hand = document.getElementById(p.seat);
+    hand.classList.remove('hidden');
+    hand.querySelector('.username').innerHTML = p.playerName;
+    hand.querySelector('.stack').innerHTML = p.stack;
+    if (p.standingUp) {
+        // TODO: how do we want to display when a player is standing up?
+        $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
+        console.log(p.playerName + 'is standing up.');
+        // hideCards(p.seat);
+    } else if (p.waiting){
+        $(`#${p.seat}`).find('.back-card').addClass('waiting');
+        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
+    } else if (p.betAmount <= 0) {
+        hideBet(p.seat)
+    } else if (p.betAmount > 0) {
+        showBet(p.seat, p.betAmount);
+    }
+}
+
 // render players at a table
 socket.on('render-players', (data) => {
     for (let i = 0; i < data.length; i++){
-        let hand = document.getElementById(data[i].seat);
-        hand.classList.remove('hidden');
-        hand.querySelector('.username').innerHTML = data[i].playerName;
-        hand.querySelector('.stack').innerHTML = data[i].stack;
-        if (data[i].waiting){
-            $(`#${data[i].seat}`).find('.back-card').addClass('waiting');
-            $(`#${data[i].seat}`).find('.hand-rank-message').addClass('waiting');
-        } else if (data[i].betAmount <= 0) {
-            hideBet(data[i].seat)
-        } else if (data[i].betAmount > 0) {
-            showBet(data[i].seat, data[i].betAmount);
-        }
+        renderPlayer(data[i]);
     }
 });
 
@@ -913,6 +968,18 @@ function hideSeat(seat) {
     $(`#${seat}`).addClass('hidden');
     $(`#${seat}`).find('.username').text('guest');
     $(`#${seat}`).find('.stack').text('stack');
+}
+
+function hideCards(seat) {
+    $(`#${seat} > .left-card`).addClass('hidden');
+    $(`#${seat} > .right-card`).addClass('hidden');
+    $(`#${seat} > .hand-rank-message-container`).addClass('hidden');
+}
+
+function unhideCards(seat) {
+    $(`#${seat} > .left-card`).removeClass('hidden');
+    $(`#${seat} > .right-card`).removeClass('hidden');
+    $(`#${seat} > .hand-rank-message-container`).removeClass('hidden');
 }
 
 // removes old players (that have busted or quit)
@@ -988,11 +1055,29 @@ const hideBoardPreFlop = () => {
 // data: {street, board, sound, logIn}
 socket.on('sync-board', (data) => {
     $('.pm-btn').removeClass('pm');
-    if (data.logIn)
-        logIn();
+    if (data.logIn) {
+        logIn(tableState.player.standingUp);
+    }
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
     dealStreet(data);
+
+    // for (let i = 0; i < tableState.table.allPlayers.length; i++) {
+    //     const p = tableState.table.allPlayers[i];
+    //     if (p === null) {
+    //         hideSeat(i);
+    //         continue;
+    //     }
+    //     if (!p.inHand) {
+    //         if (p.standingUp) { // players that stood up in a previous hand or before the game started
+    //
+    //         } else { // waiting players
+    //
+    //         }
+    //     } else { // players in the current hand
+    //
+    //     }
+    // }
 });
 
 const dealStreet = (data) => {
@@ -1024,29 +1109,33 @@ socket.on('render-board', (data) => {
 
 
 // renders the board (flop, turn, river)
+// data: {street: '', board: [], sound: boolean, handRanks: {'': [{seat: number, handRankMessage: ''},...]}}
 socket.on('render-all-in', (data) => {
     $('.pm-btn').removeClass('pm');
     hideAllBets();
-    renderAllIn(data.board);
+    renderAllIn(data.board, data.handRanks);
 });
 
-const renderAllIn = (board) => {
+const renderAllIn = (board, handRanks) => {
     console.log(board);
     if ($('#flop').hasClass('hidden')) {
         showFlop(board);
         playSoundIfVolumeOn('flop');
+        renderHands(handRanks['flop']);
         setTimeout(() => {
-            renderAllIn(board);
+            renderAllIn(board, handRanks);
         }, 1200);
     } else if ($('#turn').hasClass('hidden')) {
         showTurn(board);
         playSoundIfVolumeOn('turn');
+        renderHands(handRanks['turn']);
         setTimeout(() => {
-            renderAllIn(board);
+            renderAllIn(board, handRanks);
         }, 1800);
     } else {
         showRiver(board);
         playSoundIfVolumeOn('river');
+        renderHands(handRanks['river']);
     }
 };
 
@@ -1117,6 +1206,7 @@ socket.on('action', (data) => {
 
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
+    console.log(data);
     displayButtons(data);
 });
 
@@ -1236,15 +1326,23 @@ socket.on('showdown', function (data) {
     }
 });
 
+const renderHands = (data) => {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].cards && data[i].cards.length > 0) {
+            renderHand(data[i].seat, data[i].cards);
+        }
+        if (data[i].handRankMessage && data[i].handRankMessage.length > 0) {
+            renderHandRank(data[i].seat, data[i].handRankMessage);
+        }
+        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    }
+}
+
 //if everyone is all in in the hand, turn over the cards
 socket.on('turn-cards-all-in', function (data) {
     // console.log(data);
     feedback.innerHTML = '';
-    for (let i = 0; i < data.length; i++) {
-        renderHand(data[i].seat, data[i].cards);
-        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-        // showWinnings(data[i].amount, data[i].seat);
-    }
+    renderHands(data);
 });
 
 //folds-through

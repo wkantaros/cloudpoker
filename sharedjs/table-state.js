@@ -11,7 +11,7 @@ class TableState {
      * @param {number} dealer
      * @param {Player[]} allPlayers
      * @param {number} currentPlayer
-     * @param {Game|null} game
+     * @param {GameState|null} game
      */
     constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game) {
         this.smallBlind = smallBlind;
@@ -65,7 +65,7 @@ class TableState {
     }
 
     get waitingPlayers() {
-        return this.allPlayers.filter(p => p!== null && !p.inHand && !p.leavingGame);
+        return this.allPlayers.filter(p => p!== null && p.isWaiting);
     }
 
     get leavingPlayers() {
@@ -79,7 +79,12 @@ class TableState {
     get bigBlindSeat() {
         return this.players[(this.dealer + 2) % this.players.length].seat;
     }
-
+    getWinners(){
+        return this.game.winners;
+    };
+    getLosers(){
+        return this.game.losers;
+    };
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
         if (p !== null) return p.cards || [];
@@ -131,9 +136,9 @@ class TableState {
 
         let canPerformPremoves = false;
         const p = this.getPlayer(playerName);
-        availableActions['show-hand'] = (p !== null) && p.inHand && this.canPlayersRevealHands();
+        availableActions['show-hand'] = (p !== null) && !p.showingCards && p.inHand && this.canPlayersRevealHands();
         // no action can be performed if players can show hands because betting is over
-        if (availableActions['show-hand']){
+        if (availableActions['show-hand'] || p === null || !p.inHand || p.showingCards){
             return {availableActions, canPerformPremoves};
         }
         // if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
@@ -262,8 +267,10 @@ class Player {
         this.folded = false;
         this.allIn = false;
         this.talked = false;
-        // If the player is in the current hand. False is they are standing up or just joined.
+        // If the player is in the current hand. False is they just joined and are waiting for the next hand.
         this.inHand = false;
+        // If the player is standing up from the table
+        this.standingUp = false;
         this.cards = [];
         this.bet = 0;
         this.isStraddling = isStraddling;
@@ -274,6 +281,24 @@ class Player {
         this.showingCards = false;
     }
 
+    showHand() {
+        this.showingCards = true;
+    }
+
+    // Clear data from the previous hand.
+    clearHandState() {
+        this.bet = 0;
+        this.folded = false;
+        this.talked = false;
+        this.allIn = false;
+        this.cards.splice(0, this.cards.length);
+        this.showingCards = false;
+    }
+
+    get isWaiting() {
+        return !this.inHand && !this.leavingGame && !this.standingUp;
+    }
+
     getPublicInfo() {
         return {
             playerName: this.playerName,
@@ -282,11 +307,13 @@ class Player {
             allIn: this.allIn,
             talked: this.talked,
             inHand: this.inHand,
+            standingUp: this.standingUp,
             bet: this.bet,
             seat: this.seat,
             leavingGame: this.leavingGame,
             isMod: this.isMod,
             cards: this.showingCards? this.cards : [],
+            showingCards: this.showingCards,
         }
     }
 
@@ -361,6 +388,8 @@ class GameState {
         this.betName = 'bet'; //bet,raise,re-raise,cap
         this.roundBets = [];
         this.board = [];
+        this.winners = [];
+        this.losers = [];
     }
 
     getPublicInfo() {
@@ -372,6 +401,8 @@ class GameState {
             roundName: this.roundName,
             roundBets: this.roundBets,
             board: this.board,
+            winners: this.winners,
+            losers: this.losers,
         }
     }
 }
