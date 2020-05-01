@@ -269,28 +269,42 @@ class SessionManager extends TableManager {
 
     allInRace() {
         console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-        let playersInHand = this.table.players.filter(p=>p.allIn || !p.folded);
-        for (let p of playersInHand) {
+        // TODO: a player doesn't have to show their cards if they were not the last person to raise
+        let playersShowingCards = this.table.players.filter(p=>p.allIn || !p.folded || p.showingCards);
+        for (let p of playersShowingCards) {
             p.showHand();
         }
         this.renderActionSeatAndPlayerActions();
-        this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand.map(p=>{
-            return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
+        let prevRound = super.getRoundName();
+        let handRanks = {};
+        handRanks[prevRound] = playersShowingCards.map(p => {
+            return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+        });
+
+        // TODO: this shows hand rank message from next round but card from next round has not turned over yet (but
+        //  will when render-all-in is sent
+        this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersShowingCards.map(p=>{
+            return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName), handRankMessage: this.playerHandState(p.playerName).handRankMessage};
         }));
         this.io.sockets.to(this.sid).emit('update-pot', {
             amount: super.getPot()
         });
 
-        // TODO remove ability to perform actions
-
         while (super.getRoundName() !== 'showdown'){
             super.call(super.getNameByActionSeat());
+            if (super.getRoundName() !== prevRound) {
+                prevRound = super.getRoundName();
+                handRanks[prevRound] = playersShowingCards.map(p => {
+                    return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+                });
+            }
         }
         this.sendTableState();
         this.io.sockets.to(this.sid).emit('render-all-in', {
             street: super.getRoundName(),
             board: super.getDeal(),
-            sound: true
+            sound: true,
+            handRanks: handRanks,
         });
     }
 
@@ -337,7 +351,7 @@ class SessionManager extends TableManager {
             else if (super.getRoundName() === 'turn'){
                 time = 3000;
             }
-            this.allInRace()
+            this.allInRace();
             await sleep(time);
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
@@ -372,21 +386,29 @@ class SessionManager extends TableManager {
             this.startNextRoundOrWaitingForPlayers();
         } else if (prev_round !== super.getRoundName()) {
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            this.io.sockets.to(this.sid).emit('render-board', {
-                street: super.getRoundName(),
-                board: super.getDeal(),
-                sound: true
-            });
-            // TODO: don't think we need to send update-rank is we call this.sendTableState
-            for (let i = 0; i < this.table.players.length; i++) {
-                const p = this.table.players[i];
-                this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('update-rank', {
-                    seat: super.getPlayerSeat(p.playerName),
-                    handRankMessage: this.playerHandState(p.playerName).handRankMessage,
-                });
-            }
+            this.updateAfterCardTurn(false);
         }
         this.sendTableState();
+    }
+
+    // updates the board and hand rank messages after turning a card.
+    // if allInRace is true, sends each hand rank message to this.sid.
+    // if allInRace is false, sends each hand rank message to the respective player.
+    updateAfterCardTurn(allInRace) {
+        this.io.sockets.to(this.sid).emit('render-board', {
+            street: super.getRoundName(),
+            board: super.getDeal(),
+            sound: true
+        });
+        // TODO: don't think we need to send update-rank is we call this.sendTableState
+        for (let i = 0; i < this.table.players.length; i++) {
+            const p = this.table.players[i];
+            const socketId = allInRace ? this.sid : this.getSocketId(this.getPlayerId(p.playerName));
+            this.io.sockets.to(socketId).emit('update-rank', {
+                seat: super.getPlayerSeat(p.playerName),
+                handRankMessage: this.playerHandState(p.playerName).handRankMessage,
+            });
+        }
     }
 
     resetAfterRound() {

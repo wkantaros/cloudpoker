@@ -1099,29 +1099,33 @@ socket.on('render-board', (data) => {
 
 
 // renders the board (flop, turn, river)
+// data: {street: '', board: [], sound: boolean, handRanks: {'': [{seat: number, handRankMessage: ''},...]}}
 socket.on('render-all-in', (data) => {
     $('.pm-btn').removeClass('pm');
     hideAllBets();
-    renderAllIn(data.board);
+    renderAllIn(data.board, data.handRanks);
 });
 
-const renderAllIn = (board) => {
+const renderAllIn = (board, handRanks) => {
     console.log(board);
     if ($('#flop').hasClass('hidden')) {
         showFlop(board);
         playSoundIfVolumeOn('flop');
+        renderHands(handRanks['flop']);
         setTimeout(() => {
-            renderAllIn(board);
+            renderAllIn(board, handRanks);
         }, 1200);
     } else if ($('#turn').hasClass('hidden')) {
         showTurn(board);
         playSoundIfVolumeOn('turn');
+        renderHands(handRanks['turn']);
         setTimeout(() => {
-            renderAllIn(board);
+            renderAllIn(board, handRanks);
         }, 1800);
     } else {
         showRiver(board);
         playSoundIfVolumeOn('river');
+        renderHands(handRanks['river']);
     }
 };
 
@@ -1312,15 +1316,23 @@ socket.on('showdown', function (data) {
     }
 });
 
+const renderHands = (data) => {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].cards && data[i].cards.length > 0) {
+            renderHand(data[i].seat, data[i].cards);
+        }
+        if (data[i].handRankMessage && data[i].handRankMessage.length > 0) {
+            renderHandRank(data[i].seat, data[i].handRankMessage);
+        }
+        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
+    }
+}
+
 //if everyone is all in in the hand, turn over the cards
 socket.on('turn-cards-all-in', function (data) {
     // console.log(data);
     feedback.innerHTML = '';
-    for (let i = 0; i < data.length; i++) {
-        renderHand(data[i].seat, data[i].cards);
-        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-        // showWinnings(data[i].amount, data[i].seat);
-    }
+    renderHands(data);
 });
 
 //folds-through
