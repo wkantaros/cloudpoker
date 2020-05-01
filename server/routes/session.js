@@ -267,6 +267,33 @@ class SessionManager extends TableManager {
         }
     };
 
+    allInRace() {
+        console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
+        let playersInHand = this.table.players.filter(p=>p.allIn || !p.folded);
+        for (let p of playersInHand) {
+            p.showHand();
+        }
+        this.renderActionSeatAndPlayerActions();
+        this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand.map(p=>{
+            return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
+        }));
+        this.io.sockets.to(this.sid).emit('update-pot', {
+            amount: super.getPot()
+        });
+
+        // TODO remove ability to perform actions
+
+        while (super.getRoundName() !== 'showdown'){
+            super.call(super.getNameByActionSeat());
+        }
+        this.sendTableState();
+        this.io.sockets.to(this.sid).emit('render-all-in', {
+            street: super.getRoundName(),
+            board: super.getDeal(),
+            sound: true
+        });
+    }
+
     //checks if round has ended (reveals next card)
     async check_round (prev_round) {
         let data = super.checkwin();
@@ -310,26 +337,7 @@ class SessionManager extends TableManager {
             else if (super.getRoundName() === 'turn'){
                 time = 3000;
             }
-            console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
-            let playersInHand = this.table.players.filter(p=>p.allIn || !p.folded).map(p=>{
-                return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName)};
-            });
-            this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersInHand);
-            this.io.sockets.to(this.sid).emit('update-pot', {
-                amount: super.getPot()
-            });
-
-            // TODO remove ability to perform actions
-
-            while (super.getRoundName() !== 'showdown'){
-               super.call(super.getNameByActionSeat());
-            }
-            this.sendTableState();
-            this.io.sockets.to(this.sid).emit('render-all-in', {
-                street: super.getRoundName(),
-                board: super.getDeal(),
-                sound: true
-            });
+            this.allInRace()
             await sleep(time);
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
@@ -766,14 +774,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 return;
             }
             const playerName = s.getPlayerById(playerId);
-            console.log(playerName, 'emits show-hand');
-            if (!s.canPlayersRevealHand()) {
-                console.log('players not allowed to reveal hand.');
-                return;
-            } else if (!s.getPlayer(playerName) || !s.getPlayer(playerName).inHand) {
-                console.log('player is null or not in hand');
+            const p = s.getPlayer(playerName);
+            if (!p || !p.inHand || !s.canPlayersRevealHand()) {
                 return;
             }
+            p.showHand();
             io.sockets.to(sid).emit('render-hand', {
                 cards: s.getCardsByPlayerName(playerName),
                 seat: s.getPlayerSeat(playerName),

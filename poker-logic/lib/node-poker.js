@@ -197,7 +197,6 @@ class Table extends TableState{
         this.initializeBlinds();
 
         // this.eventEmitter.emit( "newRound" );
-        this.NewRound();
     };
 
     canStartGame () {

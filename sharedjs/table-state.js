@@ -131,9 +131,9 @@ class TableState {
 
         let canPerformPremoves = false;
         const p = this.getPlayer(playerName);
-        availableActions['show-hand'] = (p !== null) && p.inHand && this.canPlayersRevealHands();
+        availableActions['show-hand'] = (p !== null) && !p.showingCards && p.inHand && this.canPlayersRevealHands();
         // no action can be performed if players can show hands because betting is over
-        if (availableActions['show-hand'] || p === null || !p.inHand){
+        if (availableActions['show-hand'] || p === null || !p.inHand || p.showingCards){
             return {availableActions, canPerformPremoves};
         }
         // if (p === null || !p.inHand || p.folded || this.canPlayersRevealHands())
@@ -276,6 +276,10 @@ class Player {
         this.showingCards = false;
     }
 
+    showHand() {
+        this.showingCards = true;
+    }
+
     // Clear data from the previous hand.
     clearHandState() {
         this.bet = 0;
@@ -283,6 +287,7 @@ class Player {
         this.talked = false;
         this.allIn = false;
         this.cards.splice(0, this.cards.length);
+        this.showingCards = false;
     }
 
     get isWaiting() {
@@ -303,6 +308,7 @@ class Player {
             leavingGame: this.leavingGame,
             isMod: this.isMod,
             cards: this.showingCards? this.cards : [],
+            showingCards: this.showingCards,
         }
     }
 
