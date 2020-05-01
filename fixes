@@ -2,16 +2,20 @@ ranked in level of severity
 
 Bugs needing to be fixed before launch:
     [ ] With show hand:
-        [ ] if a game ends (player busts for example) and I start a new game, the 'show hand' aciton is the only action
-        [ ] when a player calls an all-in and they start to race the action buttons should be removed
-        [ ] when an all in "runout" is occuring there should not be the show hand feature
+        [*] if a game ends (player busts for example) and I start a new game, the 'show hand' aciton is the only action
+        [*] when a player calls an all-in and they start to race the action buttons should be removed
+        [*] when an all in "runout" is occuring there should not be the show hand feature
+
+    [ ] With stand up:
+        [ ] When the host initially joins the game, both "stand up" and "sit down" buttons are hidden. Refreshing the page fixes this.
+            - this is only possible if joinedGame is false in game.ejs.
 
     [ ] With premoves
         [ ] if a player premove folds and the player before him folds it will still show a flop
 
-    [ ] With handrankmessage:
-        [ ] on all ins the handrankmessage doesnt appear
-        [ ] on all ins the handrankmessage doesnt update for user
+    [*] With handrankmessage:
+        [*] on all ins the handrankmessage doesnt appear
+        [*] on all ins the handrankmessage doesnt update for user
         [ ] handrankmessage stays if game ends bc of all in
         [ ] show folded hand when player folds
 

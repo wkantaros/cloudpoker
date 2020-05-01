@@ -44,8 +44,8 @@ class TableStateManager {
         return this.table.allPlayers.map(p => p != null && p.inHand && p.allIn);
     }
 
-    playersInNextHand() {
-        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame);
+    playersInNextHand () {
+        return this.table.allPlayers.filter(elem => elem !== null && !elem.leavingGame && !elem.standingUp);
     }
 
     getStraddleLimit() {
@@ -106,6 +106,12 @@ class TableStateManager {
         if (p) return p.seat;
         return -1;
     };
+
+    isPlayerStandingUp(playerName) {
+        const p = this.table.getPlayer(playerName);
+        if (p) return p.standingUp;
+        return false;
+    }
 
     getBet (playerName) {
         if (!this.gameInProgress) return 0;
@@ -282,6 +288,12 @@ class TableManager extends TableStateManager {
             }
         }
     }
+    standUpPlayer(playerName) {
+        return this.table.standUpPlayer(playerName);
+    }
+    sitDownPlayer(playerName) {
+        return this.table.sitDownPlayer(playerName);
+    }
 
     removePlayer(playerName) {
         this.table.removePlayer(playerName);
@@ -374,7 +386,7 @@ class TableManager extends TableStateManager {
             cards: this.table.getHandForPlayerName(playerName),
             handRankMessage: '',
         };
-        if (this.gameInProgress) {
+        if (this.gameInProgress && p.inHand) {
             const playableCards = p.cards.concat(this.table.game.board);
             result.handRankMessage = rankHandInt(new Hand(playableCards)).message;
         }
@@ -399,6 +411,7 @@ class TableManager extends TableStateManager {
                     stack: this.getStack(name),
                     playerid: this.playerids[name].playerid,
                     waiting: isWaiting,
+                    standingUp: this.isPlayerStandingUp(name),
                     betAmount: this.getBet(name), // amount that name bet so far in this street
                 })
             }
