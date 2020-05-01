@@ -1081,16 +1081,34 @@ input::-webkit-inner-spin-button {
 }
 
 .overlay .hostpage-header {
-    color: #f1f1f1;
     position: relative;
     top: 5%;
     width: 90%;
     margin: 30px auto 100px;
 }
 
+.hostpage-header a {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 36px;
+    display: block;
+    transition: 0.3s;
+}
+
+.overlay .hd-btn:hover,
+.overlay .hd-btn:focus {
+    color: #f1f1f1;
+    border: 1px solid lightpink;
+}
+
 .hostpage-header .button {
     padding: 20px 5px;
     height: 10%;
+}
+
+.hd-btn.active {
+    color: #f1f1f1;
+    border: 1px solid lightpink;
 }
 
 .overlay .closebtn-hd {
@@ -1272,4 +1290,11 @@ input::-webkit-inner-spin-button {
         top: 15px;
         right: 35px;
     }
+}
+
+#straddle-abilities {
+    font-size: 1.4rem;
+    color: white;
+    float: right;
+    text-align: right;
 }

@@ -126,7 +126,6 @@ class TableState {
             'start': false,
             'check': false,
             'your-action': false,
-            'straddle-switch': this.straddleLimit !== 0,
             'show-hand': false,
         };
 
@@ -362,5 +361,30 @@ class Player {
     };
 }
 
+class GameState {
+    constructor(smallBlind, bigBlind) {
+        this.smallBlind = smallBlind;
+        this.bigBlind = bigBlind;
+        this.pot = 0;
+        this.roundName = 'deal'; //Start the first round
+        this.betName = 'bet'; //bet,raise,re-raise,cap
+        this.roundBets = [];
+        this.board = [];
+    }
+
+    getPublicInfo() {
+        // everything except for this.deck
+        return {
+            smallBlind: this.smallBlind,
+            bigBlind: this.bigBlind,
+            pot: this.pot,
+            roundName: this.roundName,
+            roundBets: this.roundBets,
+            board: this.board,
+        }
+    }
+}
+
 module.exports.TableState = TableState;
 module.exports.Player = Player;
+module.exports.GameState = GameState;

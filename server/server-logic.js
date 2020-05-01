@@ -133,7 +133,7 @@ class TableStateManager {
     canPlayersRevealHand() {
         return this.gameInProgress && this.table.canPlayersRevealHands();
     }
-    
+
     getAvailableActions(playerName) {
         let availableActions = {
             'min-bet': false,
@@ -144,7 +144,6 @@ class TableStateManager {
             'start': false,
             'check': false,
             'your-action': false,
-            'straddle-switch': this.getStraddleLimit() !== 0,
             'show-hand': false,
         };
         const p = this.getPlayer(playerName);
@@ -182,6 +181,8 @@ class TableManager extends TableStateManager {
         table.getPlayer(hostName).isMod = true;
         this.addToPlayerIds(hostName, playerid);
         this.addToBuyins(hostName, playerid, hostStack);
+        this.bigBlindNextHand = undefined;
+        this.smallBlindNextHand = undefined;
     }
 
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
@@ -267,7 +268,11 @@ class TableManager extends TableStateManager {
     setPlayerStraddling(playerid, isStraddling) {
         const player = this.table.getPlayer(this.getPlayerById(playerid));
         if (player) {
-            player.isStraddling = isStraddling;
+            if (this.getStraddleLimit() !== 0){
+                player.isStraddling = isStraddling;
+            } else {
+                player.isStraddling = false;
+            }
         }
     }
     standUpPlayer(playerName) {
@@ -404,10 +409,12 @@ class TableManager extends TableStateManager {
 
     startGame() {
         this.gameInProgress = true;
+        this.updateBlinds();
         this.table.StartGame();
     }
 
     startRound() {
+        this.updateBlinds();
         this.table.initNewRound();
         if (!this.table.game)
             this.gameInProgress = false;
@@ -512,6 +519,35 @@ class TableManager extends TableStateManager {
 
     getPlayerIds() {
         return Object.values(this.playerids).map(x => x.playerid);
+    }
+
+    updateBlindsNextHand(smallBlind, bigBlind) {
+        if (this.gameInProgress){
+            this.smallBlindNextHand = smallBlind;
+            this.bigBlindNextHand = bigBlind;
+        } else {
+            this.table.bigBlind = bigBlind;
+            this.table.smallBlind = smallBlind;
+        }
+    }
+
+    updateBlinds() {
+        if (this.smallBlindNextHand){
+            this.table.smallBlind = this.smallBlindNextHand;
+            this.smallBlindNextHand = undefined;
+        }
+        if (this.bigBlindNextHand){
+            this.table.bigBlind = this.bigBlindNextHand;
+            this.bigBlindNextHand = undefined;
+        }
+    }
+
+    updateStraddleLimit(straddleLimit) {
+        // quit out of any current straddles
+        for (let name of Object.keys(this.playerids)) {
+            this.setPlayerStraddling(this.playerids[name].playerid, false);
+        }
+        this.table.straddleLimit = straddleLimit;
     }
 }
 

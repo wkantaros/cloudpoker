@@ -1,6 +1,6 @@
 // var events = require('events');
 const {fillDeck, rankHandInt, rankHand} = require('./deck');
-const {TableState, Player} = require('../../sharedjs');
+const {TableState, Player, GameState} = require('../../sharedjs');
 
 //Note: methods I've changed/created have been commented: EDITED
 
@@ -526,45 +526,13 @@ function turnCards(table, count) {
     // table.eventEmitter.emit( "deal" );
 }
 
-class Game {
+class Game extends GameState {
     constructor(smallBlind, bigBlind) {
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
-        this.pot = 0;
-        this.roundName = 'deal'; //Start the first round
-        this.betName = 'bet'; //bet,raise,re-raise,cap
-        this.roundBets = [];
+        super(smallBlind, bigBlind);
         this.deck = [];
-        this.board = [];
         fillDeck(this.deck);
     }
-
-    getPublicInfo() {
-        // everything except for this.deck
-        return {
-            smallBlind: this.smallBlind,
-            bigBlind: this.bigBlind,
-            pot: this.pot,
-            roundName: this.roundName,
-            roundBets: this.roundBets,
-            board: this.board,
-        }
-    }
 }
-
-// function Game(smallBlind, bigBlind) {
-//     this.smallBlind = smallBlind;
-//     this.bigBlind = bigBlind;
-//     this.pot = 0;
-//     this.roundName = 'deal'; //Start the first round
-//     this.betName = 'bet'; //bet,raise,re-raise,cap
-//     this.roundBets = [];
-//     this.deck = [];
-//     this.board = [];
-//     fillDeck(this.deck);
-//
-//
-// }
 
 /*
  * Helper Methods Public
