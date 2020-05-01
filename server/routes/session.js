@@ -808,53 +808,52 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             s.sendTableState();
         }));
 
-        socket.on('transfer-host', (data) => {
-            if (s.getModId() != playerId || !data) {
-                console.log('somebody who wasnt the host attempted to update game information');
+        const transferHostSchema = Joi.object({
+            seat: Joi.number().integer().min(0).required()
+        }).external(isModValidator);
+        socket.on('transfer-host', asyncSchemaValidator(transferHostSchema, (data) => {
+            let newHostName = s.getPlayerBySeat(data.seat);
+            if (newHostName === s.getPlayerById(playerId)){
+                console.log('attempting to transfer host to oneself');
             } else {
-                let newHostName = s.getPlayerBySeat(data.seat);
-                if (newHostName === s.getPlayerById(playerId)){
-                    console.log('attempting to transfer host to oneself');
+                console.log('transferring host to ', newHostName);
+                if (s.transferHost(newHostName)){
+                    let newHostSocketId = s.getSocketId(s.getPlayerId(newHostName));
+                    io.sockets.to(s.getSocketId(playerId)).emit('remove-mod-abilities');
+                    io.sockets.to(newHostSocketId).emit('add-mod-abilities');
+                    s.sendTableState();
                 } else {
-                    console.log('trasnferring host to ', newHostName);
-                    if (s.transferHost(newHostName)){
-                        let newHostSocketId = s.getSocketId(s.getPlayerId(newHostName));
-                        io.sockets.to(s.getSocketId(playerId)).emit('remove-mod-abilities');
-                        io.sockets.to(newHostSocketId).emit('add-mod-abilities');
-                        s.sendTableState();
-                    } else {
-                        console.log('unable to transfer host');
-                        s.sendTableState();
-                    }
+                    console.log('unable to transfer host');
+                    s.sendTableState();
                 }
             }
-        });
+        }));
 
-        socket.on('update-player-stack', (data) => {
-            if (s.getModId() != playerId || !data) {
-                console.log('somebody who wasnt the host attempted to update game information');
+        const updatePlayerStackSchema = Joi.object({
+            seat: Joi.number().integer().min(0).required(),
+            newStackAmount: Joi.number().integer().min(0).required()
+        }).external(isModValidator);
+        socket.on('update-player-stack', asyncSchemaValidator(updatePlayerStackSchema, (data) => {
+            let pName = s.getPlayerBySeat(data.seat);
+            let newStack = data.newStackAmount;
+            if (!pName || pName === 'guest'){
+                console.log('player at seat ' + data.seat + ' doesnt exist');
             } else {
-                let pName = s.getPlayerBySeat(data.seat);
-                let newStack = data.newStackAmount; 
-                if (!pName || pName == 'guest'){
-                    console.log('player at seat ' + data.seat + ' doesnt exist');
+                if (!newStack || isNaN(newStack) || newStack <= 0){
+                    console.log('error with newStackAmountInput');
                 } else {
-                    if (!newStack || isNaN(newStack) || newStack <= 0){
-                        console.log('error with newStackAmountInput');
-                    } else {
-                        console.log(`queuing to update ${pName}'s stack to ${newStack}`);
-                        s.queueUpdatePlayerStack(pName, newStack);
-                        // if game isnt in progress update players stack immediately
-                        if (!s.gameInProgress) {
-                            io.sockets.to(sid).emit('update-stack', {
-                                seat: data.seat,
-                                stack: newStack
-                            });
-                        }
+                    console.log(`queuing to update ${pName}'s stack to ${newStack}`);
+                    s.queueUpdatePlayerStack(pName, newStack);
+                    // if game isnt in progress update players stack immediately
+                    if (!s.gameInProgress) {
+                        io.sockets.to(sid).emit('update-stack', {
+                            seat: data.seat,
+                            stack: newStack
+                        });
                     }
                 }
             }
-        });
+        }));
 
         // this if else statement is a nonsense fix need to find a better one
         } else {
