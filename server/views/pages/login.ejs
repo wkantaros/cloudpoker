@@ -21,15 +21,15 @@
     <main>
         <p>set up your private game</p>
         <form id="login-form">
-            <input class="u-full-width" type="text" id="name" name="name" placeholder="Name">
-            <input class="u-full-width" type="text" id="stack" name="stack" placeholder="Starting Stack">
+            <input class="u-full-width" type="text" id="name" name="name" minlength="2" maxlength="9" placeholder="Name">
+            <input class="u-full-width" type="number" id="stack" name="stack" placeholder="Starting Stack">
             <div class="row">
                 <div class="six columns">
-                    <input class="u-full-width" type="text" id="small-blind" name="small-blind"
+                    <input class="u-full-width" type="number" id="small-blind" name="small-blind" min=0
                         placeholder="Small Blind">
                 </div>
                 <div class="six columns">
-                    <input class="u-full-width" type="text" id="big-blind" name="big-blind" placeholder="Big Blind">
+                    <input class="u-full-width" type="number" id="big-blind" name="big-blind" min=0 placeholder="Big Blind">
                 </div>
             </div>
             <div class="row">
