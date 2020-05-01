@@ -9,7 +9,7 @@ const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 const {TableManager} = require('../server-logic');
 const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
-const {asyncErrorHandler, sleep} = require('../funcs');
+const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
 let poker = require('../../poker-logic/lib/node-poker');
 
 // Information host submits for game (name, stack, bb, sb)
@@ -603,15 +603,17 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         // highlight cards of player in action seat and get available buttons for players
         s.renderActionSeatAndPlayerActions();
 
+        const chatSchema = Joi.object({
+            message: Joi.string().trim().min(1).external(xss).required()
+        });
         // chatroom features
         // send a message in the chatroom
-        socket.on('chat', (data) => {
-            if (!s.canSendMessage(playerId, data.message)) return;
+        socket.on('chat', asyncSchemaValidator(chatSchema,(data) => {
             io.sockets.to(sid).emit('chat', {
                 handle: s.getPlayerById(playerId),
-                message: xss(data.message)
+                message: data.message
             });
-        });
+        }));
 
         // typing
         socket.on('typing', () => {
@@ -626,6 +628,15 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 board: s.getDeal(),
                 sound: false
             });
+        }
+
+        const isActivePlayerIdValidator = function(value) {
+            if (!s.isActivePlayerId(playerId)) throw new Error('inactive player id');
+            return value;
+        }
+        const isModValidator = function(value) {
+            if (!s.isModPlayerId(playerId)) throw new Error('not a mod player id');
+            return value;
         }
 
         if (!isNewPlayer && s.gameInProgress) {
@@ -654,7 +665,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
         }
 
-        socket.on('buy-in', (data) => {
+        const buyInSchema = Joi.object({
+            playerName: Joi.string().trim().min(2).external(xss).required(),
+            stack: Joi.number().min(0).required(),
+            isStraddling: Joi.boolean()
+        });
+        socket.on('buy-in', asyncSchemaValidator(buyInSchema, (data) => {
             if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
@@ -665,22 +681,22 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 console.log('buyin returned false for data:', JSON.stringify(data));
             }
             s.sendTableState();
-        });
+        }));
 
-        socket.on('straddle-switch', (data) => {
-            if (!s.isActivePlayerId(playerId)) {
-                console.log(`playerid ${playerId} emitted straddle-switch but is not an active player`);
-                return;
-            }
+        const straddleSwitchSchema = Joi.object({
+            isStraddling: Joi.boolean().required()
+        }).external(isActivePlayerIdValidator);
+        socket.on('straddle-switch', asyncSchemaValidator(straddleSwitchSchema, (data) => {
             s.setPlayerStraddling(playerId, data.isStraddling);
             s.sendTableState();
-        });
+        }));
 
-        socket.on('kick-player', async (data) => {
-            if (s.isModPlayerId(playerId)) {
-                await s.kickPlayer(s.getPlayerId(data.playerName));
-            }
-        });
+        const kickPlayerSchema = Joi.object({
+            playerName: Joi.string().trim().min(1).required()
+        }).external(isModValidator);
+        socket.on('kick-player', asyncSchemaValidator(kickPlayerSchema, async (data) => {
+            await s.kickPlayer(s.getPlayerId(data.playerName));
+        }));
 
         socket.on('leave-game', async (data) => {
             if (!s.isActivePlayerId(playerId)) {
@@ -689,12 +705,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
             await s.playerLeaves(playerId);
         });
-        
-        socket.on('set-turn-timer', (data) => { // delay
-            if (s.isModPlayerId(playerId)) {
-                s.setTimer(data.delay);
-            }
-        });
+
+        const setTurnTimerSchema = Joi.object({delay: Joi.number().integer().required()}).external(isModValidator);
+        socket.on('set-turn-timer', asyncSchemaValidator(setTurnTimerSchema, (data) => { // delay
+            s.setTimer(data.delay);
+        }));
 
         socket.on('start-game', (data) => {
             if (!s.isModPlayerId(playerId)) {
@@ -739,12 +754,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             console.log('here!mf');
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         });
-        
-        socket.on('action', async (data) => {
-            if (!s.isActivePlayerId(playerId)) {
-                console.log(`playerid ${playerId} emitted action but is not an active player`);
-                return;
-            }
+
+        const actionSchema = Joi.object({
+            action: Joi.string().min(1).required(),
+            amount: Joi.number()
+        }).external(isActivePlayerIdValidator);
+        socket.on('action', asyncSchemaValidator(actionSchema, async (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
             let playerName = s.getPlayerById(playerId);
             if (!s.gameInProgress) {
@@ -755,41 +770,40 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             } else {
                 console.log(`not ${playerName}'s action`);
             }
-        });
+        }));
 
-        socket.on('update-blinds-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId){
-                console.log('somebody who wasnt the host attempted to update game information');
-            } else {
-                if (data && data.smallBlind && data.bigBlind){
-                    if (data.smallBlind <= data.bigBlind){
-                        console.log('updating blinds next hand');
-                        s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
-                        // if game isnt in progress change blinds in header immediately
-                        if (!s.gameInProgress){
-                            io.sockets.to(sid).emit('update-header-blinds', {
-                                bigBlind: s.table.bigBlind,
-                                smallBlind: s.table.smallBlind
-                            });
-                        }
-                    } else {
-                        console.log('big blind must be greater than small blind');
+        const updateBlindsSchema = Joi.object({
+            smallBlind: Joi.number().min(0).required(),
+            bigBlind: Joi.number().min(0).required(),
+        }).external(isModValidator);
+        socket.on('update-blinds-next-round', asyncSchemaValidator(updateBlindsSchema, (data) => {
+            if (data && data.smallBlind && data.bigBlind){
+                if (data.smallBlind <= data.bigBlind){
+                    console.log('updating blinds next hand');
+                    s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
+                    // if game isnt in progress change blinds in header immediately
+                    if (!s.gameInProgress){
+                        io.sockets.to(sid).emit('update-header-blinds', {
+                            bigBlind: s.table.bigBlind,
+                            smallBlind: s.table.smallBlind
+                        });
                     }
                 } else {
-                    console.log('error with data input from update blinds');
+                    console.log('big blind must be greater than small blind');
                 }
-            }
-        });
-
-        socket.on('update-straddle-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId) {
-                console.log('somebody who wasnt the host attempted to update game information');
             } else {
-                console.log('setting straddle limit to ', data.straddleLimit);
-                s.updateStraddleLimit(data.straddleLimit);
-                s.sendTableState();
+                console.log('error with data input from update blinds');
             }
-        })
+        }));
+
+        const updateStraddleSchema = Joi.object({
+            straddleLimit: Joi.number().required()
+        }).external(isModValidator);
+        socket.on('update-straddle-next-round', asyncSchemaValidator(updateStraddleSchema, (data) => {
+            console.log('setting straddle limit to ', data.straddleLimit);
+            s.updateStraddleLimit(data.straddleLimit);
+            s.sendTableState();
+        }));
 
         // this if else statement is a nonsense fix need to find a better one
         } else {
