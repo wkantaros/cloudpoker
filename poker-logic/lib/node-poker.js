@@ -18,8 +18,6 @@ class Table extends TableState{
             allPlayers.push(null);
         }
         super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1, null);
-        this.gameWinners = [];
-        this.gameLosers = [];
     }
 
     callBlind(playerName) {
@@ -143,12 +141,6 @@ class Table extends TableState{
         return betAmount;
     };
 
-    getWinners(){
-        return this.gameWinners;
-    };
-    getLosers(){
-        return this.gameLosers;
-    };
     // getAllHands(){
     //     var all = this.losers.concat( this.players );
     //     var allHands = [];
@@ -184,8 +176,8 @@ class Table extends TableState{
         }
         fillDeck(this.game.deck);
 
-        this.gameWinners = [];
-        this.gameLosers = [];
+        this.game.winners = [];
+        this.game.losers = [];
 
         //Deal 2 cards to each player
         for (let i = 0; i < this.players.length; i += 1) {
@@ -334,6 +326,8 @@ class Table extends TableState{
     };
 }
 
+// returns true if the next street should be dealt or the round is over.
+// does not return false if <= 1 player folded. use checkwin for that.
 function checkForEndOfRound(table) {
     let endOfRound = true;
     const maxBet = table.getMaxBet();
@@ -419,7 +413,7 @@ function checkForWinner(table) {
         winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
             winningPlayer.folded = true;
-            table.gameWinners.push( {
+            table.game.winners.push( {
                 playerName: winningPlayer.playerName,
                 amount: winnerPrize,
                 hand: winningPlayer.hand,
@@ -440,7 +434,7 @@ function checkForBankrupt(table) {
     var i;
     for (i = 0; i < table.players.length; i += 1) {
         if (table.players[i].chips === 0) {
-          table.gameLosers.push( table.players[i] );
+          table.game.losers.push( table.players[i] );
             console.log('player ' + table.players[i].playerName + ' is going bankrupt');
             // EDIT
             // rather than removing players here i thin it makes sense to call remove player on it

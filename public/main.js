@@ -828,11 +828,21 @@ socket.on('player-reconnect', (data) => {
 
 let tableState = {}; // not used for rendering.
 function setState(data) {
-    console.log(data);
     if (data.table) {
-        let game = new GameState(data.table.smallBlind, data.table.bigBlind);
-        Object.assign(game, data.table.game);
-        tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, game);
+        // Make allPlayers an array of Player objects
+        data.table.allPlayers = data.table.allPlayers.map(p => p === null ? null: Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p));
+        // Make game a GameState object
+        data.table.game = data.table.game === null ? null: Object.assign(new GameState(data.table.game.bigBlind, data.table.game.smallBlind), data.table.game);
+        // If uninitialized, initialize tableState.table to a TableState object
+        if (!tableState.table) {
+            tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
+        }
+        // Update properties of tableState.table
+        for (let prop of Object.keys(data.table)) {
+            if (data.table.hasOwnProperty(prop))
+                tableState.table[prop] = data.table[prop];
+        }
+
         // if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
         //     displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
         // }

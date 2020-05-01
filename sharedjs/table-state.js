@@ -11,7 +11,7 @@ class TableState {
      * @param {number} dealer
      * @param {Player[]} allPlayers
      * @param {number} currentPlayer
-     * @param {Game|null} game
+     * @param {GameState|null} game
      */
     constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game) {
         this.smallBlind = smallBlind;
@@ -79,7 +79,12 @@ class TableState {
     get bigBlindSeat() {
         return this.players[(this.dealer + 2) % this.players.length].seat;
     }
-
+    getWinners(){
+        return this.game.winners;
+    };
+    getLosers(){
+        return this.game.losers;
+    };
     getHandForPlayerName( playerName ){
         const p = this.getPlayer(playerName);
         if (p !== null) return p.cards || [];
@@ -376,6 +381,8 @@ class GameState {
         this.betName = 'bet'; //bet,raise,re-raise,cap
         this.roundBets = [];
         this.board = [];
+        this.winners = [];
+        this.losers = [];
     }
 
     getPublicInfo() {
@@ -387,6 +394,8 @@ class GameState {
             roundName: this.roundName,
             roundBets: this.roundBets,
             board: this.board,
+            winners: this.winners,
+            losers: this.losers,
         }
     }
 }
