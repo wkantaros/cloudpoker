@@ -294,6 +294,13 @@ class Player {
         this.chips += cash;
     };
 
+    // changes stack to new amount
+    UpdateStackAmount(cash) {
+        if (!isNaN(cash) || cash <= 0){
+            this.chips = cash;
+        }
+    }
+
     // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
     Check() {
         this.applyBet(0);

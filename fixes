@@ -38,8 +38,10 @@ Features needed to be added before launch:
         [*] transfer player host frontend
         [*] transfer player host backend
         [*] update player stack frontend
-        [ ] update player stack backend
+        [*] update player stack backend
     [ ] player stand up
+        [ ] backend
+        [ ] frontend
     [*] straddle front end
     [ ] move game log from chatroom to game log 
 

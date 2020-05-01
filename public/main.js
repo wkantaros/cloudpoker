@@ -1832,9 +1832,8 @@ $('.update-stack-row').click(function() {
     let seat = parseInt(playerid.substring(6));
     let newStackAmount = parseInt($(`#${playerid}`).find('.stack-input').val());
     socket.emit('update-player-stack', {seat, newStackAmount});
-    if (newStackAmount > 0){
-        closeHostPage();
-    }
+    $('#successfully-submitted-players').removeClass('collapse');
+    $('.player-rows').addClass('collapse');
 });
 
 socket.on('update-player-stack', (data) => {
