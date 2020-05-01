@@ -34,7 +34,7 @@ Features needed to be added before launch:
         [*] change straddle frontend
         [*] change straddle backend
         [*] remove player frontend
-        [ ] remove player backend
+        [*] remove player backend
         [*] transfer player host frontend
         [*] transfer player host backend
         [*] update player stack frontend

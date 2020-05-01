@@ -1842,6 +1842,15 @@ socket.on('update-player-stack', (data) => {
     $('#bb').html(data.bigBlind);
 });
 
+$('.kick-option-btn').click(function () {
+    let playerid = $(this).parents('.row').attr('id');
+    let seat = parseInt(playerid.substring(6));
+    socket.emit('kick-player', {
+        seat
+    });
+    closeHostPage();
+});
+
 socket.on('update-header-blinds', (data) => {
     console.log(data);
     $('#sb').html(data.smallBlind);

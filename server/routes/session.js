@@ -166,7 +166,10 @@ class SessionManager extends TableManager {
     }
 
     async kickPlayer(playerId) {
-        this.kickedPlayers[playerId] = super.getPlayerById(playerId);
+        // this.kickedPlayers[playerId] = super.getPlayerById(playerId);
+        // MAY BE AN ERROR HERE CHECK AGAIN
+        let playerName = this.getPlayerById(playerId);
+        await this.performAction(playerName, 'fold', 0);
         await this.playerLeaves(playerId);
     }
 
@@ -678,7 +681,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
 
         socket.on('kick-player', async (data) => {
             if (s.isModPlayerId(playerId)) {
-                await s.kickPlayer(s.getPlayerId(data.playerName));
+                if (data && !isNaN(data.seat)){
+                    let playerName = s.getPlayerBySeat(data.seat);
+                    console.log('kicking player', playerName)
+                    await s.kickPlayer(s.getPlayerId(playerName));
+                }
             }
         });
 
