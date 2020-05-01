@@ -166,7 +166,10 @@ class SessionManager extends TableManager {
     }
 
     async kickPlayer(playerId) {
-        this.kickedPlayers[playerId] = super.getPlayerById(playerId);
+        // this.kickedPlayers[playerId] = super.getPlayerById(playerId);
+        // MAY BE AN ERROR HERE CHECK AGAIN
+        let playerName = this.getPlayerById(playerId);
+        await this.performAction(playerName, 'fold', 0);
         await this.playerLeaves(playerId);
     }
 
@@ -678,7 +681,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
 
         socket.on('kick-player', async (data) => {
             if (s.isModPlayerId(playerId)) {
-                await s.kickPlayer(s.getPlayerId(data.playerName));
+                if (data && !isNaN(data.seat)){
+                    let playerName = s.getPlayerBySeat(data.seat);
+                    console.log('kicking player', playerName)
+                    await s.kickPlayer(s.getPlayerId(playerName));
+                }
             }
         });
 
@@ -736,7 +743,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('get-buyin-info', () => {
-            console.log('here!mf');
             io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         });
         
@@ -758,10 +764,10 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('update-blinds-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId){
+            if (s.getModId() != playerId || !data){
                 console.log('somebody who wasnt the host attempted to update game information');
             } else {
-                if (data && data.smallBlind && data.bigBlind){
+                if (data.smallBlind && data.bigBlind){
                     if (data.smallBlind <= data.bigBlind){
                         console.log('updating blinds next hand');
                         s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
@@ -782,14 +788,62 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('update-straddle-next-round', (data) => {
-            if (s.getModId() && s.getModId() != playerId) {
+            if (s.getModId() != playerId || !data) {
                 console.log('somebody who wasnt the host attempted to update game information');
             } else {
                 console.log('setting straddle limit to ', data.straddleLimit);
                 s.updateStraddleLimit(data.straddleLimit);
                 s.sendTableState();
             }
-        })
+        });
+
+        socket.on('transfer-host', (data) => {
+            if (s.getModId() != playerId || !data) {
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                let newHostName = s.getPlayerBySeat(data.seat);
+                if (newHostName === s.getPlayerById(playerId)){
+                    console.log('attempting to transfer host to oneself');
+                } else {
+                    console.log('trasnferring host to ', newHostName);
+                    if (s.transferHost(newHostName)){
+                        let newHostSocketId = s.getSocketId(s.getPlayerId(newHostName));
+                        io.sockets.to(s.getSocketId(playerId)).emit('remove-mod-abilities');
+                        io.sockets.to(newHostSocketId).emit('add-mod-abilities');
+                        s.sendTableState();
+                    } else {
+                        console.log('unable to transfer host');
+                        s.sendTableState();
+                    }
+                }
+            }
+        });
+
+        socket.on('update-player-stack', (data) => {
+            if (s.getModId() != playerId || !data) {
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                let pName = s.getPlayerBySeat(data.seat);
+                let newStack = data.newStackAmount; 
+                if (!pName || pName == 'guest'){
+                    console.log('player at seat ' + data.seat + ' doesnt exist');
+                } else {
+                    if (!newStack || isNaN(newStack) || newStack <= 0){
+                        console.log('error with newStackAmountInput');
+                    } else {
+                        console.log(`queuing to update ${pName}'s stack to ${newStack}`);
+                        s.queueUpdatePlayerStack(pName, newStack);
+                        // if game isnt in progress update players stack immediately
+                        if (!s.gameInProgress) {
+                            io.sockets.to(sid).emit('update-stack', {
+                                seat: data.seat,
+                                stack: newStack
+                            });
+                        }
+                    }
+                }
+            }
+        });
 
         // this if else statement is a nonsense fix need to find a better one
         } else {

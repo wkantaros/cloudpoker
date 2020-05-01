@@ -1222,7 +1222,7 @@ input::-webkit-inner-spin-button {
     float: left;
 }
 
-.update-stack-host .submit-row {
+.update-stack-host .update-stack-row {
     float: right;
     height: 4.7em;
 }

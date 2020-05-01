@@ -177,6 +177,7 @@ class TableManager extends TableStateManager {
         this.addToBuyins(hostName, playerid, hostStack);
         this.bigBlindNextHand = undefined;
         this.smallBlindNextHand = undefined;
+        this.playerStacksNextHand = [];
     }
 
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
@@ -230,6 +231,18 @@ class TableManager extends TableStateManager {
                 else {
                     this.trackBuyins[i].buyout = buyOutStack;
                 }
+                this.trackBuyins[i].time = time;
+            }
+        }
+    }
+
+    updateBuyIn(playerName, playerid, amountChange) {
+        let date = new Date;
+        let minutes = (date.getMinutes() < 10) ? `0${date.getMinutes()}` : `${date.getMinutes()}`;
+        let time = `${date.getHours()}:${minutes}`;
+        for (let i = 0; i < this.trackBuyins.length; i++) {
+            if (this.trackBuyins[i].playerName === playerName && this.trackBuyins[i].playerid === playerid) {
+                this.trackBuyins[i].buyin = parseInt(this.trackBuyins[i].buyin) + amountChange;
                 this.trackBuyins[i].time = time;
             }
         }
@@ -397,11 +410,13 @@ class TableManager extends TableStateManager {
     startGame() {
         this.gameInProgress = true;
         this.updateBlinds();
+        this.updateQueuedStackChanges();
         this.table.StartGame();
     }
 
     startRound() {
         this.updateBlinds();
+        this.updateQueuedStackChanges();
         this.table.initNewRound();
         if (!this.table.game)
             this.gameInProgress = false;
@@ -462,6 +477,12 @@ class TableManager extends TableStateManager {
 
     updateStack(playerName, winnings) {
         this.table.getPlayer(playerName).GetChips(winnings);
+    }
+
+    // different than update stack as it changes stack entirely, doesn't add on
+    updateStackBuyIn(playerName, stackAmount, change) {
+        this.table.getPlayer(playerName).UpdateStackAmount(stackAmount);
+        this.updateBuyIn(playerName, this.getPlayerId(playerName), change);
     }
 
     // Idk why this returns bigBlind if game is not in progress. I don't want to break anything.
@@ -535,6 +556,32 @@ class TableManager extends TableStateManager {
             this.setPlayerStraddling(this.playerids[name].playerid, false);
         }
         this.table.straddleLimit = straddleLimit;
+    }
+
+    queueUpdatePlayerStack(playerName, amount) {
+        if (!this.gameInProgress){
+            let curAmount = this.getPlayer(playerName).chips || 0;
+            let change = amount - curAmount;
+            this.updateStackBuyIn(playerName, amount, change);
+        } else {
+            let obj = {
+                name: playerName,
+                stack: amount
+            };
+            this.playerStacksNextHand.push(obj);
+        }
+    }
+
+    updateQueuedStackChanges() {
+        for (let i = 0; i < this.playerStacksNextHand.length; i++){
+            let playerName = this.playerStacksNextHand[i].name;
+            let playerStack = this.playerStacksNextHand[i].stack;
+            if (this.isActivePlayerId(this.getPlayerId(playerName))){
+                let curAmount = this.getPlayer(playerName).chips;
+                let change = playerStack - curAmount;
+                this.updateStackBuyIn(playerName, playerStack, change);
+            }
+        }
     }
 }
 
