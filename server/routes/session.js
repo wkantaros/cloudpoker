@@ -682,12 +682,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
         });
 
-        socket.on('leave-game', (data) => {
+        socket.on('leave-game', async (data) => {
             if (!s.isActivePlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
                 return;
             }
-            s.playerLeaves(playerId);
+            await s.playerLeaves(playerId);
         });
         
         socket.on('set-turn-timer', (data) => { // delay
