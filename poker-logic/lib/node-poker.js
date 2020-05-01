@@ -103,7 +103,7 @@ class Table extends TableState{
         if( playerName === p.playerName ) {
             const maxBet = this.getMaxBet();
             console.log(`${playerName} calls`);
-            if (p.chips > maxBet) {
+            if (p.chips + p.bet > maxBet) {
                 console.log(`${playerName} calls`);
                 // treat call as bet
                 const betAmount = p.Bet(maxBet - p.bet);
