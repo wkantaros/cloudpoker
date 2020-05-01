@@ -31,6 +31,8 @@ Features needed to be added before launch:
     [ ] host page
         [*] adjust blinds frontend
         [*] adjust blinds backend
+        [*] change straddle frontend
+        [*] change straddle backend
         [*] remove player frontend
         [ ] remove player backend
         [*] transfer player host frontend
