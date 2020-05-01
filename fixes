@@ -28,18 +28,20 @@ Bugs needing to be fixed before launch:
         [ ] if straddling is multi straddle, allow ability for user to just straddle UTG
 
 Features needed to be added before launch:
-    [ ] host page
+    [*] host page
         [*] adjust blinds frontend
         [*] adjust blinds backend
         [*] change straddle frontend
         [*] change straddle backend
         [*] remove player frontend
-        [ ] remove player backend
+        [*] remove player backend
         [*] transfer player host frontend
-        [ ] transfer player host backend
+        [*] transfer player host backend
         [*] update player stack frontend
-        [ ] update player stack backend
+        [*] update player stack backend
     [ ] player stand up
+        [ ] backend
+        [ ] frontend
     [*] straddle front end
     [ ] move game log from chatroom to game log 
 
