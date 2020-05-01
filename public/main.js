@@ -798,7 +798,6 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
-
 let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
