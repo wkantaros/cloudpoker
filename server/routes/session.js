@@ -789,7 +789,29 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 s.updateStraddleLimit(data.straddleLimit);
                 s.sendTableState();
             }
-        })
+        });
+
+        socket.on('transfer-host', (data) => {
+            if (s.getModId() && s.getModId() != playerId) {
+                console.log('somebody who wasnt the host attempted to update game information');
+            } else {
+                let newHostName = s.getPlayerBySeat(data.seat);
+                if (newHostName === s.getPlayerById(playerId)){
+                    console.log('attempting to transfer host to oneself');
+                } else {
+                    console.log('trasnferring host to ', newHostName);
+                    if (s.transferHost(newHostName)){
+                        let newHostSocketId = s.getSocketId(s.getPlayerId(newHostName));
+                        io.sockets.to(s.getSocketId(playerId)).emit('remove-mod-abilities');
+                        io.sockets.to(newHostSocketId).emit('add-mod-abilities');
+                        s.sendTableState();
+                    } else {
+                        console.log('unable to transfer host');
+                        s.sendTableState();
+                    }
+                }
+            }
+        });
 
         // this if else statement is a nonsense fix need to find a better one
         } else {

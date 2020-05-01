@@ -1720,7 +1720,6 @@ let renderGamePrefVals = () => {
 }
 
 let renderHostPlayerVals = () => {
-    //TODO
     for (let i = 0; i < 10; i++) {
         let rowplayerid = `#player${i}`
         $(rowplayerid).addClass('collapse');
@@ -1730,14 +1729,11 @@ let renderHostPlayerVals = () => {
             let stack = parseInt($(seat).find('.stack').html());
             console.log(name);
             console.log('stack', stack);
-            // console.log($(rowplayerid).find('.playername-input'));
             $(rowplayerid).find('.playername-input').val(name);
             $(rowplayerid).find('.stack-input').val(stack);
             $(rowplayerid).removeClass('collapse');
         }
     }
-    // iterate through each seat
-    //      if seat has player have him show up as a row with name and stack
 }
 
 let closeGamePrefVals = () => {
@@ -1807,26 +1803,10 @@ gamePrefForm.addEventListener('submit', (event) => {
     console.log(gamePref);
     $('#successfully-submitted').removeClass('collapse');
     $('#game-pref-form').addClass('collapse');
-
-    // fetch(`${window.location.href}session`, {
-    //         method: 'POST',
-    //         body: JSON.stringify(game),
-    //         headers: {
-    //             'content-type': 'application/json'
-    //         }
-    //     }).then(res => res.json())
-    //     .then(data => {
-    //         if (!data.isValid) {
-    //             alert(data.message);
-    //         } else {
-    //             //   console.log(data.shortid);
-    //             window.location.href = `/session/${data.shortid}`;
-    //         }
-    //     });
     handleUpdatedGamePreferences(gamePref);
 });
 
-let handleUpdatedGamePreferences = (gamePref) => {
+const handleUpdatedGamePreferences = (gamePref) => {
     // todo: update big blind, small blind for next turn, if things change
     let bb = gamePref.bigBlind;
     let sb = gamePref.smallBlind;
@@ -1839,6 +1819,13 @@ let handleUpdatedGamePreferences = (gamePref) => {
     }
     // todo: queue bombpot for next hand
 }
+
+$('.transfer-ownership-btn').click(function() {
+    let playerid = $(this).parents('.row').attr('id');
+    let seat = parseInt(playerid.substring(6));
+    socket.emit('transfer-host', {seat});
+    closeHostPage();
+});
 
 socket.on('update-header-blinds', (data) => {
     console.log(data);
