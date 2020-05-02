@@ -1,7 +1,7 @@
 ranked in level of severity
 
 Bugs needing to be fixed before launch:
-    [ ] With show hand:
+    [*] With show hand:
         [*] if a game ends (player busts for example) and I start a new game, the 'show hand' aciton is the only action
         [*] when a player calls an all-in and they start to race the action buttons should be removed
         [*] when an all in "runout" is occuring there should not be the show hand feature
@@ -51,6 +51,9 @@ Features needed to be added before launch:
         [ ] frontend
     [*] straddle front end
     [ ] move game log from chatroom to game log 
+
+Features needed to be error checked before launch:
+    [ ] remove player hostpage
 
 Down the line bugs needing to be fixed:
     With refresh:
