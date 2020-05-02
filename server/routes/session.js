@@ -879,6 +879,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                             smallBlind: s.table.smallBlind
                         });
                     }
+                    s.sendTableState();
                 } else {
                     console.log('big blind must be greater than small blind');
                 }

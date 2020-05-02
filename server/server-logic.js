@@ -586,14 +586,16 @@ class TableManager extends TableStateManager {
     }
 
     updateQueuedStackChanges() {
-        for (let i = 0; i < this.playerStacksNextHand.length; i++){
-            let playerName = this.playerStacksNextHand[i].name;
-            let playerStack = this.playerStacksNextHand[i].stack;
+        while(this.playerStacksNextHand.length > 0){
+            let playerName = this.playerStacksNextHand[0].name;
+            let playerStack = this.playerStacksNextHand[0].stack;
             if (this.isActivePlayerId(this.getPlayerId(playerName))){
                 let curAmount = this.getPlayer(playerName).chips;
                 let change = playerStack - curAmount;
                 this.updateStackBuyIn(playerName, playerStack, change);
             }
+            // remove element from list
+            this.playerStacksNextHand.shift();
         }
     }
 }
