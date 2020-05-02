@@ -143,6 +143,7 @@ const showSitDownButton = () => {
 };
 
 const showStandUpButton = () => {
+    console.log('should be removing class');
     $('#sit-down').addClass('collapse');
     $('#stand-up').removeClass('collapse');
 };
