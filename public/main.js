@@ -1607,7 +1607,7 @@ const getSmallBlind = () => {
 };
 
 const getPotSize = () => {
-    return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv);
+    return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0;
 };
 
 //add hands and bets to table --------------------------------------------------------------------------------
