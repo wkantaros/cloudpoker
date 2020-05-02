@@ -9,6 +9,7 @@
   "author": "fish",
   "license": "ISC",
   "dependencies": {
+    "@babel/polyfill": "^7.8.7",
     "@hapi/joi": "^17.1.1",
     "cookie": "^0.4.0",
     "cookie-parser": "^1.4.5",
@@ -22,6 +23,10 @@
     "xss": "^1.0.6"
   },
   "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-react": "^7.9.4",
     "mocha": "^7.1.1"
   }
 }
