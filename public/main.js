@@ -1579,8 +1579,8 @@ const alreadyExistingName = (playerName) => {
 const getMinRaiseAmount = () => {
     let minRaiseAmount = 0;
     let bets = tableState.table.players.map(p => p.bet);
-    let biggestBet = Math.max(...bets);
-    let secondBiggestBet = Math.max(...bets.filter(b=>b<biggestBet));
+    let biggestBet = Math.max(...bets)|| 0;
+    let secondBiggestBet = Math.max(...bets.filter(b=>b<biggestBet)) || 0;
 
     // if the biggest bet is the bb then double it
     if (biggestBet === getBigBlind()) {
