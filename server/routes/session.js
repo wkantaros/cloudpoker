@@ -9,52 +9,65 @@ const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 const {TableManager} = require('../server-logic');
 const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
-const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
+const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require('../funcs');
 let poker = require('../../poker-logic/lib/node-poker');
+
+const validateTableName = (val) => {
+    if (!val || val.length === 0) return val;
+    val = val.replace(/\s/g, '-'); // replace spaces with hyphens
+    if (!sessionManagers.has(val)) return val;
+    throw new Error(`table name ${val} is already taken`);
+}
 
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post(asyncErrorHandler(async (req, res) => {
     //scheme to ensure valid username
     const schema = Joi.object({
         // username: Joi.string().alphanum().min(2).max(10)
-        username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
+        tableName: Joi.string().trim().min(2).max(15)
+            // matches only letters, numbers, - (hyphen), _ (underscore), and " " (space)
+            .regex(/[a-zA-Z0-9-_\s]+$/, 'no-punctuation')
+            .external(validateTableName),
+        username: Joi.string().regex(/^\w+(?:\s+\w+)*$/, 'no-punctuation').min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
         bigBlind: Joi.number().integer().min(1),
         stack: Joi.number().integer().min(1),
-        straddleLimit: Joi.number().integer().min(-1)
+        straddleLimit: Joi.number().integer().min(-1),
     });
     if (process.env.DEBUG === 'true') {
         req.body.name = req.body.name || 'debugName';
     }
-    const {
-        error,
-        value
-    } = schema.validate({
-        username: req.body.name,
-        smallBlind: req.body.smallBlind,
-        bigBlind: req.body.bigBlind,
-        stack: req.body.stack,
-        straddleLimit: req.body.straddleLimit,
-    });
-    if (error) {
+    if (!req.body.tableName) {
+        req.body.tableName = shortid.generate();
+    }
+    let value;
+    try {
+        value = await schema.validateAsync({
+            tableName: req.body.tableName,
+            username: req.body.name,
+            smallBlind: req.body.smallBlind,
+            bigBlind: req.body.bigBlind,
+            stack: req.body.stack,
+            straddleLimit: req.body.straddleLimit,
+        });
+    } catch (error) {
         res.status(422);
-        let message = error.details[0].message;
-        console.log(message);
-        if (message.includes("fails to match the required pattern: /^\\w+(?:\\s+\\w+)*$/")){
-            message = "\"username\" cannot have punctuation"
+        let message;
+        if (error.isJoi) {
+            message = formatJoiError(error);
+        } else {
+            message = error.hasOwnProperty('message') ? error.message : error;
         }
-        res.json({
+        await res.json({
             isValid: false,
             message: message
         });
-    } else {
-        let sid = shortid.generate();
-        req.body.shortid = sid;
-        req.body.isValid = true;
-        res.json(req.body);
-        console.log(`starting new table with id: ${sid}`);
-        sessionManagers.set(sid, new SessionManager(null, sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969));
+        return;
     }
+    value.isValid = true;
+    await res.json(value);
+    console.log(`starting new table with id: ${value.tableName}`);
+    sessionManagers.set(value.tableName, new SessionManager(null, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969));
 }));
 
 // maps sid -> SessionManager
@@ -311,6 +324,38 @@ class SessionManager extends TableManager {
         });
     }
 
+    async handleEveryoneFolded(prev_round, data) {
+        // TODO: ANYONE CAN REVEAL HAND HERE
+        this.renderActionSeatAndPlayerActions();
+        console.log(prev_round);
+        // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
+        let winnings = super.getWinnings(prev_round);
+        // console.log(data.winner);
+        console.log(`${data.winner.playerName} won a pot of ${winnings}`);
+        // tell clients who won the pot
+        this.io.sockets.to(this.sid).emit('folds-through', {
+            username: data.winner.playerName,
+            amount: winnings,
+            seat: super.getPlayerSeat(data.winner.playerName)
+        });
+
+        await sleep(3000);
+        // update client's stack size
+        this.io.sockets.to(this.sid).emit('update-stack', {
+            seat: super.getPlayerSeat(data.winner.playerName),
+            stack: data.winner.chips + winnings
+        });
+
+        // update stack on the server
+        console.log(`Player has ${super.getStack(data.winner.playerName)}`);
+        console.log('Updating player\'s stack on the server...');
+        super.updateStack(data.winner.playerName, winnings);
+        console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
+
+        // next round
+        this.startNextRoundOrWaitingForPlayers();
+    }
+
     //checks if round has ended (reveals next card)
     async check_round (prev_round) {
         let data = super.checkwin();
@@ -358,35 +403,7 @@ class SessionManager extends TableManager {
             await sleep(time);
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
-            // TODO: ANYONE CAN REVEAL HAND HERE
-            this.renderActionSeatAndPlayerActions();
-            console.log(prev_round);
-            // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
-            let winnings = super.getWinnings(prev_round);
-            // console.log(data.winner);
-            console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-            // tell clients who won the pot
-            this.io.sockets.to(this.sid).emit('folds-through', {
-                username: data.winner.playerName,
-                amount: winnings,
-                seat: super.getPlayerSeat(data.winner.playerName)
-            });
-
-            await sleep(3000);
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: super.getPlayerSeat(data.winner.playerName),
-                stack: data.winner.chips + winnings
-            });
-
-            // update stack on the server
-            console.log(`Player has ${super.getStack(data.winner.playerName)}`);
-            console.log('Updating player\'s stack on the server...');
-            super.updateStack(data.winner.playerName, winnings);
-            console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
-
-            // next round
-            this.startNextRoundOrWaitingForPlayers();
+            await this.handleEveryoneFolded(prev_round, data);
         } else if (prev_round !== super.getRoundName()) {
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             this.updateAfterCardTurn(false);
