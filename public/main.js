@@ -61,17 +61,9 @@ doResize(null, starterData);
 
 //helper function
 const getMaxRoundBet = () => {
-    let maxBetAmount = 0;
-
-    $('.player-bet').each(function () {
-        if (!$(this).hasClass('hidden')) {
-            let bet = parseInt($(this).html()) || 0;
-            maxBetAmount = Math.max(maxBetAmount, bet);
-        }
-    });
-    return maxBetAmount;
+    if (!tableState.table) return 0;
+    return Math.max(...tableState.table.players.map(p=>p.bet));
 };
-
 
 //header functions--------------------------------------------------------------------------------
 $(document).mouseup(function (e) {
@@ -198,12 +190,12 @@ function copyStringToClipboard(str) {
 
 const getMaximumAllowedBet = () => {
     if (!tableState.gameInProgress || !tableState.player) return 0;
-    return Math.min(tableState.player.chips, tableState.table.maxBetPossible(tableState.player.playerName));
+    return Math.min(tableState.player.chips + tableState.player.bet, tableState.table.maxBetPossible(tableState.player.playerName));
 };
 
 const getMinimumAllowedBet = () => {
     if (!tableState.gameInProgress || !tableState.player) return 0;
-    return Math.min(tableState.player.chips, tableState.table.minimumBetAllowed(tableState.player.playerName));
+    return Math.min(tableState.player.chips + tableState.player.bet, tableState.table.minimumBetAllowed(tableState.player.playerName));
 };
 
 //action buttons ------------------------------------------------------------------------------------------------------------
@@ -238,13 +230,8 @@ $('#bet').on('click', () => {
         output.focus();
         const minimum = getMinimumAllowedBet();
         output.value = minimum; // Display the default slider value
-        // slider.min = getBigBlind();
         slider.min = minimum;
-
-        // console.log(tableState);
-        // console.log('mbp', tableState.table.maxBetPossible(tableState.player.playerName));
         slider.max = getMaximumAllowedBet();
-        // slider.max = getStack();
         
         // Update the current slider value (each time you drag the slider handle)
         slider.oninput = function () {
@@ -264,7 +251,7 @@ const getRaiseInput = () => {
 
 $('#betplus').on('click', () => {
     let bb = getBigBlind();
-    let maxval = getStack();
+    let maxval = getMaximumAllowedBet();
     handleBetSliderButtons(Math.min(getBetInput() + bb, maxval));
 });
 
@@ -275,7 +262,7 @@ $('#betminus').on('click', () => {
 });
 
 $('#bai').on('click', () => {
-    handleBetSliderButtons(getStack());
+    handleBetSliderButtons(getMaximumAllowedBet());
 });
 
 $('#bp').on('click', () => {
@@ -409,9 +396,6 @@ $('#raise').on('click', () => {
         const minAmount = Math.min(getMinRaiseAmount(), tableState.player.bet + tableState.player.chips);
         output.value = minAmount; // Display the default slider value
         slider.min = minAmount;
-        console.log('gmra', getMinRaiseAmount());
-        console.log('gs', getStack());
-        console.log('opms', tableState.table.otherPlayersMaxStack(tableState.player.playerName));
         slider.max = Math.min(tableState.player.bet + tableState.player.chips, tableState.table.otherPlayersMaxStack(tableState.player.playerName));
 
         // Update the current slider value (each time you drag the slider handle)
@@ -422,49 +406,43 @@ $('#raise').on('click', () => {
     }
 });
 
+const setRaiseSliderTo = (num) => {
+    let valormr = Math.max(Math.floor(num), getMinRaiseAmount());
+    handleRaiseSliderButtons(Math.min(valormr, getMaximumAllowedBet()));
+};
+
 $('#raiseplus').on('click', () => {
     let output = document.getElementById("raise-input-val");
-    let bb = getBigBlind();
-    let maxval = getStack();
-    handleRaiseSliderButtons(Math.min(parseInt(output.value) + bb, maxval));
+    setRaiseSliderTo(parseInt(output.value) + getBigBlind())
 });
 
 $('#raiseminus').on('click', () => {
-    let bb = getBigBlind();
-    handleRaiseSliderButtons(Math.max(getRaiseInput() - bb, getMinRaiseAmount()));
+    setRaiseSliderTo(getRaiseInput() - getBigBlind());
 });
 
 $('#rai').on('click', () => {
-    handleRaiseSliderButtons(getStack());
+    setRaiseSliderTo(getMaximumAllowedBet());
 });
 
-$('#rthp').on('click', () => { 
-    let valormr = Math.max(Math.floor(3 * getPotSize()), getMinRaiseAmount());
-    let totalStack = getStack();
-    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+$('#rthp').on('click', () => {
+    setRaiseSliderTo(3 * getPotSize());
 });
 
 $('#rtp').on('click', () => {
-    let valormr = Math.max(Math.floor(2 * getPotSize()), getMinRaiseAmount());
-    let totalStack = getStack();
-    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+    setRaiseSliderTo(2 * getPotSize());
 });
 
 $('#rsqp').on('click', () => {
-    let valormr = Math.max(Math.floor(6 * getPotSize() / 4), getMinRaiseAmount());
-    let totalStack = getStack();
-    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+    setRaiseSliderTo(6 * getPotSize() / 4);
 });
 
 $('#rp').on('click', () => {
-    let valormr = Math.max(Math.floor(getPotSize()), getMinRaiseAmount());
-    let totalStack = getStack();
-    handleRaiseSliderButtons(Math.min(valormr, totalStack));
+    setRaiseSliderTo(getPotSize());
 });
 
 $('#mr').on('click', () => {
     // min raise or all in
-    handleRaiseSliderButtons(Math.min(getMinRaiseAmount(), getStack()));
+    setRaiseSliderTo(getMinRaiseAmount());
 });
 
 $('#raise-input-val').keydown(function (e) {
@@ -1595,38 +1573,17 @@ const showWinnings = (winnings, seat) => {
 };
 
 const alreadyExistingName = (playerName) => {
-    let alreadyExists = false;
-    $('.hand').each(function(){
-        console.log($(this).find('.username')[0].innerHTML);
-        // console.log($(this).find('.username')[0]);
-        // console.log($(this).find('.username')[0].text());
-        if ($(this).find('.username')[0].innerHTML == playerName){
-            alreadyExists = true;
-        }
-    });
-    return alreadyExists;
+    return tableState.table.allPlayers.filter(p=>p!==null).map(p => p.playerName).includes(playerName);
 };
 
 const getMinRaiseAmount = () => {
     let minRaiseAmount = 0;
-    let biggestBet = 0;
-    let secondBiggestBet = 0;
-    $('.player-bet').each(function () {
-        // Test if the div element is empty
-        if (!$(this).hasClass('hidden')) {
-            let bet = parseInt($(this).html());
-            if (bet > biggestBet) {
-                secondBiggestBet = biggestBet;
-                biggestBet = bet;
-            } 
-            if (bet > secondBiggestBet && bet < biggestBet) {
-                secondBiggestBet = bet;
-            }
-        }
-    });
+    let bets = tableState.table.players.map(p => p.bet);
+    let biggestBet = Math.max(...bets);
+    let secondBiggestBet = Math.max(...bets.filter(b=>b<biggestBet));
 
     // if the biggest bet is the bb then double it
-    if (biggestBet == getBigBlind()) {
+    if (biggestBet === getBigBlind()) {
         console.log('here!!!!!');
         minRaiseAmount = biggestBet + biggestBet;
     } else {
@@ -1650,14 +1607,7 @@ const getSmallBlind = () => {
 };
 
 const getPotSize = () => {
-    let pot = parseInt($("#pot-amount").html()) || 0;
-    $('.player-bet').each(function () {
-        if (!$(this).hasClass('hidden')) {
-            let bet = parseInt($(this).html());
-            pot += bet;
-        }
-    });
-    return pot;
+    return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv);
 };
 
 //add hands and bets to table --------------------------------------------------------------------------------
