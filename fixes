@@ -9,6 +9,9 @@ Bugs needing to be fixed before launch:
     [ ] With stand up:
         [ ] When the host initially joins the game, both "stand up" and "sit down" buttons are hidden. Refreshing the page fixes this.
             - this is only possible if joinedGame is false in game.ejs.
+        [ ] When folding the player when they stand up, call checkwin(). If 1 player remains, call handleEveryoneFolded.
+            - We must do this to end the round. Also, we must do this to avoid the case where 0 players remain because all players
+                stand up before check_round is called.
 
     [ ] With premoves
         [ ] if a player premove folds and the player before him folds it will still show a flop

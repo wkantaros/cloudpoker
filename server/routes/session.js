@@ -311,6 +311,38 @@ class SessionManager extends TableManager {
         });
     }
 
+    async handleEveryoneFolded(prev_round, data) {
+        // TODO: ANYONE CAN REVEAL HAND HERE
+        this.renderActionSeatAndPlayerActions();
+        console.log(prev_round);
+        // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
+        let winnings = super.getWinnings(prev_round);
+        // console.log(data.winner);
+        console.log(`${data.winner.playerName} won a pot of ${winnings}`);
+        // tell clients who won the pot
+        this.io.sockets.to(this.sid).emit('folds-through', {
+            username: data.winner.playerName,
+            amount: winnings,
+            seat: super.getPlayerSeat(data.winner.playerName)
+        });
+
+        await sleep(3000);
+        // update client's stack size
+        this.io.sockets.to(this.sid).emit('update-stack', {
+            seat: super.getPlayerSeat(data.winner.playerName),
+            stack: data.winner.chips + winnings
+        });
+
+        // update stack on the server
+        console.log(`Player has ${super.getStack(data.winner.playerName)}`);
+        console.log('Updating player\'s stack on the server...');
+        super.updateStack(data.winner.playerName, winnings);
+        console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
+
+        // next round
+        this.startNextRoundOrWaitingForPlayers();
+    }
+
     //checks if round has ended (reveals next card)
     async check_round (prev_round) {
         let data = super.checkwin();
@@ -358,35 +390,7 @@ class SessionManager extends TableManager {
             await sleep(time);
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
-            // TODO: ANYONE CAN REVEAL HAND HERE
-            this.renderActionSeatAndPlayerActions();
-            console.log(prev_round);
-            // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
-            let winnings = super.getWinnings(prev_round);
-            // console.log(data.winner);
-            console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-            // tell clients who won the pot
-            this.io.sockets.to(this.sid).emit('folds-through', {
-                username: data.winner.playerName,
-                amount: winnings,
-                seat: super.getPlayerSeat(data.winner.playerName)
-            });
-
-            await sleep(3000);
-            // update client's stack size
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: super.getPlayerSeat(data.winner.playerName),
-                stack: data.winner.chips + winnings
-            });
-
-            // update stack on the server
-            console.log(`Player has ${super.getStack(data.winner.playerName)}`);
-            console.log('Updating player\'s stack on the server...');
-            super.updateStack(data.winner.playerName, winnings);
-            console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
-
-            // next round
-            this.startNextRoundOrWaitingForPlayers();
+            await this.handleEveryoneFolded(prev_round, data);
         } else if (prev_round !== super.getRoundName()) {
             this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             this.updateAfterCardTurn(false);
