@@ -44,7 +44,7 @@ form.addEventListener('submit', (event) => {
             alert(data.message);
           } else {
             //   console.log(data.shortid);
-            window.location.href = `/session/${data.shortid}`;
+            window.location.href = `/session/${data.tableName}`;
           }
       });
 });

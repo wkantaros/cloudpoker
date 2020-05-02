@@ -28,3 +28,21 @@ module.exports.asyncSchemaValidator = function(schema, asyncCallback) {
         }
     }
 }
+
+module.exports.formatJoiError = function(error) {
+    let message = error.details[0].message;
+    const errorType = error.details[0].type
+    if (errorType.includes("string.pattern")) {
+        message = `\"${error.details[0].context.key}\"`
+        const regexName = error.details[0].context.name;
+        if (regexName === 'no-punctuation') {
+            message += ' cannot contain punctuation'
+        } else if (regexName === 'no-whitespace') {
+            message += ' cannot contain whitespace'
+        } else {
+            console.log('ERROR: unknown regex pattern failure. data:', error)
+            message += ' is invalid'
+        }
+    }
+    return message
+}
