@@ -17,11 +17,13 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
     //scheme to ensure valid username
     const schema = Joi.object({
         // username: Joi.string().alphanum().min(2).max(10)
+        // TODO: remove whitespace from tableName to use it as sid
+        // tableName: Joi.string().trim().min(2).max(15),
         username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
         bigBlind: Joi.number().integer().min(1),
         stack: Joi.number().integer().min(1),
-        straddleLimit: Joi.number().integer().min(-1)
+        straddleLimit: Joi.number().integer().min(-1),
     });
     if (process.env.DEBUG === 'true') {
         req.body.name = req.body.name || 'debugName';

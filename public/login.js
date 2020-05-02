@@ -9,6 +9,7 @@ form.addEventListener('submit', (event) => {
     event.preventDefault();
     console.log('form successfully submitted');
     const formData = new FormData(form);
+    const tableName = formData.get('table-name').trim();
     const name = formData.get('name').trim();
     const stack = formData.get('stack') || 1000;
     const smallBlind = parseInt(formData.get('small-blind')) || 25;
@@ -22,6 +23,7 @@ form.addEventListener('submit', (event) => {
     }
 
     const game = {
+        tableName,
         name,
         stack,
         smallBlind,
