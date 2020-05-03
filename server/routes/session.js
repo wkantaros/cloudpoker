@@ -105,10 +105,10 @@ class SessionManager extends TableManager {
             amount: betAmount
         });
         // update client's stack size
-        this.io.sockets.to(this.sid).emit('update-stack', {
-            seat: this.getPlayerSeat(playerName),
-            stack: this.getStack(playerName)
-        });
+        // this.io.sockets.to(this.sid).emit('update-stack', {
+        //     seat: this.getPlayerSeat(playerName),
+        //     stack: this.getStack(playerName)
+        // });
     }
 
     sendTableState() {
@@ -152,17 +152,8 @@ class SessionManager extends TableManager {
             playerName: playerName,
             stack: newPlayer.chips,
         });
-        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
-        this.renderActionSeatAndPlayerActions()
-
-        // this.io.sockets.to(this.sid).emit('update-player', {player: newPlayer.getPublicInfo(), buyIn: true});
-        // send user their private data. set buyIn to false so buy in message does not get logged twice.
-        // this.io.sockets.to(socketId).emit('update-self', {player: newPlayer, buyIn: false});
-        // io.sockets.to(sid).emit('buy-in', data);
-        // TODO: do not send playersInfo to front end. it contains secure playerIds.
-        // io.sockets.to(sid).emit('render-players', s.playersInfo());
-        // // highlight cards of player in action seat and get available buttons for players
-        // s.renderActionSeatAndPlayerActions();
+        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        this.renderActionSeatAndPlayerActions();
     }
 
     async kickPlayer(playerId) {
@@ -185,7 +176,7 @@ class SessionManager extends TableManager {
         await this.check_round(prev_round);
         this.sendTableState();
         this.renderActionSeatAndPlayerActions();
-        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.io.sockets.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
     sitDownPlayer(playerName) {
@@ -193,7 +184,7 @@ class SessionManager extends TableManager {
 
         super.sitDownPlayer(playerName);
         this.sendTableState();
-        this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
+        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.io.sockets.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
         this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
     }
@@ -278,37 +269,39 @@ class SessionManager extends TableManager {
             p.showHand();
         }
         this.renderActionSeatAndPlayerActions();
-        let prevRound = super.getRoundName();
-        let handRanks = {};
-        handRanks[prevRound] = playersShowingCards.map(p => {
-            return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-        });
+        // TODO: sendTableState should include hand rank messages
+        this.sendTableState(); // show players' cards
+        // let prevRound = super.getRoundName();
+        // let handRanks = {};
+        // handRanks[prevRound] = playersShowingCards.map(p => {
+        //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+        // });
 
         // TODO: this shows hand rank message from next round but card from next round has not turned over yet (but
         //  will when render-all-in is sent
-        this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersShowingCards.map(p=>{
-            return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName), handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-        }));
+        // this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersShowingCards.map(p=>{
+        //     return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName), handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+        // }));
         this.io.sockets.to(this.sid).emit('update-pot', {
             amount: super.getPot()
         });
 
         while (super.getRoundName() !== 'showdown'){
             super.call(super.getNameByActionSeat());
-            if (super.getRoundName() !== prevRound) {
-                prevRound = super.getRoundName();
-                handRanks[prevRound] = playersShowingCards.map(p => {
-                    return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-                });
-            }
+            // if (super.getRoundName() !== prevRound) {
+            //     prevRound = super.getRoundName();
+            //     handRanks[prevRound] = playersShowingCards.map(p => {
+            //         return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+            //     });
+            // }
         }
         this.sendTableState();
-        this.io.sockets.to(this.sid).emit('render-all-in', {
-            street: super.getRoundName(),
-            board: super.getDeal(),
-            sound: true,
-            handRanks: handRanks,
-        });
+        // this.io.sockets.to(this.sid).emit('render-all-in', {
+        //     street: super.getRoundName(),
+        //     board: super.getDeal(),
+        //     sound: true,
+        //     handRanks: handRanks,
+        // });
     }
 
     async handleEveryoneFolded(prev_round, data) {
@@ -319,6 +312,17 @@ class SessionManager extends TableManager {
         let winnings = super.getWinnings(prev_round);
         // console.log(data.winner);
         console.log(`${data.winner.playerName} won a pot of ${winnings}`);
+        // TODO: the below is extremely hacky and a horrible solution. find a better way to send
+        //  earnings to the client when everyone folded, ideally by having Table itself (in node-poker)
+        //  edit game.winners as it does in checkForWinner in other situations.
+        this.table.game.winners.push({
+            playerName: data.winner.playerName,
+            amount: data.pot,
+            hand: data.winner.hand,
+            chips: data.winner.chips,
+            seat: data.winner.seat,
+        });
+        this.sendTableState();
         // tell clients who won the pot
         this.io.sockets.to(this.sid).emit('folds-through', {
             username: data.winner.playerName,
@@ -352,7 +356,7 @@ class SessionManager extends TableManager {
         if (super.getRoundName() === 'showdown') {
             // TODO: ANYONE CAN REVEAL HAND HERE
             this.renderActionSeatAndPlayerActions();
-            this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
+            // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             let winners = this.getWinners();
             console.log('winners');
             console.log('LOSERS');
@@ -365,13 +369,13 @@ class SessionManager extends TableManager {
                 this.handlePlayerExit(losers[i].playerName);
             }
             this.sendTableState();
-            for (let i = 0; i < winners.length; i++){
-                // update client's stack size
-                this.io.sockets.to(this.sid).emit('update-stack', {
-                    seat: super.getPlayerSeat(winners[i].playerName),
-                    stack: super.getStack(winners[i].playerName)
-                });
-            }
+            // for (let i = 0; i < winners.length; i++){
+            //     // update client's stack size
+            //     this.io.sockets.to(this.sid).emit('update-stack', {
+            //         seat: super.getPlayerSeat(winners[i].playerName),
+            //         stack: super.getStack(winners[i].playerName)
+            //     });
+            // }
 
             // start new round
             this.startNextRoundOrWaitingForPlayers()
@@ -419,11 +423,12 @@ class SessionManager extends TableManager {
     }
 
     resetAfterRound() {
-        this.io.sockets.to(this.sid).emit('remove-out-players', {});
+        this.sendTableState();
+        // this.io.sockets.to(this.sid).emit('remove-out-players', {});
         this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
-        this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
+        // this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
         this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-        this.io.sockets.to(this.sid).emit('clear-earnings', {});
+        // this.io.sockets.to(this.sid).emit('clear-earnings', {});
     }
 
     startNextRoundOrWaitingForPlayers () {
@@ -432,41 +437,36 @@ class SessionManager extends TableManager {
         if (this.gameInProgress) {
             this.begin_round();
         } else {
-            this.io.sockets.to(this.sid).emit('waiting', {});
             this.resetAfterRound();
             this.io.sockets.to(this.sid).emit('render-action-buttons', super.getAvailableActions());
             console.log('waiting for more players to rejoin!');
         }
-        this.sendTableState();
     }
 
     begin_round() {
-        this.sendTableState();
         this.io.sockets.to(this.sid).emit('update-header-blinds', {bigBlind: this.table.bigBlind, smallBlind: this.table.smallBlind});
-        this.io.sockets.to(this.sid).emit('nobody-waiting', {});
+        // this.io.sockets.to(this.sid).emit('nobody-waiting', {});
         this.resetAfterRound();
-        // this.io.sockets.to(this.sid).emit('hide-hands', {});
-        this.io.sockets.to(this.sid).emit('initial-bets', {seats: super.getInitialBets()});
-        let data = super.playersInfo();
-        for (let i = 0; i < data.length; i++) {
-            let name = data[i].playerName;
-            if (this.getPlayer(name).inHand) {
-                this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
-                    cards: super.getCardsByPlayerName(name),
-                    seat: data[i].seat,
-                    folded: false,
-                    handRankMessage: this.playerHandState(name).handRankMessage,
-                });
-            }
-            // else {
-            //     this.io.sockets.to(this.sid).emit()
-            // }
-            this.io.sockets.to(this.sid).emit('update-stack', {
-                seat: data[i].seat,
-                stack: data[i].stack
-            });
-
-        }
+        // let data = super.playersInfo();
+        // for (let i = 0; i < data.length; i++) {
+        //     let name = data[i].playerName;
+        //     if (this.getPlayer(name).inHand) {
+        //         this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
+        //             cards: super.getCardsByPlayerName(name),
+        //             seat: data[i].seat,
+        //             folded: false,
+        //             handRankMessage: this.playerHandState(name).handRankMessage,
+        //         });
+        //     }
+        //     // else {
+        //     //     this.io.sockets.to(this.sid).emit()
+        //     // }
+        //     this.io.sockets.to(this.sid).emit('update-stack', {
+        //         seat: data[i].seat,
+        //         stack: data[i].stack
+        //     });
+        //
+        // }
         // highlight cards of player in action seat and get available buttons for players
         this.renderActionSeatAndPlayerActions();
         // abstracting this to be able to work with bomb pots/straddles down the line
@@ -474,10 +474,6 @@ class SessionManager extends TableManager {
     }
 
     renderActionSeatAndPlayerActions() {
-        // highlight cards of player in action seat
-        this.io.sockets.to(this.sid).emit('action', {
-            seat: this.actionSeat
-        });
         // get available actions for player to act
         // TODO: allow players to premove
         for (let playerName in this.playerids) {
@@ -507,7 +503,6 @@ class SessionManager extends TableManager {
             // check if round has ended
             if (!everyoneFolded)
                 this.renderActionSeatAndPlayerActions();
-            else this.io.sockets.to(this.sid).emit('action', {seat: -1});
 
             await sleep(250);
             // notify player its their action with sound
@@ -667,7 +662,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         if (s.getModId(sid) != null){
             io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
         }
-        io.sockets.to(sid).emit('render-players', s.playersInfo());
+        // io.sockets.to(sid).emit('render-players', s.playersInfo());
         // highlight cards of player in action seat and get available buttons for players
         s.renderActionSeatAndPlayerActions();
 
@@ -925,10 +920,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                     s.queueUpdatePlayerStack(pName, newStack);
                     // if game isnt in progress update players stack immediately
                     if (!s.gameInProgress) {
-                        io.sockets.to(sid).emit('update-stack', {
-                            seat: data.seat,
-                            stack: newStack
-                        });
+                        s.sendTableState();
+                        // io.sockets.to(sid).emit('update-stack', {
+                        //     seat: data.seat,
+                        //     stack: newStack
+                        // });
                     }
                 }
             }

@@ -469,14 +469,6 @@ $('#raise-input-val').keydown(function (e) {
     }
 });
 
-const requestState = () => {
-    socket.emit('request-state', {
-        gameState: true,
-        playerStates: true,
-        handState: true,
-    })
-};
-
 let placeRaise = () => {
     let raiseAmount = parseInt($('#raise-input-val').val());
     console.log('raise', raiseAmount);
@@ -815,35 +807,37 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
+const transformTable = (data) => {
+    const t = data.table;
+    t.allPlayers = t.allPlayers.map(p => p === null ? null: transformPlayer(data, p));
+    // Make game a GameState object
+    t.game = t.game === null ? null: Object.assign(new GameState(t.game.bigBlind, t.game.smallBlind), t.game);
+    return new TableState(t.smallBlind, t.bigBlind, t.minPlayers, t.maxPlayers, t.minBuyIn, t.maxBuyIn, t.straddleLimit, t.dealer, t.allPlayers, t.currentPlayer, t.game);
+}
 
+const transformPlayer = (data, p) => {
+    let player = Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p);
+    player.isDealer = data.gameInProgress && data.table.players[data.table.dealer].seat === player.seat;
+    player.isActionSeat = data.gameInProgress && data.table.players[data.table.currentPlayer].seat === player.seat;
+    // TODO: set earnings
+    player.earnings = 0;
+    return player;
+}
 
 let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
-        // Make allPlayers an array of Player objects
-        data.table.allPlayers = data.table.allPlayers.map(p => p === null ? null: Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p));
-        // Make game a GameState object
-        data.table.game = data.table.game === null ? null: Object.assign(new GameState(data.table.game.bigBlind, data.table.game.smallBlind), data.table.game);
-        // If uninitialized, initialize tableState.table to a TableState object
-        if (!tableState.table) {
-            tableState.table = new TableState(data.table.smallBlind, data.table.bigBlind, data.table.minPlayers, data.table.maxPlayers, data.table.minBuyIn, data.table.maxBuyIn, data.table.straddleLimit, data.table.dealer, data.table.allPlayers, data.table.currentPlayer, data.table.game);
-        }
-        // Update properties of tableState.table
-        for (let prop of Object.keys(data.table)) {
-            if (data.table.hasOwnProperty(prop))
-                tableState.table[prop] = data.table[prop];
-        }
+        tableState.table = transformTable(data);
 
         // if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
         //     displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
         // }
     }
     if (data.player) {
-        if (!tableState.player)
-            tableState.player = new Player(data.player.playerName, data.player.chips, data.player.isStraddling, data.player.seat, data.player.isMod)
-        Object.assign(tableState.player, data.player);
+        tableState.player = transformPlayer(data, data.player);
     }
     tableState.gameInProgress = data.gameInProgress;
+    renderBetsAndFields();
     if (tableState.gameInProgress && tableState.player) {
         renderStraddleOptions(true);
     } else {
@@ -907,7 +901,7 @@ socket.on('buy-out', (data) => {
     //     createjs.Sound.play('fold');
     // }
     // outHand(data.seat);
-    $(`#${data.seat}`).addClass('out');
+    // $(`#${data.seat}`).addClass('out');
 });
 
 socket.on('stand-up', data => {
@@ -918,72 +912,6 @@ socket.on('stand-up', data => {
 socket.on('sit-down', data => {
     // TODO: do we want to do anything here?
     outputEmphasizedMessage(data.playerName + 'sits down.');
-});
-
-function renderPlayer(p) {
-    let hand = document.getElementById(p.seat);
-    hand.classList.remove('hidden');
-    hand.querySelector('.username').innerHTML = p.playerName;
-    hand.querySelector('.stack').innerHTML = p.stack;
-    if (p.standingUp) {
-        // TODO: how do we want to display when a player is standing up?
-        $(`#${p.seat}`).find('.back-card').addClass('waiting');
-        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
-        console.log(p.playerName + 'is standing up.');
-        // hideCards(p.seat);
-    } else if (p.waiting){
-        $(`#${p.seat}`).find('.back-card').addClass('waiting');
-        $(`#${p.seat}`).find('.hand-rank-message').addClass('waiting');
-    } else if (p.betAmount <= 0) {
-        hideBet(p.seat)
-    } else if (p.betAmount > 0) {
-        showBet(p.seat, p.betAmount);
-    }
-}
-
-// render players at a table
-socket.on('render-players', (data) => {
-    for (let i = 0; i < data.length; i++){
-        renderPlayer(data[i]);
-    }
-});
-
-// makes all the cards gray
-socket.on('waiting', (data) => {
-    for (let i = 0; i < 10; i++){
-        outHand(i);
-    }
-});
-
-function hideSeat(seat) {
-    $(`#${seat}`).addClass('hidden');
-    $(`#${seat}`).find('.username').text('guest');
-    $(`#${seat}`).find('.stack').text('stack');
-}
-
-function hideCards(seat) {
-    $(`#${seat} > .left-card`).addClass('hidden');
-    $(`#${seat} > .right-card`).addClass('hidden');
-    $(`#${seat} > .hand-rank-message-container`).addClass('hidden');
-}
-
-function unhideCards(seat) {
-    $(`#${seat} > .left-card`).removeClass('hidden');
-    $(`#${seat} > .right-card`).removeClass('hidden');
-    $(`#${seat} > .hand-rank-message-container`).removeClass('hidden');
-}
-
-// removes old players (that have busted or quit)
-socket.on('remove-out-players', (data) => {
-    $('.out').each(function(){
-        $(this).find('.username').text('guest');
-        $(this).find('.stack').text('stack');
-    });
-    $('.out').addClass('hidden').removeClass('out');
-    // if seat passed in remove it
-    if (data.hasOwnProperty('seat')){
-        hideSeat(data.seat);
-    }
 });
 
 // data is {seat, time}
@@ -1051,6 +979,7 @@ socket.on('sync-board', (data) => {
     }
     console.log('syncing board', JSON.stringify(data));
     hideBoardPreFlop();
+
     dealStreet(data);
 
     // for (let i = 0; i < tableState.table.allPlayers.length; i++) {
@@ -1094,7 +1023,7 @@ const dealStreet = (data) => {
 // renders the board (flop, turn, river)
 socket.on('render-board', (data) => {
     $('.pm-btn').removeClass('pm');
-    hideAllBets();
+    renderBetsAndFields();
     dealStreet(data);
 });
 
@@ -1103,37 +1032,39 @@ socket.on('render-board', (data) => {
 // data: {street: '', board: [], sound: boolean, handRanks: {'': [{seat: number, handRankMessage: ''},...]}}
 socket.on('render-all-in', (data) => {
     $('.pm-btn').removeClass('pm');
-    hideAllBets();
+    renderBetsAndFields();
     renderAllIn(data.board, data.handRanks);
 });
 
+// TODO: implement staggered street showing with React
 const renderAllIn = (board, handRanks) => {
     console.log(board);
     if ($('#flop').hasClass('hidden')) {
         showFlop(board);
         playSoundIfVolumeOn('flop');
-        renderHands(handRanks['flop']);
+        // renderHands(handRanks['flop']);
         setTimeout(() => {
             renderAllIn(board, handRanks);
         }, 1200);
     } else if ($('#turn').hasClass('hidden')) {
         showTurn(board);
         playSoundIfVolumeOn('turn');
-        renderHands(handRanks['turn']);
+        // renderHands(handRanks['turn']);
         setTimeout(() => {
             renderAllIn(board, handRanks);
         }, 1800);
     } else {
         showRiver(board);
         playSoundIfVolumeOn('river');
-        renderHands(handRanks['river']);
+        // renderHands(handRanks['river']);
     }
 };
 
 socket.on('update-rank', (data) => {
     // TODO: update rank on front end
-    console.log(`hand rank update: ${data.handRankMessage}`)
-    renderHandRank(data.seat, data.handRankMessage);
+    renderBetsAndFields();
+    // console.log(`hand rank update: ${data.handRankMessage}`)
+    // renderHandRank(data.seat, data.handRankMessage);
 });
 
 // renders a players hand. data is formatted like so:
@@ -1146,24 +1077,15 @@ socket.on('update-rank', (data) => {
 socket.on('render-hand', (data) => {
     console.log('rendering hand');
     console.log(data.cards, data.handRankMessage);
-    renderFields();
+    renderBetsAndFields();
     // renderHand(data.seat, data.cards, data.folded);
     // renderHandRank(data.seat, data.handRankMessage);
 });
 
-// removes the waiting tag from player
-socket.on('game-in-progress', (data) => {
-    console.log(data.waiting);
-    if (!data.waiting) {
-        $('.back-card').removeClass('waiting');
-        $('.hand-rank-message').removeClass('waiting');
-    }
-});
-
 // updates stack when a bet is placed, for example
 socket.on('update-stack', (data) => {
-    let hand = document.getElementById(data.seat);
-    hand.querySelector('.stack').innerHTML = data.stack;
+    // let hand = document.getElementById(data.seat);
+    // hand.querySelector('.stack').innerHTML = data.stack;
 });
 
 const updatePot = (amount) => {
@@ -1181,19 +1103,7 @@ socket.on('update-pot', (data) => {
 
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
-    $('.back-card').removeClass('waiting');
-    $('.hand-rank-message').removeClass('waiting');
     $('#start').addClass('collapse');
-});
-
-const setActionSeat = (seat) => {
-    $('.name').removeClass('action');
-    $(`#${seat} > .name`).addClass('action');
-};
-
-// changes that person to the person who has the action
-socket.on('action', (data) => {
-    setActionSeat(data.seat);
 });
 
 // renders available buttons for player
@@ -1202,57 +1112,23 @@ socket.on('render-action-buttons', (data) => {
     displayButtons(data);
 });
 
-const setDealerSeat = (seat) => {
-    $('.dealer').remove();
-    if (seat != -1){
-        $(`#${seat} > .name`).append('<span class="dealer">D</span>');
-    }
-}
-
-// adds dealer chip to seat of dealer
-socket.on('new-dealer', (data) => {
-    setDealerSeat(data.seat);
-});
-
-// changes color of players not in last hand to red (folded, buying in, etc)
-// also flips hands back to red if they werent
-socket.on('nobody-waiting', (data) => {
-    inHand();
-});
-
 // ---------------------------------action buttons --------------------------------------------------------
 // calls
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
     playSoundIfVolumeOn('bet');
-    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    showBet(data.seat, data.amount + prevAmount);
 });
 
 // check
 socket.on('check', (data) => {
     outputEmphasizedMessage(data.username + ' checks');
     playSoundIfVolumeOn('check');
-    if ($('#flop').hasClass('hidden') && !$('.player-bet').eq(data.seat).hasClass('hidden')) {
-        console.log('big blind player closing action');
-    }
-    else {
-        // let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-        showBet(data.seat, 'check');
-    }
 });
 
 // fold
 socket.on('fold', (data) => {
     outputEmphasizedMessage(data.username + ' folds');
     playSoundIfVolumeOn('fold');
-
-    let cards = null;
-    if (data.seat === tableState.player.seat) {
-        cards = tableState.player.cards;
-    }
-    // renders grayed out cards if this user folded. renders turned-over grey cards if a different user folded.
-    renderCardsForSeat(cards, data.seat, false);
 });
 
 function outputMessage(s) {
@@ -1269,35 +1145,13 @@ function outputEmphasizedMessage(s) {
 socket.on('bet', (data) => {
     outputEmphasizedMessage(data.username + ' bets ' + data.amount);
     playSoundIfVolumeOn('bet');
-    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    console.log(`prev amount: ${prevAmount}`);
-    showBet(data.seat, data.amount + prevAmount);
 });
 
 // socket.on('straddle', (data) => {
 //     outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
 //     // TODO: do we want a different sound effect for straddle?
 //     playSoundIfVolumeOn('bet');
-//     // prevAmount != 0 if player is small blind or big blind
-//     let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-//     console.log(`prev amount: ${prevAmount}`);
-//     showBet(data.seat, data.amount + prevAmount);
 // });
-
-function hideAllBets() {
-    $('.player-bet').html(0);
-    $('.player-bet').addClass('hidden');
-}
-
-function hideBet(seat) {
-    $('.player-bet').eq(seat).html(0);
-    $('.player-bet').eq(seat).addClass('hidden');
-}
-
-function showBet(seat, amount) {
-    $('.player-bet').eq(seat).html(amount);
-    $('.player-bet').eq(seat).removeClass('hidden');
-}
 
 // raise
 socket.on('raise', (data) => {
@@ -1305,43 +1159,28 @@ socket.on('raise', (data) => {
     if ($('.volume').hasClass('on')){
         createjs.Sound.play('bet');
     }
-    let prevAmount = parseInt($('.player-bet').eq(data.seat).html());
-    showBet(data.seat, data.amount + prevAmount);
 });
 
 //showdown
 socket.on('showdown', function (data) {
-    renderFields();
+    // renderBetsAndFields();
     for (let i = 0; i < data.length; i++) {
-        renderHand(data[i].seat, data[i].hand.cards);
         outputMessage(`${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} `);
-        showWinnings(data[i].amount, data[i].seat);
+        // showWinnings(data[i].amount, data[i].seat);
     }
 });
-
-const renderHands = (data) => {
-    for (let i = 0; i < data.length; i++) {
-        if (data[i].cards && data[i].cards.length > 0) {
-            renderHand(data[i].seat, data[i].cards);
-        }
-        if (data[i].handRankMessage && data[i].handRankMessage.length > 0) {
-            renderHandRank(data[i].seat, data[i].handRankMessage);
-        }
-        $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
-    }
-}
 
 //if everyone is all in in the hand, turn over the cards
-socket.on('turn-cards-all-in', function (data) {
-    // console.log(data);
-    feedback.innerHTML = '';
-    renderHands(data);
-});
+// socket.on('turn-cards-all-in', function (data) {
+//     // console.log(data);
+//     feedback.innerHTML = '';
+//     renderHands(data);
+// });
 
 //folds-through
 socket.on('folds-through', function (data) {
     outputMessage(`${data.username} wins a pot of ${data.amount}`);
-    showWinnings(data.amount, data.seat);
+    // showWinnings(data.amount, data.seat);
 });
 
 const clearEarnings = () => {
@@ -1355,15 +1194,6 @@ socket.on('clear-earnings', clearEarnings);
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
     playSoundIfVolumeOn('action');
-});
-
-// user's action (alert with sound)
-socket.on('initial-bets', function(data){
-    console.log(data);
-    let seats = data.seats;
-    for (let i = 0; i < seats.length; i++){
-        showBet(seats[i].seat, seats[i].bet);
-    }
 });
 
 socket.on('alert', function(data) {
@@ -1472,20 +1302,6 @@ const getSuitSymbol = (input) => {
     return 'yikes';
 };
 
-function renderCardsForSeat(cards, seat, inHand) {
-    console.log('c', cards);
-    // if we do not know what the card is, show the back side of the card.
-    if (!cards || cards.length < 1 || cards[0] === null) {
-        if (!inHand) {
-            outHand(seat);
-        } else {
-            renderCardbackForHand(seat);
-        }
-    } else {
-        renderHand(seat, cards, !inHand);
-    }
-}
-
 const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
 
 const flipCard = (name) => {
@@ -1494,97 +1310,6 @@ const flipCard = (name) => {
         $(`#${name}`).find('.card-topleft').removeClass('hidden');
         $(`#${name}`).find('.card-bottomright').removeClass('hidden');
     }, 250);
-};
-
-const outHand = (seat) => {
-    $(`#${seat}`).find('.back-card').removeClass('hidden').addClass('waiting');
-    $(`#${seat}`).find('.hand-rank-message').addClass('waiting');
-    $(`#${seat} > .left-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .left-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .left-card`).find('.card-corner-suit').html('S');
-    $(`#${seat} > .right-card > .card`).removeClass('black').addClass('black');
-    $(`#${seat} > .right-card`).find('.card-corner-rank').html('A');
-    $(`#${seat} > .right-card`).find('.card-corner-suit').html('S');
-    $(`#${seat}`).find('.card-topleft').addClass('hidden');
-    $(`#${seat}`).find('.card-bottomright').addClass('hidden');
-};
-
-// renderCardbackForHand does what inHand does but for one seat
-const renderCardbackForHand = (seat) => {
-    renderInHand($(`#${seat}`));
-};
-
-const renderInHand = (locator) => {
-    locator.find('.back-card').removeClass('waiting');
-    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
-    locator.find('.card').removeClass('red').removeClass('folded').addClass('black');
-    locator.find('.card-corner-rank').html('A');
-    locator.find('.card-corner-suit').html('S');
-    locator.find('.card-topleft').addClass('hidden');
-    locator.find('.card-bottomright').addClass('hidden');
-    locator.find('.back-card').removeClass('hidden');
-    locator.find('.hand-rank-message-container').addClass('collapse');
-};
-
-const inHand = () => {
-    $('.hand').find('.back-card').removeClass('waiting');
-    $('.hand-rank-message').removeClass('waiting');
-    $('.card').removeClass('red').removeClass('folded').addClass('black');
-    $('.hand-rank-message').removeClass('folded')
-    $('.hand-rank-message-container').addClass('collapse')
-    $('.card-corner-rank').html('A');
-    $('.card-corner-suit').html('S');
-    $('.card-topleft').addClass('hidden');
-    $('.card-bottomright').addClass('hidden');
-    $('.back-card').removeClass('hidden');
-};
-
-// TODO: grey out the cards if folded is true to indicate which players
-// have folded
-const renderHand = (seat, cards, folded) => {
-    let leftCardRank = (cards[0].charAt(0) == 'T') ? '10' : cards[0].charAt(0);
-    let leftCardSuit = getSuitSymbol(cards[0].charAt(1));
-    let leftCardColor = getColor(cards[0].charAt(1));
-    let rightCardRank = (cards[1].charAt(0) == 'T') ? '10' : cards[1].charAt(0);
-    let rightCardSuit = getSuitSymbol(cards[1].charAt(1));
-    let rightCardColor = getColor(cards[1].charAt(1));
-
-    console.log('scf', seat, cards, folded);
-    if (folded) {
-        $(`#${seat}`).find('.card').addClass('folded');
-        $(`#${seat}`).find('.hand-rank-message').addClass('folded');
-    } else {
-        $(`#${seat}`).find('.card').removeClass('folded');
-        $(`#${seat}`).find('.hand-rank-message').removeClass('folded');
-    }
-
-    $(`#${seat}`).find('.back-card').addClass('hidden');
-    $(`#${seat} > .left-card > .card`).removeClass('black').addClass(leftCardColor);
-    $(`#${seat} > .left-card`).find('.card-corner-rank').html(leftCardRank);
-    $(`#${seat} > .left-card`).find('.card-corner-suit').html(leftCardSuit);
-    $(`#${seat} > .right-card > .card`).removeClass('black').addClass(rightCardColor);
-    $(`#${seat} > .right-card`).find('.card-corner-rank').html(rightCardRank);
-    $(`#${seat} > .right-card`).find('.card-corner-suit').html(rightCardSuit);
-    $(`#${seat}`).find('.card-topleft').removeClass('hidden');
-    $(`#${seat}`).find('.card-bottomright').removeClass('hidden');
-};
-
-const renderHandRank = (seat, handRankMessage) => {
-    // hacky fix
-    if (!handRankMessage) {
-        console.log('here oh no!');
-        handRankMessage = "high card";
-    }
-    $(`#${seat}`).find('.hand-rank-message-container').removeClass('collapse');
-    $(`#${seat}`).find('.hand-rank-message').html(handRankMessage);
-}
-
-const showWinnings = (winnings, seat) => {
-    console.log('show winnings');
-    console.log(winnings);
-    console.log(seat);
-    $(`#${seat}`).find('.earnings').html(`+${winnings}`);
-    $(`#${seat}`).find('.earnings').removeClass('hidden');
 };
 
 const alreadyExistingName = (playerName) => {
@@ -1625,117 +1350,19 @@ const getPotSize = () => {
     return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0;
 };
 
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-//add hands and bets to table --------------------------------------------------------------------------------
-function createHands() {
-    $('.field').remove();
-    var table = $('#table');
-    for (var i = 0; i < 10; i++) {
-        $('<div/>', {
-            'class': 'field',
-            'text': i + 1
-        }).appendTo(table);
-    }
-}
-
-function distributeHands(firstRender) {
-    var radius = 210;
-    let fields = $('.field'),
-        table = $('.ovalparent'),
-        width = table.width(),
-        height = table.height(),
-        angle = 0,
-        step = (2 * Math.PI) / fields.length;
-    console.log(width);
-    fields.each(function () {
-        // note consider changing width/455 to 2.5
-        var x = Math.round(width / 2 + radius * ((width/400) * Math.cos(angle)) - $(this).width() / 2);
-        var y = Math.round(height / 2 + radius * (1.30 * Math.sin(angle)) - $(this).height() / 2) + 10;
-        // if (window.console) {
-        //     console.log($(this).text(), x, y);
-        // }
-        $(this).css({
-            left: x + 'px',
-            top: y + 'px'
-        }); angle += step;
-        // this.append(document.getElementsByName('1')[0]);
-    });
-    if (firstRender){
-        for (let i = 0; i < 10; i++) {
-            let position = document.getElementsByClassName('field')[i];
-            let hand = document.getElementsByClassName(i)[0];
-            // console.log(position);
-            // console.log(hand.innerHTML);
-            position.innerHTML = `<div class="hand hidden" id="${i}"> ${hand.innerHTML} </div>`;
-            hand.remove();
-        }
-    }
-}
-
-function createBets() {
-    $('.player-bet').remove();
-    var table = $('#table');
-    for (var i = 0; i < 10; i++) {
-        $('<div/>', {
-            'class': 'player-bet hidden',
-            'text': 'check'
-        }).appendTo(table);
-    }
-}
-
-function distributeBets() {
-    var radius = 180;
-    let betFields = $('.player-bet'),
-        table = $('.ovalparent'),
-        width = table.width(),
-        height = table.height(),
-        angle = 0,
-        step = (2 * Math.PI) / betFields.length;
-    console.log(width);
-    betFields.each(function () {
-        // note consider changing width/455 to 2.5
-        var x = Math.round(width / 2 + radius * ((width/450) * Math.cos(angle)) - $(this).width() / 2) - 20;
-        var y = Math.round(height / 2 + radius * (1.05 * Math.sin(angle)) - $(this).height() / 2) - 10;
-        // if (window.console) {
-        //     console.log($(this).text(), x, y);
-        // }
-        $(this).css({
-            left: x + 'px',
-            top: y + 'px'
-        }); angle += step;
-        // this.append(document.getElementsByName('1')[0]);
-    });
-}
-
-// createHands();
-// distributeHands(true);
-createBets();
-distributeBets();
-
-
-function renderFields() {
+function renderBetsAndFields() {
     const ovalParent = $('.ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <TopState tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress}/>
+            <TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />
         </React.StrictMode>
     ), document.getElementById('field-root'));
 }
 $(window).resize(function () {
     // createHands();
-    renderFields();
+    renderBetsAndFields();
     // distributeHands(false);
-    distributeBets();
+    // distributeBets();
     let resizeData = {
         size: {
             width: $wrapper.width(),

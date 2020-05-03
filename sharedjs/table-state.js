@@ -1,3 +1,5 @@
+import {Hand, rankHandInt} from "../poker-logic";
+
 export class TableState {
     /**
      *
@@ -56,8 +58,21 @@ export class TableState {
         }
     }
 
+    playerPublicInfo(p) {
+        const info = p.getPublicInfo();
+        info.handRankMessage = p.cards.length > 0? rankHandInt(new Hand(p.cards.concat(this.game.board))).message : '';
+        info.isDealer = this.players[this.dealer].playerName === p.seat;
+        info.isActionSeat = this.actionSeat === p.seat;
+        info.earnings = 0;
+        return info;
+    }
+
     get playerStates() {
-        return this.allPlayers.map(p => p === null ? null: p.getPublicInfo());
+        let states = this.allPlayers.map(p => p === null ? null: this.playerPublicInfo(p));
+        for (let winnerInfo of this.game.winners) {
+            states[winnerInfo.seat].earnings = winnerInfo.amount;
+        }
+        return states;
     }
 
     get players() {

@@ -158,6 +158,8 @@ export class Table extends TableState{
         this.removeAndAddPlayers();
         if (this.players.length < 2) {
             console.log('not enough players (initNewRound)');
+            this.dealer = 0;
+            this.currentPlayer = -1;
             this.game = null;
             return;
         }
