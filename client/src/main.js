@@ -1,13 +1,13 @@
 import {TableState, Player, GameState}  from './table-state';
 import $ from 'jquery';
 import {createjs} from 'createjs';
+import './css/stylesheet.css'
+import './css/card.css'
 import io from 'socket.io-client';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
 import * as serviceWorker from './serviceWorker';
-import FieldContainer from "./components/fieldcontainer";
 import TopState from "./components/topstate";
 
 let socket = io();
