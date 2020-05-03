@@ -1,0 +1,33 @@
+#login-form {
+    width: 30em;
+    margin: 0 auto
+}
+
+main {
+    padding-top: 10rem;
+}
+
+input:invalid {
+    border: 2px solid red;
+}
+
+.header {
+    margin-top: 6rem;
+    text-align: center;
+}
+
+main p {
+    text-align: center;
+}
+
+.bottom {
+    font-size: .5em;
+    position: absolute;
+    bottom: 10px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

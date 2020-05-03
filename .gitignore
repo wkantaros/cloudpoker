@@ -12,3 +12,7 @@ public/bundle.js
 test.html
 
 ngrok
+
+#client/*
+#client/src/img
+#client/public
