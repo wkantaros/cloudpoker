@@ -99,7 +99,7 @@ export class CardContainer extends Component {
             cardClassName += " black"; // idk if we need to do this if we can't see the card
             card = <CardBack folded={this.props.folded}/>
         } else {
-            cardClassName += getColor(this.props.card.charAt(1));
+            cardClassName += " " + getColor(this.props.card.charAt(1));
             card = <VisibleCard card={this.props.card}/>
         }
         return (
@@ -122,7 +122,9 @@ export class Hand extends Component {
         return (
             <div className="hand" id={this.props.player.seat}>
                 {this.props.player.inHand &&
-                <CardContainer className="left-card" folded={this.props.player.folded} card={leftCard}/> &&
+                <CardContainer className="left-card" folded={this.props.player.folded} card={leftCard}/>
+                }
+                {this.props.player.inHand &&
                 <CardContainer className="right-card" folded={this.props.player.folded}  card={rightCard}/>
                 }
                 <HandRankMessageContainer player={this.props.player}/>

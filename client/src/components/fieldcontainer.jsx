@@ -23,15 +23,16 @@ export default class FieldContainer extends Component {
         let fieldList = [];
         const step = (2 * Math.PI) / fieldsLength;
         for (let i = 0; i < fieldsLength; i++) {
-            // note consider changing width/455 to 2.5
-            let x = Math.round(width / 2 + radius * ((width/400) * Math.cos(step * i)) - fieldWidth / 2);
-            let y = Math.round(height / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
-            fieldList.push((
-                <Field left={x} right={y}>
-                    {this.props.allPlayers[i] &&
-                    <Hand player={this.props.allPlayers[i]}/>}
-                </Field>
-            ));
+            if (this.props.allPlayers[i]) {
+                // note consider changing width/455 to 2.5
+                let x = Math.round(width / 2 + radius * ((width/400) * Math.cos(step * i)) - fieldWidth / 2);
+                let y = Math.round(height / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
+                fieldList.push((
+                    <Field key={`field-${i}`} x={x} y={y}>
+                        <Hand player={this.props.allPlayers[i]}/>
+                    </Field>
+                ));
+            }
         }
 
         return fieldList;

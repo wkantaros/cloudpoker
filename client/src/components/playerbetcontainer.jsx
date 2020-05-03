@@ -8,7 +8,7 @@ export function createBetList(bets, tableWidth, tableHeight, betWidth, betHeight
     for (let i = 0; i < bets.length; i++) {
         let x = Math.round(tableWidth / 2 + radius * ((tableWidth/450) * Math.cos(i * step)) - betWidth / 2) - 20;
         let y = Math.round(tableHeight / 2 + radius * (1.05 * Math.sin(i * step)) - betHeight / 2) - 10;
-        const betElement = <PlayerBet betAmount={bets[i]} style={`left: ${x}px; top: ${y}px;`}/>;
+        const betElement = <PlayerBet key={`bet-${i}`} betAmount={bets[i]} x={x} y={y}/>;
         if (betElement) betElements.push(betElement);
     }
     return betElements;
