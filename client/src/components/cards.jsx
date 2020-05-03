@@ -37,9 +37,8 @@ function Earnings(props) {
 }
 
 class PlayerNameContainer extends Component {
-    // TODO: these aren't actual properties of Player objects
-    //   props used: this.props.player.isActionSeat, this.props.player.isDealer
-    //   this.props.player.earnings, this.props.player.chips
+    // props used: this.props.player.isActionSeat, this.props.player.isDealer
+    // this.props.player.earnings, this.props.player.chips
     render () {
         if (!this.props.player) {
             return null;
@@ -113,6 +112,7 @@ export class Hand extends Component {
     // props: this.props.player{.seat, .inHand, .folded, .cards}
     // sent: this.props.player,
     render() {
+        if (!this.props.player) return null;
         let leftCard = null;
         let rightCard = null;
         if (this.props.player.cards && this.props.player.cards.length > 0) {
@@ -120,7 +120,7 @@ export class Hand extends Component {
             rightCard = this.props.player.cards[1];
         }
         return (
-            <div className={"hand " + this.props.player.seat}>
+            <div className="hand" id={this.props.player.seat}>
                 {this.props.player.inHand &&
                 <CardContainer className="left-card" folded={this.props.player.folded} card={leftCard}/> &&
                 <CardContainer className="right-card" folded={this.props.player.folded}  card={rightCard}/>

@@ -1,7 +1,7 @@
 const assert = require('assert').strict;
 const describe = require('mocha').describe;
 const it = require('mocha').it;
-const Tab = require('../../poker-logic/lib/node-poker').Tab;
+import {Table} from '../../poker-logic';
 
 describe('Table', function () {
     describe('AddPlayer', function () {

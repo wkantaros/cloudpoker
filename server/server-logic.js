@@ -1,7 +1,6 @@
-const {rankHandInt} = require('../poker-logic/lib/deck');
-const {Hand} = require('../poker-logic/lib/node-poker');
+import {Hand, rankHandInt} from '../poker-logic';
 
-class TableStateManager {
+export class TableStateManager {
     /**
      *
      * @param {TableState} table
@@ -162,7 +161,7 @@ class TableStateManager {
     }
 }
 
-class TableManager extends TableStateManager {
+export class TableManager extends TableStateManager {
     /**
      *
      * @param {Table} table
@@ -599,6 +598,3 @@ class TableManager extends TableStateManager {
         }
     }
 }
-
-module.exports.TableStateManager = TableStateManager;
-module.exports.TableManager = TableManager;

@@ -1,1 +1,2 @@
-module.exports = require('./lib/node-poker');
+export * from './lib/deck';
+export * from './lib/node-poker';

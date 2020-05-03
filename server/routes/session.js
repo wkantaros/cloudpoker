@@ -7,10 +7,10 @@ router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
-const {TableManager} = require('../server-logic');
-const {playerIdFromRequest, newPlayerId, setPlayerId, TwoWayMap} = require('../persistent');
-const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
-let poker = require('../../poker-logic/lib/node-poker');
+import {TableManager} from '../server-logic';
+import {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} from '../persistent';
+import {asyncErrorHandler, sleep, asyncSchemaValidator} from '../funcs';
+import * as poker from '../../poker-logic/lib/node-poker';
 
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post(asyncErrorHandler(async (req, res) => {
@@ -607,7 +607,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
     if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
-        setPlayerId(playerId, req, res);
+        setPlayerIdCookie(playerId, req, res);
     }
 
     res.render('pages/game', {

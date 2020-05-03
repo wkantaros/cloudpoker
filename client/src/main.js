@@ -7,6 +7,8 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+import FieldContainer from "./components/fieldcontainer";
+import TopState from "./components/topstate";
 
 let socket = io();
 
@@ -813,6 +815,8 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
+
+
 let tableState = {}; // not used for rendering.
 function setState(data) {
     if (data.table) {
@@ -1142,8 +1146,9 @@ socket.on('update-rank', (data) => {
 socket.on('render-hand', (data) => {
     console.log('rendering hand');
     console.log(data.cards, data.handRankMessage);
-    renderHand(data.seat, data.cards, data.folded);
-    renderHandRank(data.seat, data.handRankMessage);
+    renderFields();
+    // renderHand(data.seat, data.cards, data.folded);
+    // renderHandRank(data.seat, data.handRankMessage);
 });
 
 // removes the waiting tag from player
@@ -1306,6 +1311,7 @@ socket.on('raise', (data) => {
 
 //showdown
 socket.on('showdown', function (data) {
+    renderFields();
     for (let i = 0; i < data.length; i++) {
         renderHand(data[i].seat, data[i].hand.cards);
         outputMessage(`${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} `);
@@ -1632,7 +1638,6 @@ const getPotSize = () => {
 //add hands and bets to table --------------------------------------------------------------------------------
 //add hands and bets to table --------------------------------------------------------------------------------
 function createHands() {
-
     $('.field').remove();
     var table = $('#table');
     for (var i = 0; i < 10; i++) {
@@ -1712,14 +1717,24 @@ function distributeBets() {
     });
 }
 
-createHands();
-distributeHands(true);
+// createHands();
+// distributeHands(true);
 createBets();
 distributeBets();
 
+
+function renderFields() {
+    const ovalParent = $('.ovalparent');
+    ReactDOM.render((
+        <React.StrictMode>
+            <TopState tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress}/>
+        </React.StrictMode>
+    ), document.getElementById('field-root'));
+}
 $(window).resize(function () {
     // createHands();
-    distributeHands(false);
+    renderFields();
+    // distributeHands(false);
     distributeBets();
     let resizeData = {
         size: {

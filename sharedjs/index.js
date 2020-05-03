@@ -1,1 +1,1 @@
-module.exports = require('./table-state');
+export * from './table-state';

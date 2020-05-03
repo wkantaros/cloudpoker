@@ -1,4 +1,4 @@
-const {TableState, Player, GameState} = require('../sharedjs');
+import {TableState, Player, GameState}  from '../sharedjs';
 
 let socket = io();
 

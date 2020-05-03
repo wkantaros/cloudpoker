@@ -1,4 +1,4 @@
-var poker = require('./lib/node-poker');
+import * as poker from './lib/node-poker';
 
 var table = new poker.Table(50,100,2,10,100,1000);
 
