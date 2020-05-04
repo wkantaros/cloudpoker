@@ -87,7 +87,7 @@ class VisibleCard extends Component {
     }
 }
 
-export class CardContainer extends Component {
+export class Card extends Component {
     // renders the back of the card if we do not know what it is (i.e. if this.props.card is null).
     // renders the front of the cards if we do know what it is.
     // greys out the card if the player has folded
@@ -115,20 +115,25 @@ export class Hand extends Component {
     // sent: this.props.player,
     render() {
         if (!this.props.player) return null;
-        let leftCard = null;
-        let rightCard = null;
-        if (this.props.player.cards && this.props.player.cards.length > 0) {
-            leftCard = this.props.player.cards[0];
-            rightCard = this.props.player.cards[1];
+        let cards = null;
+        if (this.props.player.inHand) {
+            let leftCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[0] : null;
+            let rightCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[1] : null;
+            cards = [];
+            cards.push((
+                <div className="left-card">
+                    <Card folded={this.props.player.folded} card={leftCard}/>
+                </div>
+            ));
+            cards.push((
+                <div className="right-card">
+                    <Card folded={this.props.player.folded} card={rightCard}/>
+                </div>
+            ));
         }
         return (
             <div className="hand" id={this.props.player.seat}>
-                {this.props.player.inHand &&
-                <CardContainer className="left-card" folded={this.props.player.folded} card={leftCard}/>
-                }
-                {this.props.player.inHand &&
-                <CardContainer className="right-card" folded={this.props.player.folded}  card={rightCard}/>
-                }
+                {cards}
                 <HandRankMessageContainer player={this.props.player}/>
                 <PlayerNameContainer player={this.props.player}/>
             </div>
