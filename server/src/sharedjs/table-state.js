@@ -60,7 +60,7 @@ export class TableState {
 
     playerPublicInfo(p) {
         const info = p.getPublicInfo();
-        info.handRankMessage = p.cards.length > 0? rankHandInt(new Hand(p.cards.concat(this.game.board))).message : '';
+        info.handRankMessage = info.cards.length > 0? rankHandInt(new Hand(info.cards.concat(this.game.board))).message : '';
         info.isDealer = this.game !== null && this.players[this.dealer] && this.players[this.dealer].playerName === p.seat;
         info.isActionSeat = this.game !== null && this.players[this.currentPlayer] && this.actionSeat === p.seat;
         info.earnings = 0;
