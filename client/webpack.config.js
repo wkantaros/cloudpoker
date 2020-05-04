@@ -8,6 +8,12 @@ module.exports = {
         filename: 'main.js',
         path: path.resolve(__dirname, 'dist'),
     },
+    resolve: {
+        alias: {
+            // createjs: 'createjs/builds/1.0.0/createjs.js'
+            soundjs: 'soundjs/lib/soundjs.js'
+        }
+    },
     module: {
         rules: [
             {
@@ -29,11 +35,19 @@ module.exports = {
                  ],
            },
             {
-                test: /\.(png|svg|jpg|gif)$/,
+                test: /\.(png|svg|jpg|gif|wav|ogg)$/,
                 use: [
                     'file-loader',
                 ],
            },
+            {
+                // test: /node_modules[/\\]createjs/,
+                test: /node_modules[/\\]soundjs/,
+                loaders: [
+                    'imports-loader?this=>window',
+                    'exports-loader?window.createjs'
+                ]
+            },
         ]
     }
 };

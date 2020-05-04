@@ -1,6 +1,7 @@
 import {TableState, Player, GameState}  from './table-state';
 import $ from 'jquery';
-// import {createjs} from 'createjs';
+import 'jquery-ui/ui/widgets/resizable';
+import {createjs} from 'soundjs';
 import './css/stylesheet.css'
 import './css/card.css'
 import io from 'socket.io-client';
@@ -9,9 +10,19 @@ import ReactDOM from 'react-dom';
 // import './index.css';
 import * as serviceWorker from './serviceWorker';
 import TopState from "./components/topstate";
+// File imports for webpack
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
-import 'jquery-ui/ui/widgets/resizable';
+import ActionSound from './audio/action.ogg';
+import CardPlaceSound from './audio/cardPlace1.wav';
+import CheckSound from './audio/check.wav';
+import ChipsStackSound from './audio/chipsStack4.wav';
+import DealSound from './audio/deal.wav';
+import FlopSound from './audio/flop.wav';
+import Fold1Sound from './audio/fold1.wav';
+// import Fold2Sound from './audio/fold2.wav';
+// import RiverSound from './audio/river.wav';
+import TurnSound from './audio/turn.wav';
 
 let socket = io();
 
@@ -755,7 +766,7 @@ $(".volume").click( function (e) {
 
 function playSoundIfVolumeOn(soundName) {
     if (isVolumeOn()){
-        // createjs.Sound.play(soundName);
+        createjs.Sound.play(soundName);
     }
 }
 
@@ -896,9 +907,9 @@ socket.on('buy-in', (data) => {
 //somebody left the game
 socket.on('buy-out', (data) => {
     outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
-    // if ($('.volume').hasClass('on')) {
-    //     createjs.Sound.play('fold');
-    // }
+    if ($('.volume').hasClass('on')) {
+        createjs.Sound.play('fold');
+    }
     // outHand(data.seat);
     // $(`#${data.seat}`).addClass('out');
 });
@@ -1156,7 +1167,7 @@ socket.on('bet', (data) => {
 socket.on('raise', (data) => {
     outputEmphasizedMessage(data.username + ' raises ' + data.amount);
     if ($('.volume').hasClass('on')){
-        // createjs.Sound.play('bet');
+        createjs.Sound.play('bet');
     }
 });
 
@@ -1201,15 +1212,15 @@ socket.on('alert', function(data) {
 
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
-    // createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
-    // createjs.Sound.registerSound("../public/audio/deal.wav", 'deal');
-    // createjs.Sound.registerSound("../public/audio/check.wav", 'check');
-    // createjs.Sound.registerSound("../public/audio/chipsStack4.wav", 'bet');
-    // createjs.Sound.registerSound("../public/audio/flop.wav", 'flop');
-    // createjs.Sound.registerSound("../public/audio/turn.wav", 'turn');
-    // createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
-    // createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
-    // createjs.Sound.volume = 0.25;
+    createjs.Sound.registerSound(Fold1Sound, 'fold');
+    createjs.Sound.registerSound(DealSound, 'deal');
+    createjs.Sound.registerSound(CheckSound, 'check');
+    createjs.Sound.registerSound(ChipsStackSound, 'bet');
+    createjs.Sound.registerSound(FlopSound, 'flop');
+    createjs.Sound.registerSound(TurnSound, 'turn');
+    createjs.Sound.registerSound(CardPlaceSound, 'river');
+    createjs.Sound.registerSound(ActionSound, 'action');
+    createjs.Sound.volume = 0.25;
 };
 loadSounds();
 
