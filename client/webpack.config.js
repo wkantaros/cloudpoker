@@ -1,4 +1,7 @@
 const path = require('path');
+// https://stackoverflow.com/questions/38252453/serving-mp3-files-using-the-webpack-file-loader/41158166#41158166
+const SRC = path.resolve(__dirname, 'src/audio');
+console.log(SRC);
 
 module.exports = {
     entry: './src/index.js',
@@ -11,7 +14,7 @@ module.exports = {
     resolve: {
         alias: {
             // createjs: 'createjs/builds/1.0.0/createjs.js'
-            soundjs: 'soundjs/lib/soundjs.js'
+            createjs: 'soundjs/lib/soundjs.js'
         }
     },
     module: {
@@ -35,18 +38,26 @@ module.exports = {
                  ],
            },
             {
-                test: /\.(png|svg|jpg|gif|wav|ogg)$/,
+                test: /\.(png|svg|jpg|gif)$/,
                 use: [
                     'file-loader',
                 ],
            },
+            {
+                test: /\.(wav|ogg)$/,
+                include: SRC,
+                loader: 'file-loader',
+                // options: {
+                //     name: 'audio/[name].[ext]'
+                // }
+            },
             {
                 // test: /node_modules[/\\]createjs/,
                 test: /node_modules[/\\]soundjs/,
                 loaders: [
                     'imports-loader?this=>window',
                     'exports-loader?window.createjs'
-                ]
+                ],
             },
         ]
     }

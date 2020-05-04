@@ -1,7 +1,7 @@
 import {TableState, Player, GameState}  from './table-state';
 import $ from 'jquery';
 import 'jquery-ui/ui/widgets/resizable';
-import {createjs} from 'soundjs';
+import createjs from 'createjs';
 import './css/stylesheet.css'
 import './css/card.css'
 import io from 'socket.io-client';
@@ -14,14 +14,14 @@ import TopState from "./components/topstate";
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
 import ActionSound from './audio/action.ogg';
-import CardPlaceSound from './audio/cardPlace1.wav';
+import CardPLaceSound from './audio/cardPlace1.wav';
 import CheckSound from './audio/check.wav';
 import ChipsStackSound from './audio/chipsStack4.wav';
-import DealSound from './audio/deal.wav';
+import DealSOund from './audio/deal.wav';
 import FlopSound from './audio/flop.wav';
-import Fold1Sound from './audio/fold1.wav';
-// import Fold2Sound from './audio/fold2.wav';
-// import RiverSound from './audio/river.wav';
+import FOldsound from './audio/fold1.wav';
+// import './audio/fold2.wav';
+// import './audio/river.wav';
 import TurnSound from './audio/turn.wav';
 
 let socket = io();
@@ -1212,14 +1212,15 @@ socket.on('alert', function(data) {
 
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
-    createjs.Sound.registerSound(Fold1Sound, 'fold');
-    createjs.Sound.registerSound(DealSound, 'deal');
-    createjs.Sound.registerSound(CheckSound, 'check');
-    createjs.Sound.registerSound(ChipsStackSound, 'bet');
-    createjs.Sound.registerSound(FlopSound, 'flop');
-    createjs.Sound.registerSound(TurnSound, 'turn');
-    createjs.Sound.registerSound(CardPlaceSound, 'river');
-    createjs.Sound.registerSound(ActionSound, 'action');
+    console.log(__dirname);
+    createjs.Sound.registerSound('../client/src/audio/fold1.wav', 'fold');
+    createjs.Sound.registerSound('../client/src/audio/deal.wav', 'deal');
+    createjs.Sound.registerSound('../client/src/audio/check.wav', 'check');
+    createjs.Sound.registerSound('../client/src/audio/chipsStack4.wav', 'bet');
+    createjs.Sound.registerSound('../client/src/audio/flop.wav', 'flop');
+    createjs.Sound.registerSound('../client/src/audio/turn.wav', 'turn');
+    createjs.Sound.registerSound('../client/src/audio/cardPlace1.wav', 'river');
+    createjs.Sound.registerSound('../client/src/audio/action.ogg', 'action');
     createjs.Sound.volume = 0.25;
 };
 loadSounds();
