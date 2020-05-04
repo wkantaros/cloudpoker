@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import Field from './field';
-import {Hand} from './cards'
+import {Hand} from './hand'
 import $ from "jquery";
 
 const radius = 210;
