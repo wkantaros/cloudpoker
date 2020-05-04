@@ -1,0 +1,62 @@
+<div class="actions">  
+    <div class="your-action collapse" id="your-action">
+        <div class="inner"></div>
+        <div class="to-you">Your action</div>
+    </div>
+    <div class="row">
+        <button class="button-primary action-btn collapse" id="show-hand">Show Hand<span class="key-shrtct" id="show-hand-shortcut">S</span></button>
+        <button class="button-primary action-btn collapse" id="fold">Fold<span class="key-shrtct" id="fold-shortcut">F</span></button>
+        <button class="button-primary action-btn collapse" id="check">Check<span class="key-shrtct" id="check-shortcut">K</span></button>
+        <button class="button-primary action-btn collapse" id="back">Back<span class="key-shrtct" id="back-shortcut">B</span></button>
+        <button class="button-primary action-btn collapse" id="call">Call <span class="number"><%= callAmount %></span><span
+                    class="key-shrtct" id="call-shortcut">c</span></button>
+        <button class="button-primary action-btn collapse" id="bet">Bet<span class="key-shrtct" id="raise-shortcut">R</span></button>
+        <div class="slidecontainer collapse" id="bet-actions">
+            <input type="number" class="inputVal" id="bet-input-val" onfocus="this.value = this.value;">
+            <div class="betraise" id="betslider">
+                <div class="row">
+                    <button class="qwe button-primary" id="mb">min bet</button>
+                    <button class="qwe button-primary" id="bqp">1/4 pot</button>
+                    <button class="qwe button-primary" id="bhp">1/2 pot</button>
+                    <button class="qwe button-primary" id="btqp">3/4 pot</button>
+                    <button class="qwe button-primary" id="bp">pot</button>
+                    <button class="qwe button-primary" id="bai">all in</button>
+                </div>
+                <div class="row">
+                    <button class="button-primary" id="betminus">-</button>
+                    <input type="range" min="1" max="100" value="50" class="slider" id="betRange">
+                    <button class="button-primary" id="betplus">+</button>
+                </div>
+            </div>
+        </div>
+         <button class="button-primary action-btn collapse" id="min-bet">Bet <span
+                 class="number"><%= bigBlind %></span><span class="key-shrtct">c</span></button>
+        <button class="button-primary action-btn collapse" id="raise">Raise<span class="key-shrtct" id="raise-shortcut">R</span></button>
+        <div class="slidecontainer collapse" id="raise-actions">
+            <input type="number" class="inputVal" id="raise-input-val" onfocus="this.value = this.value;">
+            <div class="betraise" id="raiseslider">
+                <div class="row">
+                    <button class="qwe button-primary" id="mr">min</button>
+                    <button class="qwe button-primary" id="rp">pot</button>
+                    <button class="qwe button-primary" id="rsqp">1.5x pot</button>
+                    <button class="qwe button-primary" id="rtp">2x pot</button>
+                    <button class="qwe button-primary" id="rthp">3x pot</button>
+                    <button class="qwe button-primary" id="rai">all in</button>
+                </div>
+                <div class="row">
+                    <button class="button-primary" id="raiseminus">-</button>
+                    <input type="range" min="1" max="100" value="50" class="slider" id="raiseRange">
+                    <button class="button-primary" id="raiseplus">+</button>
+                </div>
+            </div>
+        </div>
+        <button class="button-primary action-btn collapse" id="straddle-switch">Enable Straddling
+            <!--<span class="key-shrtct" id="straddle-shortcut">B</span>--></button>
+        <button class="button-primary action-btn collapse" id="start">Start Game</button>
+        <button class="button-primary action-btn pm-btn collapse" id="pm-fold">Fold<span class="key-shrtct" id="fold-shortcut">F</span></button>
+        <button class="button-primary action-btn pm-btn collapse" id="pm-check">Check<span class="key-shrtct" id="check-shortcut">K</span></button>
+        <button class="button-primary action-btn pm-btn collapse" id="pm-checkfold">Check/Fold<span class="key-shrtct" id="check-shortcut">I</span></button>
+        <button class="button-primary action-btn pm-btn collapse" id="pm-call">Call <span class="number"><%= callAmount %></span>
+            <span class="key-shrtct" id="check-shortcut">C</span></button>
+    </div>
+</div>

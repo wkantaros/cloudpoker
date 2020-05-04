@@ -61,16 +61,18 @@ export class TableState {
     playerPublicInfo(p) {
         const info = p.getPublicInfo();
         info.handRankMessage = p.cards.length > 0? rankHandInt(new Hand(p.cards.concat(this.game.board))).message : '';
-        info.isDealer = this.players[this.dealer].playerName === p.seat;
-        info.isActionSeat = this.actionSeat === p.seat;
+        info.isDealer = this.game !== null && this.players[this.dealer] && this.players[this.dealer].playerName === p.seat;
+        info.isActionSeat = this.game !== null && this.players[this.currentPlayer] && this.actionSeat === p.seat;
         info.earnings = 0;
         return info;
     }
 
     get playerStates() {
         let states = this.allPlayers.map(p => p === null ? null: this.playerPublicInfo(p));
-        for (let winnerInfo of this.game.winners) {
-            states[winnerInfo.seat].earnings = winnerInfo.amount;
+        if (this.game) {
+            for (let winnerInfo of this.game.winners) {
+                states[winnerInfo.seat].earnings = winnerInfo.amount;
+            }
         }
         return states;
     }

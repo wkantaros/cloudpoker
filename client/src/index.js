@@ -6,11 +6,12 @@ import './css/card.css'
 import io from 'socket.io-client';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
+// import './index.css';
 import * as serviceWorker from './serviceWorker';
 import TopState from "./components/topstate";
-import VolumeIcon from "../public/img/volume.svg";
-import MuteIcon from "../public/img/mute.svg";
+import VolumeIcon from "./img/volume.svg";
+import MuteIcon from "./img/mute.svg";
+import 'jquery-ui/ui/widgets/resizable';
 
 let socket = io();
 

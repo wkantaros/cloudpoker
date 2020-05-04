@@ -98,8 +98,8 @@ var TableState = /*#__PURE__*/function () {
     value: function playerPublicInfo(p) {
       var info = p.getPublicInfo();
       info.handRankMessage = p.cards.length > 0 ? (0, _pokerLogic.rankHandInt)(new _pokerLogic.Hand(p.cards.concat(this.game.board))).message : '';
-      info.isDealer = this.players[this.dealer].playerName === p.seat;
-      info.isActionSeat = this.actionSeat === p.seat;
+      info.isDealer = this.game !== null && this.players[this.dealer] && this.players[this.dealer].playerName === p.seat;
+      info.isActionSeat = this.game !== null && this.players[this.currentPlayer] && this.actionSeat === p.seat;
       info.earnings = 0;
       return info;
     }
@@ -338,18 +338,20 @@ var TableState = /*#__PURE__*/function () {
         return p === null ? null : _this.playerPublicInfo(p);
       });
 
-      var _iterator = _createForOfIteratorHelper(this.game.winners),
-          _step;
+      if (this.game) {
+        var _iterator = _createForOfIteratorHelper(this.game.winners),
+            _step;
 
-      try {
-        for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var winnerInfo = _step.value;
-          states[winnerInfo.seat].earnings = winnerInfo.amount;
+        try {
+          for (_iterator.s(); !(_step = _iterator.n()).done;) {
+            var winnerInfo = _step.value;
+            states[winnerInfo.seat].earnings = winnerInfo.amount;
+          }
+        } catch (err) {
+          _iterator.e(err);
+        } finally {
+          _iterator.f();
         }
-      } catch (err) {
-        _iterator.e(err);
-      } finally {
-        _iterator.f();
       }
 
       return states;

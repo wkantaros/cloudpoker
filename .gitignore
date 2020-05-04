@@ -14,4 +14,4 @@ test.html
 ngrok
 
 client/dist
-server/dist
+#server/dist

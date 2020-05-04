@@ -1,0 +1,73 @@
+<div id="host-page" class="overlay">
+    <div class="hostpage-header">
+        <div class="row">
+            <div class="five columns">
+                <a class="button hd-btn" id="host-players-btn">Players</a>
+            </div>
+            <div class="six columns">
+                <a class="button hd-btn" id="game-pref-btn">Game Preferences</a>
+            </div>
+            <div class="one columns">
+                <a class="button closebtn-hd" id="closeHostPage">&times;</a>
+            </div>
+        </div>
+    </div>
+    <div class="game-pref collapse">
+        <form id="game-pref-form">
+            <div class="row">
+                <div class="three columns">
+                    <label for="smallblind-input">Small Blind</label>
+                    <input class="u-full-width inp" type="number" id="smallblind-input"
+                        name="smallblind-input">
+                </div>
+                <div class="three columns">
+                    <label for="bigblind-input">Big Blind</label>
+                    <input class="u-full-width inp" type="number" id="bigblind-input" 
+                        name="bigblind-input">
+                </div>
+                <div class="five columns">
+                    <label for="straddle-input">Straddle Rules</label>
+                    <select class="u-full-width" id="straddle-input" name="straddle-inp">
+                        <option value="" selected disabled hidden>Change straddle rules</option>
+                        <option value="0">No Straddle</option>
+                        <option value="1">Only straddle after bb</option>
+                        <option value="-1">Can straddle if player before straddled</option>
+                    </select>
+                </div>
+            </div>
+            <label class="bomb-pot-next-hand">
+                <input type="checkbox" name="bombpot-nexthand" id="checkbp">
+                <span class="label-body">Bomb pot next hand</span>
+            </label>
+            <input class="button-primary" type="submit" value="Submit">
+        </form>
+        <div id="successfully-submitted" class="collapse">
+            Sucessfully submitted, updating for next turn
+        </div>
+    </div>
+    <div class="players-host-page collapse">
+        <div class="player-rows">
+            <% for (let i = 0; i < 10; i++) { %>
+                <% let playerid = `player${i}`; %>
+                <div class="row collapse" id="<%= playerid %>">
+                    <div class="three columns">
+                        <input class="u-full-width inp playername-input" type="text" name="playername-input" value="guest" disabled>
+                    </div>
+                    <div class="five columns">
+                        <div class="update-stack-host">
+                            <input class="u-tq-width inp stack-input" type="number" name="stack-input">
+                            <input class="button-primary update-stack-row" type="submit" value="Update Stack">
+                        </div>
+                    </div>
+                    <div class="four columns">
+                        <button class="kick-option-btn">Kick player</button>
+                        <button class="button-primary transfer-ownership-btn">Transfer Host</button>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+        <div id="successfully-submitted-players" class="collapse">
+            Sucessfully submitted, updating for next turn
+        </div>
+    </div>
+</div>
