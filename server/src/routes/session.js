@@ -160,7 +160,6 @@ class SessionManager extends TableManager {
             playerName: playerName,
             stack: newPlayer.chips,
         });
-        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.renderActionSeatAndPlayerActions();
     }
 
@@ -258,7 +257,6 @@ class SessionManager extends TableManager {
         this.io.sockets.to(this.getSocketId(playerId)).emit('bust', {
             removeModAbilities: modLeavingGame
         });
-        this.io.sockets.to(this.sid).emit('remove-out-players', {seat: seat});
 
         if (this.gameInProgress) {
             this.io.sockets.to(this.sid).emit('buy-out', {
@@ -304,12 +302,12 @@ class SessionManager extends TableManager {
             // }
         }
         this.sendTableState();
-        // this.io.sockets.to(this.sid).emit('render-all-in', {
-        //     street: super.getRoundName(),
-        //     board: super.getDeal(),
-        //     sound: true,
-        //     handRanks: handRanks,
-        // });
+        this.io.sockets.to(this.sid).emit('render-all-in', {
+            street: super.getRoundName(),
+            board: super.getDeal(),
+            sound: true,
+            handRanks: null, // not a mistake. handRanks should not be used
+        });
     }
 
     async handleEveryoneFolded(prev_round, data) {
@@ -432,11 +430,8 @@ class SessionManager extends TableManager {
 
     resetAfterRound() {
         this.sendTableState();
-        // this.io.sockets.to(this.sid).emit('remove-out-players', {});
         this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
-        // this.io.sockets.to(this.sid).emit('new-dealer', {seat: super.getDealerSeat()});
         this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-        // this.io.sockets.to(this.sid).emit('clear-earnings', {});
     }
 
     startNextRoundOrWaitingForPlayers () {
