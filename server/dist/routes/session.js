@@ -237,7 +237,7 @@ var SessionManager = /*#__PURE__*/function (_TableManager) {
 
         table.allPlayers = Array.from(table.allPlayers); // shallow copy
 
-        table.allPlayers[p.seat] = p;
+        Object.assign(table.allPlayers[p.seat], p);
       }
 
       this.io.sockets.to(socketId).emit('state-snapshot', {

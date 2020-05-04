@@ -77,29 +77,6 @@
                 <%- include('../partials/chatroom'); %>
                 <%- include('../partials/actions'); %>
             </div>
-            <% for (let i = 0; i < 10; i++) { %>
-            <div class="hand <%= i %>">
-                <div class="left-card">
-                    <%- include('../partials/card'); %>
-                </div>
-                <div class="right-card">
-                    <%- include('../partials/card'); %>
-                </div>
-                <div class="hand-rank-message-container collapse">
-                    <div class="hand-rank-message">waiting</div>
-                </div>
-                <% if (i == actionSeat) { %>
-                <div class="name action">
-                <% } else { %>
-                <div class="name">
-                <% } %>
-                    <% if (i == dealer) { %>
-                    <span class="dealer">D</span>
-                    <% } %>
-                    <span class="username">guest</span>: <span class="stack">stack</span><span class="earnings hidden"></span>
-                </div>
-            </div>
-            <% } %>
         </div>
     </div>
 <!--    <script type="module" src="../poker-logic/lib/table-state.js"></script>-->

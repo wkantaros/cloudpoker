@@ -139,7 +139,7 @@ class SessionManager extends TableManager {
         if (p) {
             table = Object.assign({}, table); // shallow copy
             table.allPlayers = Array.from(table.allPlayers); // shallow copy
-            table.allPlayers[p.seat] = p;
+            Object.assign(table.allPlayers[p.seat], p);
         }
 
         this.io.sockets.to(socketId).emit('state-snapshot', {

@@ -811,20 +811,16 @@ socket.on('player-reconnect', (data) => {
 });
 
 const transformTable = (data) => {
+    console.log('transformTable', data);
     const t = data.table;
-    t.allPlayers = t.allPlayers.map(p => p === null ? null: transformPlayer(data, p));
     // Make game a GameState object
     t.game = t.game === null ? null: Object.assign(new GameState(t.game.bigBlind, t.game.smallBlind), t.game);
+    t.allPlayers = t.allPlayers.map(p => p === null ? null: transformPlayer(p));
     return new TableState(t.smallBlind, t.bigBlind, t.minPlayers, t.maxPlayers, t.minBuyIn, t.maxBuyIn, t.straddleLimit, t.dealer, t.allPlayers, t.currentPlayer, t.game);
 }
 
-const transformPlayer = (data, p) => {
-    let player = Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p);
-    player.isDealer = data.gameInProgress && data.table.players[data.table.dealer].seat === player.seat;
-    player.isActionSeat = data.gameInProgress && data.table.players[data.table.currentPlayer].seat === player.seat;
-    // TODO: set earnings
-    player.earnings = 0;
-    return player;
+const transformPlayer = (p) => {
+    return Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p);
 }
 
 let tableState = {}; // not used for rendering.
@@ -837,7 +833,7 @@ function setState(data) {
         // }
     }
     if (data.player) {
-        tableState.player = transformPlayer(data, data.player);
+        tableState.player = transformPlayer(data.player);
     }
     tableState.gameInProgress = data.gameInProgress;
     renderBetsAndFields();

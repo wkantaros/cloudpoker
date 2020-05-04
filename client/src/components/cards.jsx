@@ -62,7 +62,7 @@ class CardBack extends Component {
     // props used: this.props.folded
     render() {
         return (
-            <div className={"back-card" + this.props.folded ? "waiting": ""}>
+            <div className={this.props.folded ? "back-card waiting": "back-card"}>
                 <div className="back-card-ring" />
             </div>
         );
