@@ -121,12 +121,12 @@ export class Hand extends Component {
             let rightCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[1] : null;
             cards = [];
             cards.push((
-                <div className="left-card">
+                <div className="left-card" key="left-card">
                     <Card folded={this.props.player.folded} card={leftCard}/>
                 </div>
             ));
             cards.push((
-                <div className="right-card">
+                <div className="right-card" key="right-card">
                     <Card folded={this.props.player.folded} card={rightCard}/>
                 </div>
             ));
