@@ -1356,7 +1356,7 @@ function renderBetsAndFields() {
         <React.StrictMode>
             <TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />
         </React.StrictMode>
-    ), document.getElementById('field-root'));
+    ), document.getElementById('table-sub-root'));
 }
 $(window).resize(function () {
     // createHands();

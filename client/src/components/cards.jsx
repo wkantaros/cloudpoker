@@ -1,4 +1,6 @@
 import React, { Component } from "react";
+import '../css/card.css';
+import '../css/stylesheet.css';
 
 const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
 

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import FieldContainer from "./fieldcontainer";
-import {createBetList} from "./playerbetcontainer";
+import FieldContainer from "./fieldcontainer.jsx";
+import {createBetList} from "./playerbetcontainer.jsx";
 
 export default class TopState extends Component {
     // constructor(props) {

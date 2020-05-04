@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import '../css/stylesheet.css';
 
 export default class Field extends Component {
     render() {

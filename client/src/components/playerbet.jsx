@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import '../css/stylesheet.css';
 
 export default function PlayerBet(props) {
     if (!props.betAmount || (props.betAmount !== 'check' && props.betAmount <= 0)) return null;
