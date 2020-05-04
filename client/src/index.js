@@ -9,6 +9,8 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 import TopState from "./components/topstate";
+import VolumeIcon from "../public/img/volume.svg";
+import MuteIcon from "../public/img/mute.svg";
 
 let socket = io();
 
@@ -741,10 +743,10 @@ function isVolumeOn() {
 
 $(".volume").click( function (e) {
     if (isVolumeOn()){
-        $('#volume-icon').attr('src', "../public/img/mute.svg");
+        $('#volume-icon').attr('src', MuteIcon);
         $('.volume').removeClass('on');
     } else {
-        $('#volume-icon').attr('src', "../public/img/volume.svg");
+        $('#volume-icon').attr('src', VolumeIcon);
         $('.volume').addClass('on');
     }
 } );
