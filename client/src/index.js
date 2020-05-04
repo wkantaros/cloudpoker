@@ -907,9 +907,9 @@ socket.on('buy-in', (data) => {
 //somebody left the game
 socket.on('buy-out', (data) => {
     outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
-    if ($('.volume').hasClass('on')) {
-        createjs.Sound.play('fold');
-    }
+    // if ($('.volume').hasClass('on')) {
+    //     createjs.Sound.play('fold');
+    // }
     // outHand(data.seat);
     // $(`#${data.seat}`).addClass('out');
 });

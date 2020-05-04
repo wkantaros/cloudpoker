@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \\\"Error: no src/test specified\\\" && exit 1",
-    "build": "babel src/ -d dist",
+    "build": "babel src/ -d dist && cp -R views/ dist/views/",
     "start": "npm run build && node dist/index.js"
   },
   "author": "fish",

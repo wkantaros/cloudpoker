@@ -1,7 +1,6 @@
 const path = require('path');
 // https://stackoverflow.com/questions/38252453/serving-mp3-files-using-the-webpack-file-loader/41158166#41158166
 const SRC = path.resolve(__dirname, 'src/audio');
-console.log(SRC);
 
 module.exports = {
     entry: './src/index.js',
