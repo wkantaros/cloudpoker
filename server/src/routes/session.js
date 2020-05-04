@@ -10,7 +10,14 @@ const shortid = require('shortid');
 import {TableManager} from '../server-logic';
 import {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} from '../persistent';
 import {asyncErrorHandler, sleep, asyncSchemaValidator} from '../funcs';
-import * as poker from '../../poker-logic/lib/node-poker';
+import * as poker from '../poker-logic/lib/node-poker';
+// import (.*) from (\S*);
+// const $1 = require($2);
+//
+// const {TableManager} = require('../server-logic');
+// const {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} = require('../persistent');
+// const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
+// const poker = require('../../poker-logic/lib/node-poker');
 
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post(asyncErrorHandler(async (req, res) => {

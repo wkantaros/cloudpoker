@@ -1,4 +1,5 @@
 require('dotenv').config();
+require("regenerator-runtime/runtime");
 const express = require('express');
 const http = require('http');
 const path = require('path');

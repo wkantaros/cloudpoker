@@ -1,7 +1,7 @@
 const assert = require('assert').strict;
 const describe = require('mocha').describe;
 const it = require('mocha').it;
-import {Table} from '../../poker-logic';
+import {Table} from '../poker-logic';
 
 describe('Table', function () {
     describe('AddPlayer', function () {

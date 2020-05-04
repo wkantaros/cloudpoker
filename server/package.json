@@ -2,9 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "description": "server for poker games",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \\\"Error: no src/test specified\\\" && exit 1",
+    "build": "babel src/ -d dist",
+    "start": "npm run build && node dist/index.js"
   },
   "author": "fish",
   "license": "ISC",
@@ -18,6 +20,7 @@
     "ejs": "^3.0.1",
     "express": "^4.17.1",
     "morgan": "^1.10.0",
+    "regenerator-runtime": "^0.13.5",
     "shortid": "^2.2.15",
     "socket.io": "^2.3.0",
     "xss": "^1.0.6"
@@ -26,7 +29,6 @@
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.9.6",
     "@babel/preset-env": "^7.9.6",
-    "@babel/preset-react": "^7.9.4",
     "mocha": "^7.1.1"
   }
 }

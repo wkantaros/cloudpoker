@@ -1,4 +1,4 @@
-import {Hand, rankHandInt} from '../poker-logic';
+import {Hand, rankHandInt} from './poker-logic';
 
 export class TableStateManager {
     /**

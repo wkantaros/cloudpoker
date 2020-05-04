@@ -1,4 +1,4 @@
-import {TableState, Player, GameState}  from '../sharedjs';
+import {TableState, Player, GameState}  from '../server/src/sharedjs';
 
 let socket = io();
 
