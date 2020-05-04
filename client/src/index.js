@@ -1,6 +1,6 @@
 import {TableState, Player, GameState}  from './table-state';
 import $ from 'jquery';
-import {createjs} from 'createjs';
+// import {createjs} from 'createjs';
 import './css/stylesheet.css'
 import './css/card.css'
 import io from 'socket.io-client';
@@ -752,7 +752,7 @@ $(".volume").click( function (e) {
 
 function playSoundIfVolumeOn(soundName) {
     if (isVolumeOn()){
-        createjs.Sound.play(soundName);
+        // createjs.Sound.play(soundName);
     }
 }
 
@@ -1157,7 +1157,7 @@ socket.on('bet', (data) => {
 socket.on('raise', (data) => {
     outputEmphasizedMessage(data.username + ' raises ' + data.amount);
     if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
+        // createjs.Sound.play('bet');
     }
 });
 
@@ -1202,15 +1202,15 @@ socket.on('alert', function(data) {
 
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
-    createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
-    createjs.Sound.registerSound("../public/audio/deal.wav", 'deal');
-    createjs.Sound.registerSound("../public/audio/check.wav", 'check');
-    createjs.Sound.registerSound("../public/audio/chipsStack4.wav", 'bet');
-    createjs.Sound.registerSound("../public/audio/flop.wav", 'flop');
-    createjs.Sound.registerSound("../public/audio/turn.wav", 'turn');
-    createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
-    createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
-    createjs.Sound.volume = 0.25;
+    // createjs.Sound.registerSound("../public/audio/fold1.wav", 'fold');
+    // createjs.Sound.registerSound("../public/audio/deal.wav", 'deal');
+    // createjs.Sound.registerSound("../public/audio/check.wav", 'check');
+    // createjs.Sound.registerSound("../public/audio/chipsStack4.wav", 'bet');
+    // createjs.Sound.registerSound("../public/audio/flop.wav", 'flop');
+    // createjs.Sound.registerSound("../public/audio/turn.wav", 'turn');
+    // createjs.Sound.registerSound("../public/audio/cardPlace1.wav", 'river');
+    // createjs.Sound.registerSound("../public/audio/action.ogg", 'action');
+    // createjs.Sound.volume = 0.25;
 };
 loadSounds();
 
