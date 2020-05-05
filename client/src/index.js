@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 // import './index.css';
 import * as serviceWorker from './serviceWorker';
-import TopState, {Table} from "./components/topstate";
+import Table from "./components/topstate";
 // File imports for webpack
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
@@ -1364,17 +1364,6 @@ const getSmallBlind = () => {
 const getPotSize = () => {
     return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0;
 };
-
-function playerHandRanks(board) {
-    return tableState.table.allPlayers.map(p=>
-        p === null || p.cards.length < 1 ?
-            '' :
-            rankHandInt({cards: p.cards.concat(board)}).message);
-}
-
-function shownBoard() {
-
-}
 
 function renderBetsAndFields() {
     const ovalParent = $('#ovalparent');

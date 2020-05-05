@@ -70,7 +70,8 @@ export class Hand extends Component {
         return (
             <div className="hand" id={this.props.player.seat}>
                 {cards}
-                <HandRankMessageContainer handRank={this.props.handRank}/>
+                {this.props.player.handRankMessage &&
+                <HandRankMessageContainer handRank={this.props.player.handRankMessage}/>}
                 <PlayerNameContainer player={this.props.player}/>
             </div>
         );
