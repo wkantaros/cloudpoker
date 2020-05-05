@@ -1171,7 +1171,7 @@ function renderBetsAndFields() {
     const ovalParent = $('#ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <Table socket={socket} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()}/>
+            <Table socket={socket} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={Math.round(0.5 * ovalParent.width())}/>
             {/*<TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />*/}
         </React.StrictMode>
     ), document.getElementById('ovalparent'));
