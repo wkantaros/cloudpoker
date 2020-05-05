@@ -18,8 +18,8 @@ class HandRankMessageContainer extends Component {
     }
 }
 
-function DealerChip(props) {
-    if (!props.isDealer) return null;
+function DealerChip({isDealer}) {
+    if (!isDealer) return null;
     return <span className="dealer">D</span>;
 }
 

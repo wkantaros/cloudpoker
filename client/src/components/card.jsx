@@ -24,8 +24,9 @@ export function CardBack({folded}) {
 // renders the back of the card if we do not know what it is (i.e. if this.props.card is null).
 // renders the front of the cards if we do know what it is.
 // greys out the card if the player has folded
-export default function Card({card, folded}) {
-    let cardClassName = "card";
+export default function Card({card, folded, className}) {
+    let cardClassName = className? className + ' ': '';
+    cardClassName += "card";
     if (folded) cardClassName += " folded";
     let renderedCard;
     if (card === null) { // if we don't know this person's cards

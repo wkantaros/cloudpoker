@@ -1,9 +1,32 @@
 import React from "react";
-import FieldContainer from "./fieldcontainer";
 import {createBetList} from "./playerbetcontainer";
 import Pot from './pot';
 import BoardCards from "./boardcards";
 import Board from "./board";
+import Field from "./field";
+import {Hand} from "./hand";
+
+const radius = 210;
+
+export function getFieldList({allPlayers, tableWidth, tableHeight, fieldWidth, fieldHeight}) {
+    let fieldList = [];
+    const step = (2 * Math.PI) / allPlayers.length;
+    for (let i = 0; i < allPlayers.length; i++) {
+        if (allPlayers[i]) {
+            // note consider changing width/455 to 2.5
+            let x = Math.round(tableWidth / 2 + radius * ((tableWidth/400) * Math.cos(step * i)) - fieldWidth / 2);
+            let y = Math.round(tableHeight / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
+            fieldList.push((
+                <Field key={`field-${i}`} x={x} y={y}>
+                    <Hand player={allPlayers[i]}/>
+                </Field>
+            ));
+        }
+    }
+
+    return fieldList;
+}
+
 
 export default function Table({table, player, gameInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
     const playerBets = table.allPlayers.map(p=>p===null ?0:p.bet);
@@ -20,7 +43,8 @@ export default function Table({table, player, gameInProgress, betWidth, betHeigh
             </div>
 
             {/* render player bets, hands, names*/}
-            <FieldContainer allPlayers={table.allPlayers} fieldWidth={150} fieldHeight={10} fieldsLength={10} tableWidth={tableWidth} tableHeight={tableHeight}/>
+            {getFieldList({allPlayers: table.allPlayers, fieldHeight: 10, fieldWidth: 150, tableWidth, tableHeight})}
+            {/*<FieldContainer allPlayers={table.allPlayers} fieldWidth={150} fieldHeight={10} fieldsLength={10} tableWidth={tableWidth} tableHeight={tableHeight}/>*/}
             {createBetList(playerBets, tableWidth, tableHeight, betWidth, betHeight)}
         </div>
     );
