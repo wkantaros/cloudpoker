@@ -917,7 +917,7 @@ socket.on('buy-out', (data) => {
 
 socket.on('stand-up', data => {
     // TODO: do we want to do anything here?
-    outputEmphasizedMessage(data.playerName + 'stands up.');
+    outputEmphasizedMessage(data.playerName + ' stands up.');
 });
 
 socket.on('sit-down', data => {
@@ -943,13 +943,9 @@ socket.on('render-timer', (data) => {
     }
 });
 
-// when the players joins in the middle of a hand
-// data: {street, board, sound, logIn}
-socket.on('sync-board', (data) => {
+socket.on('log-in', (data) => {
     $('.pm-btn').removeClass('pm');
-    if (data.logIn) {
-        logIn(tableState.player.standingUp);
-    }
+    logIn(tableState.player.standingUp);
 });
 
 // start game (change all cards to red)

@@ -83,7 +83,7 @@ class SessionManager extends TableManager {
         super(table, hostName, hostStack, hostIsStraddling, playerid);
         this.io = io;
         this.sid = sid;
-        this.socketMap = new TwoWayMap();
+        this.socketMap = new Map();
         // maps player id -> playerName when kicked
         this.kickedPlayers = {};
         this.timerDelay = -1;
@@ -92,13 +92,16 @@ class SessionManager extends TableManager {
         this.raceSchedule = null;
     }
 
-    setSocketId(playerId, socketId) {
-        this.socketMap.set(playerId, socketId);
+    setSocket(playerId, socket) {
+        this.socketMap.set(playerId, socket);
     }
 
+    getSocket (playerId) {
+        return this.socketMap.get(playerId);
+    };
+
     getSocketId (playerId) {
-        // return tableSocketMap.get(this.sid).key(playerId);
-        return this.socketMap.key(playerId);
+        return this.getSocket(playerId).id;
     };
 
     canPlayerJoin(playerId, playerName, stack, isStraddling) {
@@ -131,10 +134,11 @@ class SessionManager extends TableManager {
         //     table: this.table.getPublicInfo(),
         //     gameInProgress: this.gameInProgress,
         // };
-        // this.io.sockets.to(this.sid).emit('state-snapshot', data);
+        this.sendTableStateTo(`${this.sid}-guest`, 'guest');
         // send each active player
         for (let p of this.table.allPlayers) {
-            if (!p) continue;
+            // this.getPlayerId(p.playerName) is falsy if handlePlayerExit called this function.
+            if (!p || !this.getPlayerId(p.playerName)) continue;
             this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
         }
     }
@@ -257,6 +261,8 @@ class SessionManager extends TableManager {
         super.addBuyOut(playerName, playerId, stack);
         super.removePlayer(playerName);
 
+        this.getSocket(playerId).leave(`${this.sid}-active`);
+        this.getSocket(playerId).join(`${this.sid}-guest`);
         this.sendTableState();
 
         if (modLeavingGame) {
@@ -669,7 +675,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
             socket_ids[socket_id[0]] = true;
 
-        s.setSocketId(playerId, socket.id);
+        s.setSocket(playerId, socket);
 
         socket.on('disconnect', (reason) => {
             console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
@@ -714,14 +720,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
-        if (s.gameInProgress) {
-            io.sockets.to(s.getSocketId(playerId)).emit('sync-board', {
-                logIn: !isNewPlayer, // only log in if player is returning (not new). otherwise, player is a guest.
-                street: s.getRoundName(),
-                board: s.getDeal(),
-                sound: false
-            });
-        }
 
         const isActivePlayerIdValidator = function(value) {
             if (!s.isActivePlayerId(playerId)) throw new Error('inactive player id');
@@ -730,6 +728,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         const isModValidator = function(value) {
             if (!s.isModPlayerId(playerId)) throw new Error('not a mod player id');
             return value;
+        }
+        if (!isNewPlayer) {
+            socket.join(`${sid}-active`);
+            io.sockets.to(s.getSocketId(playerId)).emit('log-in', {});
+        } else {
+            socket.join(`${sid}-guest`);
         }
 
         if (!isNewPlayer && s.gameInProgress) {
@@ -767,6 +771,8 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
+            socket.leave(`${sid}-guest`);
+            socket.join(`${sid}-active`);
             const addedPlayer = s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
             if (addedPlayer) {
                 s.addPlayer(data.playerName);

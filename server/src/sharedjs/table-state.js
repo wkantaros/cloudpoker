@@ -65,8 +65,8 @@ export class TableState {
     // extra info used only on the front end
     extraPlayerInfo(info) {
         info.handRankMessage = info.cards.length > 0? rankHandInt(new Hand(info.cards.concat(this.game.board))).message : '';
-        info.isDealer = this.game !== null && this.players[this.dealer] && this.players[this.dealer].playerName === info.playerName;
-        info.isActionSeat = this.game !== null && this.players[this.currentPlayer] && this.actionSeat === info.seat;
+        info.isDealer = this.game !== null && this.dealer > -1 && this.players[this.dealer] && this.players[this.dealer].playerName === info.playerName;
+        info.isActionSeat = this.game !== null && this.currentPlayer > -1 && this.players[this.currentPlayer] && this.actionSeat === info.seat;
         info.earnings = 0;
         return info;
     }
