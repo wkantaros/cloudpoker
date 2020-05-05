@@ -9,7 +9,7 @@ const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 import {TableManager} from '../server-logic';
 import {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} from '../persistent';
-import {asyncErrorHandler, sleep, asyncSchemaValidator} from '../funcs';
+import {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} from '../funcs';
 import * as poker from '../poker-logic/lib/node-poker';
 // import (.*) from (\S*);
 // const $1 = require($2);
@@ -19,49 +19,62 @@ import * as poker from '../poker-logic/lib/node-poker';
 // const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
 // const poker = require('../../poker-logic/lib/node-poker');
 
+const validateTableName = (val) => {
+    if (!val || val.length === 0) return val;
+    val = val.replace(/\s/g, '-'); // replace spaces with hyphens
+    if (!sessionManagers.has(val)) return val;
+    throw new Error(`table name ${val} is already taken`);
+}
+
 // Information host submits for game (name, stack, bb, sb)
 router.route('/').post(asyncErrorHandler(async (req, res) => {
     //scheme to ensure valid username
     const schema = Joi.object({
         // username: Joi.string().alphanum().min(2).max(10)
-        username: Joi.string().regex(/^\w+(?:\s+\w+)*$/).min(2).max(10),
+        tableName: Joi.string().trim().min(2).max(15)
+            // matches only letters, numbers, - (hyphen), _ (underscore), and " " (space)
+            .regex(/[a-zA-Z0-9-_\s]+$/, 'no-punctuation')
+            .external(validateTableName),
+        username: Joi.string().regex(/^\w+(?:\s+\w+)*$/, 'no-punctuation').min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
         bigBlind: Joi.number().integer().min(1),
         stack: Joi.number().integer().min(1),
-        straddleLimit: Joi.number().integer().min(-1)
+        straddleLimit: Joi.number().integer().min(-1),
     });
     if (process.env.DEBUG === 'true') {
         req.body.name = req.body.name || 'debugName';
     }
-    const {
-        error,
-        value
-    } = schema.validate({
-        username: req.body.name,
-        smallBlind: req.body.smallBlind,
-        bigBlind: req.body.bigBlind,
-        stack: req.body.stack,
-        straddleLimit: req.body.straddleLimit,
-    });
-    if (error) {
+    if (!req.body.tableName) {
+        req.body.tableName = shortid.generate();
+    }
+    let value;
+    try {
+        value = await schema.validateAsync({
+            tableName: req.body.tableName,
+            username: req.body.name,
+            smallBlind: req.body.smallBlind,
+            bigBlind: req.body.bigBlind,
+            stack: req.body.stack,
+            straddleLimit: req.body.straddleLimit,
+        });
+    } catch (error) {
         res.status(422);
-        let message = error.details[0].message;
-        console.log(message);
-        if (message.includes("fails to match the required pattern: /^\\w+(?:\\s+\\w+)*$/")){
-            message = "\"username\" cannot have punctuation"
+        let message;
+        if (error.isJoi) {
+            message = formatJoiError(error);
+        } else {
+            message = error.hasOwnProperty('message') ? error.message : error;
         }
-        res.json({
+        await res.json({
             isValid: false,
             message: message
         });
-    } else {
-        let sid = shortid.generate();
-        req.body.shortid = sid;
-        req.body.isValid = true;
-        res.json(req.body);
-        console.log(`starting new table with id: ${sid}`);
-        sessionManagers.set(sid, new SessionManager(null, sid, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969));
+        return;
     }
+    value.isValid = true;
+    await res.json(value);
+    console.log(`starting new table with id: ${value.tableName}`);
+    sessionManagers.set(value.tableName, new SessionManager(null, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969));
 }));
 
 // maps sid -> SessionManager
