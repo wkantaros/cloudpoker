@@ -6,13 +6,13 @@ import Card from "./card";
 class HandRankMessageContainer extends Component {
     // props used: this.props.player.handRankMessage
     render () {
-        if (!this.props.player.handRankMessage) return null;
+        if (!this.props.handRank || this.props.handRank.length === 0) return null;
         // let className = "hand-rank-message-container";
         // if (!this.props.player.handRankMessage) className += " collapse";
         // let handRankMessage = this.props.player.handRankMessage ? this.props.player.handRankMessage : "waiting";
         return (
             <div className="hand-rank-message-container">
-                <div className="hand-rank-message">{this.props.player.handRankMessage}</div>
+                <div className="hand-rank-message">{this.props.handRank}</div>
             </div>
         );
     }
@@ -70,7 +70,7 @@ export class Hand extends Component {
         return (
             <div className="hand" id={this.props.player.seat}>
                 {cards}
-                <HandRankMessageContainer player={this.props.player}/>
+                <HandRankMessageContainer handRank={this.props.handRank}/>
                 <PlayerNameContainer player={this.props.player}/>
             </div>
         );

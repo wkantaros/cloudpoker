@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import Field from './field';
 import {Hand} from './hand'
-import $ from "jquery";
 
 const radius = 210;
 
@@ -22,7 +21,7 @@ export default class FieldContainer extends Component {
                 let y = Math.round(height / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
                 fieldList.push((
                     <Field key={`field-${i}`} x={x} y={y}>
-                        <Hand player={this.props.allPlayers[i]}/>
+                        <Hand handRank={this.props.handRanks[i]} player={this.props.allPlayers[i]}/>
                     </Field>
                 ));
             }
