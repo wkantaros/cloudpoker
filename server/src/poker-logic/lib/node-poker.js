@@ -156,6 +156,14 @@ export class Table extends TableState{
 
     initNewRound () {
         this.removeAndAddPlayers();
+        for (let i = 0; i < this.allPlayers.length; i += 1) {
+            if (this.allPlayers[i] === null) continue;
+            if (this.allPlayers[i].standingUp) {
+                console.log('MASSIVE ERROR PLAYER IS STANDING UP', this.players[i]);
+            }
+            this.allPlayers[i].inHand = this.players.length >= 2;
+            this.allPlayers[i].clearHandState();
+        }
         if (this.players.length < 2) {
             console.log('not enough players (initNewRound)');
             this.dealer = 0;
@@ -169,13 +177,6 @@ export class Table extends TableState{
         this.game.betName = 'bet'; //bet,raise,re-raise,cap
         this.game.deck.splice(0, this.game.deck.length);
         this.game.board.splice(0, this.game.board.length);
-        for (let i = 0; i < this.players.length; i += 1) {
-            if (this.players[i].standingUp) {
-                console.log('MASSIVE ERROR PLAYER IS STANDING UP', this.players[i]);
-            }
-            this.players[i].inHand = true;
-            this.players[i].clearHandState();
-        }
         fillDeck(this.game.deck);
 
         this.game.winners = [];
