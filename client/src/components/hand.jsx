@@ -51,25 +51,17 @@ export class Hand extends Component {
     // sent: this.props.player,
     render() {
         if (!this.props.player) return null;
-        let cards = null;
-        if (this.props.player.inHand) {
-            let leftCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[0] : null;
-            let rightCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[1] : null;
-            cards = [];
-            cards.push((
-                <div className="left-card" key="left-card">
-                    <Card folded={this.props.player.folded} card={leftCard}/>
-                </div>
-            ));
-            cards.push((
-                <div className="right-card" key="right-card">
-                    <Card folded={this.props.player.folded} card={rightCard}/>
-                </div>
-            ));
-        }
+        let leftCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[0] : null;
+        let rightCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[1] : null;
+        let folded = this.props.player.inHand? this.props.player.folded: true;
         return (
             <div className="hand" id={this.props.player.seat}>
-                {cards}
+                <div className="left-card" key="left-card">
+                    <Card folded={folded} card={leftCard}/>
+                </div>
+                <div className="right-card" key="right-card">
+                    <Card folded={folded} card={rightCard}/>
+                </div>
                 {this.props.player.handRankMessage &&
                 <HandRankMessageContainer handRank={this.props.player.handRankMessage}/>}
                 <PlayerNameContainer raceInProgress={this.props.raceInProgress} player={this.props.player}/>
