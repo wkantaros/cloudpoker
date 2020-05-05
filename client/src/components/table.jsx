@@ -8,7 +8,7 @@ import {Hand} from "./hand";
 
 const radius = 210;
 
-export function getFieldList({allPlayers, tableWidth, tableHeight, fieldWidth, fieldHeight}) {
+export function getFieldList({raceInProgress, allPlayers, tableWidth, tableHeight, fieldWidth, fieldHeight}) {
     let fieldList = [];
     const step = (2 * Math.PI) / allPlayers.length;
     for (let i = 0; i < allPlayers.length; i++) {
@@ -18,7 +18,7 @@ export function getFieldList({allPlayers, tableWidth, tableHeight, fieldWidth, f
             let y = Math.round(tableHeight / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
             fieldList.push((
                 <Field key={`field-${i}`} x={x} y={y}>
-                    <Hand player={allPlayers[i]}/>
+                    <Hand raceInProgress={raceInProgress} player={allPlayers[i]}/>
                 </Field>
             ));
         }
@@ -28,7 +28,7 @@ export function getFieldList({allPlayers, tableWidth, tableHeight, fieldWidth, f
 }
 
 
-export default function Table({table, player, gameInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
+export default function Table({table, player, gameInProgress, raceInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
     const playerBets = table.allPlayers.map(p=>p===null ?0:p.bet);
     return (
         <div id="table">
@@ -43,7 +43,7 @@ export default function Table({table, player, gameInProgress, betWidth, betHeigh
             </div>
 
             {/* render player bets, hands, names*/}
-            {getFieldList({allPlayers: table.allPlayers, fieldHeight: 10, fieldWidth: 150, tableWidth, tableHeight})}
+            {getFieldList({allPlayers: table.allPlayers, fieldHeight: 10, fieldWidth: 150, tableWidth, tableHeight, raceInProgress})}
             {/*<FieldContainer allPlayers={table.allPlayers} fieldWidth={150} fieldHeight={10} fieldsLength={10} tableWidth={tableWidth} tableHeight={tableHeight}/>*/}
             {createBetList(playerBets, tableWidth, tableHeight, betWidth, betHeight)}
         </div>

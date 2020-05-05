@@ -36,7 +36,7 @@ class PlayerNameContainer extends Component {
             return null;
         }
         let className = "name";
-        if (this.props.player.isActionSeat) className += " action";
+        if (this.props.player.isActionSeat && !this.props.raceInProgress) className += " action";
         return (
             <div className={className}>
                 <DealerChip isDealer={this.props.player.isDealer}/>
@@ -72,7 +72,7 @@ export class Hand extends Component {
                 {cards}
                 {this.props.player.handRankMessage &&
                 <HandRankMessageContainer handRank={this.props.player.handRankMessage}/>}
-                <PlayerNameContainer player={this.props.player}/>
+                <PlayerNameContainer raceInProgress={this.props.raceInProgress} player={this.props.player}/>
             </div>
         );
     }
