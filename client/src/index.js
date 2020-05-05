@@ -23,7 +23,6 @@ import FOldsound from './audio/fold1.wav';
 // import './audio/fold2.wav';
 // import './audio/river.wav';
 import TurnSound from './audio/turn.wav';
-import {rankHandInt} from "./deck";
 
 let socket = io();
 
