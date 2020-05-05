@@ -6,13 +6,6 @@ import $ from "jquery";
 const radius = 210;
 
 export default class FieldContainer extends Component {
-    constructor(props) {
-        super(props);
-        // this.state = {
-        //     tableWidth: this.props.tableWidth,
-        //     tableHeight: this.props.tableHeight,
-        // }
-    }
 
     createFields() {
         const fieldsLength = this.props.fieldsLength; // should be 10
