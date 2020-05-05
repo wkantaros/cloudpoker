@@ -6,6 +6,30 @@ import BoardCards from "./boardcards";
 import Board from "./board";
 import {rankHandInt} from "../deck";
 
+function getRaceUpdate(props) {
+    // console.log(props);
+    // console.log(this.state);
+    if (props.raceInProgress) {
+        let currentTime = Date.now();
+        console.log('currentTime in getRaceUpdate', currentTime);
+        if (currentTime >= props.raceSchedule['river']) {
+            return {
+                raceBoard: props.table.game.board,
+                raceInProgress: false,
+                raceSchedule: null
+            }
+        } else if (currentTime >= props.raceSchedule['turn']) {
+            return {raceBoard: props.table.game.board.slice(0, 4)}
+        } else if (currentTime >= props.raceSchedule['flop']) {
+            return {raceBoard: props.table.game.board.slice(0, 3)};
+        } else { // we are still on the deal. I don't think this ever happens.
+            return {raceBoard: []};
+        }
+    } else {
+        return {raceBoard: props.table.game? props.table.game.board : []};
+    }
+}
+
 export class Table extends Component {
     // props: {table, player, gameInProgress, betWidth, betHeight, tableWidth, tableHeight
     //   raceInProgress: bool, nextCardTurn: datetime, nextStreet: "flop"|"turn"|"river",
@@ -21,45 +45,7 @@ export class Table extends Component {
             raceSchedule: this.props.raceSchedule,
         }
 
-        Object.assign(this.state, this.getRaceStateUpdate(props));
-        if (this.state.raceInProgress) {
-            let currentTime = Date.now();
-            if (currentTime >= this.state.raceSchedule['river']) {
-                this.state.raceBoard = this.props.table.game.board;
-                this.state.raceInProgress = false;
-                this.state.raceSchedule = null;
-            } else if (currentTime >= this.state.raceSchedule['turn']) {
-                this.state.raceBoard = this.props.table.game.board.slice(0, 4);
-            } else if (currentTime >= this.state.raceSchedule['flop']) {
-                this.state.raceBoard = this.props.table.game.board.slice(0, 3);
-            } else { // we are still on the deal. I don't think this ever happens.
-                this.state.raceBoard = [];
-            }
-        } else {
-            this.state.raceBoard = this.props.table.game? this.props.table.game.board : [];
-        }
-        // this.state.playerHandRanks = this.getPlayerHandRanks(this.state.raceBoard);
-    }
-
-    getRaceStateUpdate(props) {
-        if (this.state.raceInProgress) {
-            let currentTime = Date.now();
-            if (currentTime >= this.state.raceSchedule['river']) {
-                return {
-                    raceBoard: this.props.table.game.board,
-                    raceInProgress: false,
-                    raceSchedule: null
-                }
-            } else if (currentTime >= this.state.raceSchedule['turn']) {
-                return {raceBoard: this.props.table.game.board.slice(0, 4)}
-            } else if (currentTime >= this.state.raceSchedule['flop']) {
-                return {raceBoard: this.props.table.game.board.slice(0, 3)};
-            } else { // we are still on the deal. I don't think this ever happens.
-                return {raceBoard: []};
-            }
-        } else {
-            return {raceBoard: this.props.table.game? this.props.table.game.board : []};
-        }
+        Object.assign(this.state, getRaceUpdate(this.props));
     }
 
     getPlayerHandRanks(raceBoard) {
@@ -95,15 +81,17 @@ export class Table extends Component {
 
     componentDidUpdate(prevProps, prevState, snapshot) {
         // if allInRace and raceBoard changed, raceBoard was updated by a setTimeout. do next setTimeout.
-        if (this.state.raceInProgress && this.state.raceBoard !== prevState.raceBoard) {
+        if (this.state.raceInProgress && this.state.raceBoard.length > 0 && this.state.raceBoard.length !== prevState.raceBoard.length) {
             this.scheduleBoardUpdate();
         }
     }
 
     render() {
-        let board = this.props.table.game? this.props.table.game.board: [];
-        board = this.state.raceInProgress? this.state.raceBoard: board;
+        // console.log(this.props.raceInProgress, this.props.raceSchedule);
+        // console.log(this.state.raceInProgress, this.state.raceSchedule, this.state.raceBoard);
+        let board = this.props.table.game? this.props.table.game.board : [];
         let handRanks = this.getPlayerHandRanks(board);
+        console.log(board);
         return (
             <div id="table">
                 {/*render pot and board*/}

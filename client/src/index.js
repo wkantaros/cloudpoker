@@ -23,6 +23,7 @@ import FOldsound from './audio/fold1.wav';
 // import './audio/fold2.wav';
 // import './audio/river.wav';
 import TurnSound from './audio/turn.wav';
+import {rankHandInt} from "./deck";
 
 let socket = io();
 
@@ -822,7 +823,7 @@ socket.on('player-reconnect', (data) => {
 });
 
 const transformTable = (data) => {
-    console.log('transformTable', data);
+    // console.log('transformTable', data);
     const t = data.table;
     // Make game a GameState object
     t.game = t.game === null ? null: Object.assign(new GameState(t.game.bigBlind, t.game.smallBlind), t.game);
@@ -1121,7 +1122,7 @@ socket.on('start-game', (data) => {
 
 // renders available buttons for player
 socket.on('render-action-buttons', (data) => {
-    console.log(data);
+    // console.log(data);
     displayButtons(data);
 });
 
@@ -1364,6 +1365,17 @@ const getPotSize = () => {
     return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0;
 };
 
+function playerHandRanks(board) {
+    return tableState.table.allPlayers.map(p=>
+        p === null || p.cards.length < 1 ?
+            '' :
+            rankHandInt({cards: p.cards.concat(board)}).message);
+}
+
+function shownBoard() {
+
+}
+
 function renderBetsAndFields() {
     const ovalParent = $('#ovalparent');
     ReactDOM.render((
@@ -1573,7 +1585,7 @@ socket.on('update-header-blinds', (data) => {
 });
 
 const renderStraddleOptions = (canRender) => {
-    console.log('tableState', tableState);
+    // console.log('tableState', tableState);
     if (canRender){
         if (tableState.table.straddleLimit == 1){
             $('.single-straddle').removeClass('collapse');

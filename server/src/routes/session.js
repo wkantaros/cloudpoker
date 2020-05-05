@@ -191,7 +191,7 @@ class SessionManager extends TableManager {
         super.standUpPlayer(playerName);
         // check if round has ended
         await this.check_round(prev_round);
-        this.sendTableState();
+        // this.sendTableState();
         this.renderActionSeatAndPlayerActions();
         // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.io.sockets.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
@@ -287,7 +287,7 @@ class SessionManager extends TableManager {
             p.showHand();
         }
         this.renderActionSeatAndPlayerActions();
-        // this.sendTableState(); // show players' cards and hand rank messages
+        this.sendTableState(); // show players' cards and hand rank messages
         let prevRound = super.getRoundName();
         // let handRanks = {};
         // handRanks[prevRound] = playersShowingCards.map(p => {
@@ -303,21 +303,29 @@ class SessionManager extends TableManager {
         //     amount: super.getPot()
         // });
 
+        const waitTime = 2000;
         let currentTime = Date.now();
         let sleepTime = 0;
         while (super.getRoundName() !== 'showdown'){
             super.call(super.getNameByActionSeat());
             if (super.getRoundName() !== prevRound && super.getRoundName() !== 'showdown') {
                 prevRound = super.getRoundName();
-                sleepTime += 2000;
+                sleepTime += waitTime;
+                await sleep(waitTime);
+                this.sendTableState();
                 this.raceSchedule[prevRound] = currentTime + sleepTime;
                 // handRanks[prevRound] = playersShowingCards.map(p => {
                 //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
                 // });
             }
         }
+        // if (sleepTime > 0) {
+        //     this.sendTableState();
+        //     await sleep(sleepTime); // wait before starting next round or continuing
+        // }
+        this.raceInProgress = false;
+        this.raceSchedule = null;
         this.sendTableState();
-        if (sleepTime > 0) await sleep(sleepTime);
         // this.io.sockets.to(this.sid).emit('render-all-in', {
         //     street: super.getRoundName(),
         //     board: super.getDeal(),
@@ -372,10 +380,10 @@ class SessionManager extends TableManager {
     //checks if round has ended (reveals next card)
     async check_round (prev_round) {
         let data = super.checkwin();
-        this.sendTableState();
 
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
+            this.sendTableState();
             // TODO: ANYONE CAN REVEAL HAND HERE
             this.renderActionSeatAndPlayerActions();
             // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
@@ -412,9 +420,11 @@ class SessionManager extends TableManager {
             // else if (super.getRoundName() === 'turn'){
             //     time = 3000;
             // }
+            console.log('doing all in race');
             await this.allInRace();
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
+            this.sendTableState();
             await this.handleEveryoneFolded(prev_round, data);
         } else if (prev_round !== super.getRoundName()) {
             // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
