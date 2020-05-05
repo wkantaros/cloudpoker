@@ -1,4 +1,5 @@
 import React, {Component} from "react";
+import '../css/card.css';
 
 const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
 
@@ -29,10 +30,10 @@ export default function Card({card, folded}) {
     let renderedCard;
     if (card === null) { // if we don't know this person's cards
         cardClassName += " black"; // idk if we need to do this if we can't see the card
-        renderedCard = <CardBack folded={this.props.folded}/>
+        renderedCard = <CardBack folded={folded}/>
     } else {
-        cardClassName += " " + getColor(this.props.card.charAt(1));
-        renderedCard = <CardFront card={this.props.card}/>
+        cardClassName += " " + getColor(card.charAt(1));
+        renderedCard = <CardFront card={card}/>
     }
     return (
         <div className={cardClassName}>{renderedCard}</div>
