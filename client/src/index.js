@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 // import './index.css';
 import * as serviceWorker from './serviceWorker';
-import Table from "./components/topstate";
+import Table from "./components/table";
 // File imports for webpack
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
@@ -914,8 +914,6 @@ socket.on('buy-out', (data) => {
     // if ($('.volume').hasClass('on')) {
     //     createjs.Sound.play('fold');
     // }
-    // outHand(data.seat);
-    // $(`#${data.seat}`).addClass('out');
 });
 
 socket.on('stand-up', data => {
@@ -946,44 +944,6 @@ socket.on('render-timer', (data) => {
     }
 });
 
-const showCard = (card, locator) => {
-    let cardRank = (card.charAt(0) == 'T') ? '10' : card.charAt(0);
-    let cardSuit = getSuitSymbol(card.charAt(1));
-    let cardColor = getColor(card.charAt(1));
-    $(locator).removeClass('black').addClass(cardColor);
-    $(locator).find('.card-corner-rank').html(cardRank);
-    $(locator).find('.card-corner-suit').html(cardSuit);
-};
-
-const showFlop = (board) => {
-    $('#flop').removeClass('hidden');
-    for (let i = 0; i < 3; i++){
-        showCard(board[i], `#flop .card:nth-child(${i+1})`);
-    }
-    flipCard('flop');
-};
-
-const showTurn = (board) => {
-    $('#turn').removeClass('hidden');
-    showCard(board[3], `#turn .card`);
-    flipCard('turn');
-};
-
-const showRiver = (board) => {
-    $('#river').removeClass('hidden');
-    showCard(board[4], `#river .card`);
-    flipCard('river');
-};
-
-const hideBoardPreFlop = () => {
-    $('#flop').addClass('hidden');
-    $('#turn').addClass('hidden');
-    $('#river').addClass('hidden');
-    $('#cards').find('.back-card').removeClass('hidden');
-    $('#cards').find('.card-topleft').addClass('hidden');
-    $('#cards').find('.card-bottomright').addClass('hidden');
-};
-
 // when the players joins in the middle of a hand
 // data: {street, board, sound, logIn}
 socket.on('sync-board', (data) => {
@@ -991,129 +951,7 @@ socket.on('sync-board', (data) => {
     if (data.logIn) {
         logIn(tableState.player.standingUp);
     }
-    // console.log('syncing board', JSON.stringify(data));
-    // hideBoardPreFlop();
-    //
-    // dealStreet(data);
-
-    // for (let i = 0; i < tableState.table.allPlayers.length; i++) {
-    //     const p = tableState.table.allPlayers[i];
-    //     if (p === null) {
-    //         hideSeat(i);
-    //         continue;
-    //     }
-    //     if (!p.inHand) {
-    //         if (p.standingUp) { // players that stood up in a previous hand or before the game started
-    //
-    //         } else { // waiting players
-    //
-    //         }
-    //     } else { // players in the current hand
-    //
-    //     }
-    // }
 });
-
-// const dealStreet = (data) => {
-//     if (data.street === 'deal') {
-//         hideBoardPreFlop();
-//         if (data.sound) playSoundIfVolumeOn('deal');
-//         return;
-//     }
-//     showFlop(data.board);
-//     if (data.street === 'flop') {
-//         if (data.sound) playSoundIfVolumeOn('flop');
-//         return;
-//     }
-//     showTurn(data.board);
-//     if (data.street === 'turn') {
-//         if (data.sound) playSoundIfVolumeOn('turn');
-//         return;
-//     }
-//     showRiver(data.board);
-//     if (data.sound) playSoundIfVolumeOn('river');
-// };
-
-// renders the board (flop, turn, river)
-// socket.on('render-board', (data) => {
-//     $('.pm-btn').removeClass('pm');
-//     renderBetsAndFields();
-//     dealStreet(data);
-// });
-
-
-// renders the board (flop, turn, river)
-// data: {street: '', board: [], sound: boolean, handRanks: {'': [{seat: number, handRankMessage: ''},...]}}
-// socket.on('render-all-in', (data) => {
-//     $('.pm-btn').removeClass('pm');
-//     renderBetsAndFields();
-//     renderAllIn(data.board, data.handRanks);
-// });
-//
-// // TODO: implement staggered street showing with React
-// const renderAllIn = (board, handRanks) => {
-//     console.log(board);
-//     if ($('#flop').hasClass('hidden')) {
-//         showFlop(board);
-//         playSoundIfVolumeOn('flop');
-//         // renderHands(handRanks['flop']);
-//         setTimeout(() => {
-//             renderAllIn(board, handRanks);
-//         }, 1200);
-//     } else if ($('#turn').hasClass('hidden')) {
-//         showTurn(board);
-//         playSoundIfVolumeOn('turn');
-//         // renderHands(handRanks['turn']);
-//         setTimeout(() => {
-//             renderAllIn(board, handRanks);
-//         }, 1800);
-//     } else {
-//         showRiver(board);
-//         playSoundIfVolumeOn('river');
-//         // renderHands(handRanks['river']);
-//     }
-// };
-
-// socket.on('update-rank', (data) => {
-//     // TODO: update rank on front end
-//     renderBetsAndFields();
-//     // console.log(`hand rank update: ${data.handRankMessage}`)
-//     // renderHandRank(data.seat, data.handRankMessage);
-// });
-
-// renders a players hand. data is formatted like so:
-//{
-//  cards: ["4H","QD"],
-//  seat: 1,
-//  folded: false,
-//  handRankMessage: "High Card",
-// }
-// socket.on('render-hand', (data) => {
-//     console.log('rendering hand');
-//     console.log(data.cards, data.handRankMessage);
-//     renderBetsAndFields();
-//     // renderHand(data.seat, data.cards, data.folded);
-//     // renderHandRank(data.seat, data.handRankMessage);
-// });
-
-// updates stack when a bet is placed, for example
-// socket.on('update-stack', (data) => {
-//     // let hand = document.getElementById(data.seat);
-//     // hand.querySelector('.stack').innerHTML = data.stack;
-// });
-
-// const updatePot = (amount) => {
-//     if (amount) {
-//         $('#pot-amount').html(amount);
-//     } else {
-//         $('#pot-amount').empty();
-//     }
-// };
-//
-// // updates pot at beginning of each new street
-// socket.on('update-pot', (data) => {
-//    updatePot(data.amount);
-// });
 
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
@@ -1183,27 +1021,11 @@ socket.on('showdown', function (data) {
         // showWinnings(data[i].amount, data[i].seat);
     }
 });
-
-//if everyone is all in in the hand, turn over the cards
-// socket.on('turn-cards-all-in', function (data) {
-//     // console.log(data);
-//     feedback.innerHTML = '';
-//     renderHands(data);
-// });
-
 //folds-through
 socket.on('folds-through', function (data) {
     outputMessage(`${data.username} wins a pot of ${data.amount}`);
     // showWinnings(data.amount, data.seat);
 });
-
-// const clearEarnings = () => {
-//     $('.earnings').empty();
-//     $('.earnings').addClass('hidden');
-// };
-//
-// //remove earnings span from previous hand
-// socket.on('clear-earnings', clearEarnings);
 
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
@@ -1306,25 +1128,6 @@ const displayButtons = (data) => {
 
 const cleanInput = (input) => {
     return $('<div/>').text(input).html();
-};
-
-const getSuitSymbol = (input) => {
-    const suits = '♠︎ ♥︎ ♣︎ ♦︎'.split(' ');
-    const inputs = 'S H C D'.split(' ');
-    for (let i = 0; i < 4; i++){
-        if (inputs[i] == input) return suits[i];
-    }
-    return 'yikes';
-};
-
-const getColor = (input) => 'SC'.includes(input) ? 'black' : 'red';
-
-const flipCard = (name) => {
-    setTimeout(() => {
-        $(`#${name}`).find('.back-card').addClass('hidden');
-        $(`#${name}`).find('.card-topleft').removeClass('hidden');
-        $(`#${name}`).find('.card-bottomright').removeClass('hidden');
-    }, 250);
 };
 
 const alreadyExistingName = (playerName) => {
