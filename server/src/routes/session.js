@@ -72,6 +72,12 @@ const sessionManagers = new Map();
 const socket_ids = {};
 
 class SessionManager extends TableManager {
+    // io;
+    // sid;
+    // socketMap;
+    // timer;
+    // raceInProgress;
+    // raceSchedule;
     constructor(io, sid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) {
         let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
         super(table, hostName, hostStack, hostIsStraddling, playerid);
@@ -82,6 +88,8 @@ class SessionManager extends TableManager {
         this.kickedPlayers = {};
         this.timerDelay = -1;
         this.timer = null;
+        this.raceInProgress = false;
+        this.raceSchedule = null;
     }
 
     setSocketId(playerId, socketId) {
@@ -147,6 +155,8 @@ class SessionManager extends TableManager {
             table: table,
             gameInProgress: this.gameInProgress,
             player: p,
+            raceInProgress: this.raceInProgress,
+            raceSchedule: this.raceSchedule,
         });
     }
 
@@ -267,17 +277,18 @@ class SessionManager extends TableManager {
         }
     };
 
-    allInRace() {
+    async allInRace() {
         console.log("EVERYONE ALL IN BEFORE SHOWDOWN, TABLE THEM");
+        this.raceInProgress = true;
+        this.raceSchedule = {'flop': 0, 'turn': 0, 'river': 0};
         // TODO: a player doesn't have to show their cards if they were not the last person to raise
         let playersShowingCards = this.table.players.filter(p=>p.allIn || !p.folded || p.showingCards);
         for (let p of playersShowingCards) {
             p.showHand();
         }
         this.renderActionSeatAndPlayerActions();
-        // TODO: sendTableState should include hand rank messages
-        this.sendTableState(); // show players' cards
-        // let prevRound = super.getRoundName();
+        // this.sendTableState(); // show players' cards and hand rank messages
+        let prevRound = super.getRoundName();
         // let handRanks = {};
         // handRanks[prevRound] = playersShowingCards.map(p => {
         //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
@@ -288,26 +299,31 @@ class SessionManager extends TableManager {
         // this.io.sockets.to(this.sid).emit('turn-cards-all-in', playersShowingCards.map(p=>{
         //     return {seat: p.seat, cards: super.getCardsByPlayerName(p.playerName), handRankMessage: this.playerHandState(p.playerName).handRankMessage};
         // }));
-        this.io.sockets.to(this.sid).emit('update-pot', {
-            amount: super.getPot()
-        });
+        // this.io.sockets.to(this.sid).emit('update-pot', {
+        //     amount: super.getPot()
+        // });
 
+        let currentTime = Date.now();
+        let sleepTime = 0;
         while (super.getRoundName() !== 'showdown'){
             super.call(super.getNameByActionSeat());
-            // if (super.getRoundName() !== prevRound) {
-            //     prevRound = super.getRoundName();
-            //     handRanks[prevRound] = playersShowingCards.map(p => {
-            //         return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-            //     });
-            // }
+            if (super.getRoundName() !== prevRound && super.getRoundName() !== 'showdown') {
+                prevRound = super.getRoundName();
+                sleepTime += 2000;
+                this.raceSchedule[prevRound] = currentTime + sleepTime;
+                // handRanks[prevRound] = playersShowingCards.map(p => {
+                //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
+                // });
+            }
         }
         this.sendTableState();
-        this.io.sockets.to(this.sid).emit('render-all-in', {
-            street: super.getRoundName(),
-            board: super.getDeal(),
-            sound: true,
-            handRanks: null, // not a mistake. handRanks should not be used
-        });
+        if (sleepTime > 0) await sleep(sleepTime);
+        // this.io.sockets.to(this.sid).emit('render-all-in', {
+        //     street: super.getRoundName(),
+        //     board: super.getDeal(),
+        //     sound: true,
+        //     handRanks: null, // not a mistake. handRanks should not be used
+        // });
     }
 
     async handleEveryoneFolded(prev_round, data) {
@@ -338,10 +354,10 @@ class SessionManager extends TableManager {
 
         await sleep(3000);
         // update client's stack size
-        this.io.sockets.to(this.sid).emit('update-stack', {
-            seat: super.getPlayerSeat(data.winner.playerName),
-            stack: data.winner.chips + winnings
-        });
+        // this.io.sockets.to(this.sid).emit('update-stack', {
+        //     seat: super.getPlayerSeat(data.winner.playerName),
+        //     stack: data.winner.chips + winnings
+        // });
 
         // update stack on the server
         console.log(`Player has ${super.getStack(data.winner.playerName)}`);
@@ -389,21 +405,20 @@ class SessionManager extends TableManager {
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (super.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
             // TODO: ANYONE CAN REVEAL HAND HERE
-            let time = 500;
-            if (super.getRoundName() === 'flop'){
-                time = 4500;
-            }
-            else if (super.getRoundName() === 'turn'){
-                time = 3000;
-            }
-            this.allInRace();
-            await sleep(time);
+            // let time = 500;
+            // if (super.getRoundName() === 'flop'){
+            //     time = 4500;
+            // }
+            // else if (super.getRoundName() === 'turn'){
+            //     time = 3000;
+            // }
+            await this.allInRace();
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
             await this.handleEveryoneFolded(prev_round, data);
         } else if (prev_round !== super.getRoundName()) {
-            this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            this.updateAfterCardTurn(false);
+            // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
+            // this.updateAfterCardTurn(false);
         }
         this.sendTableState();
     }
@@ -411,28 +426,28 @@ class SessionManager extends TableManager {
     // updates the board and hand rank messages after turning a card.
     // if allInRace is true, sends each hand rank message to this.sid.
     // if allInRace is false, sends each hand rank message to the respective player.
-    updateAfterCardTurn(allInRace) {
-        this.io.sockets.to(this.sid).emit('render-board', {
-            street: super.getRoundName(),
-            board: super.getDeal(),
-            sound: true
-        });
-        // TODO: don't think we need to send update-rank is we call this.sendTableState
-        for (let i = 0; i < this.table.players.length; i++) {
-            const p = this.table.players[i];
-            const socketId = allInRace ? this.sid : this.getSocketId(this.getPlayerId(p.playerName));
-            this.io.sockets.to(socketId).emit('update-rank', {
-                seat: super.getPlayerSeat(p.playerName),
-                handRankMessage: this.playerHandState(p.playerName).handRankMessage,
-            });
-        }
-    }
+    // updateAfterCardTurn(allInRace) {
+    //     this.io.sockets.to(this.sid).emit('render-board', {
+    //         street: super.getRoundName(),
+    //         board: super.getDeal(),
+    //         sound: true
+    //     });
+    //     // TODO: don't think we need to send update-rank is we call this.sendTableState
+    //     for (let i = 0; i < this.table.players.length; i++) {
+    //         const p = this.table.players[i];
+    //         const socketId = allInRace ? this.sid : this.getSocketId(this.getPlayerId(p.playerName));
+    //         this.io.sockets.to(socketId).emit('update-rank', {
+    //             seat: super.getPlayerSeat(p.playerName),
+    //             handRankMessage: this.playerHandState(p.playerName).handRankMessage,
+    //         });
+    //     }
+    // }
 
-    resetAfterRound() {
-        this.sendTableState();
-        this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
-        this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-    }
+    // resetAfterRound() {
+    //     this.sendTableState();
+    //     this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
+    //     this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
+    // }
 
     startNextRoundOrWaitingForPlayers () {
         // start new round
@@ -440,7 +455,8 @@ class SessionManager extends TableManager {
         if (this.gameInProgress) {
             this.begin_round();
         } else {
-            this.resetAfterRound();
+            this.sendTableState();
+            // this.resetAfterRound();
             this.io.sockets.to(this.sid).emit('render-action-buttons', super.getAvailableActions());
             console.log('waiting for more players to rejoin!');
         }
@@ -449,7 +465,8 @@ class SessionManager extends TableManager {
     begin_round() {
         this.io.sockets.to(this.sid).emit('update-header-blinds', {bigBlind: this.table.bigBlind, smallBlind: this.table.smallBlind});
         // this.io.sockets.to(this.sid).emit('nobody-waiting', {});
-        this.resetAfterRound();
+        this.sendTableState();
+        // this.resetAfterRound();
         // let data = super.playersInfo();
         // for (let i = 0; i < data.length; i++) {
         //     let name = data[i].playerName;
@@ -715,12 +732,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             // render player's hand
             const playerName = s.getPlayerById(playerId);
             if (s.getPlayer(playerName).inHand) {
-                io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
-                    cards: s.getCardsByPlayerName(playerName),
-                    seat: s.getPlayerSeat(playerName),
-                    folded: s.hasPlayerFolded(playerName),
-                    handRankMessage: s.playerHandState(playerName).handRankMessage,
-                });
+                // io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
+                //     cards: s.getCardsByPlayerName(playerName),
+                //     seat: s.getPlayerSeat(playerName),
+                //     folded: s.hasPlayerFolded(playerName),
+                //     handRankMessage: s.playerHandState(playerName).handRankMessage,
+                // });
 
                 // highlight cards of player in action seat and get available buttons for players
                 s.renderActionSeatAndPlayerActions();
@@ -823,12 +840,13 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 return;
             }
             p.showHand();
-            io.sockets.to(sid).emit('render-hand', {
-                cards: s.getCardsByPlayerName(playerName),
-                seat: s.getPlayerSeat(playerName),
-                folded: s.hasPlayerFolded(playerName),
-                handRankMessage: s.playerHandState(playerName).handRankMessage,
-            });
+            s.sendTableState();
+            // io.sockets.to(sid).emit('render-hand', {
+            //     cards: s.getCardsByPlayerName(playerName),
+            //     seat: s.getPlayerSeat(playerName),
+            //     folded: s.hasPlayerFolded(playerName),
+            //     handRankMessage: s.playerHandState(playerName).handRankMessage,
+            // });
         });
 
         socket.on('get-buyin-info', () => {

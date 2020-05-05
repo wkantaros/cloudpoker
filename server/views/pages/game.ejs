@@ -23,51 +23,7 @@
             </div>
             <main class="container">
                 <div id="table-img">
-                    <div class="ovalparent">
-                        <div id="table">
-                            <div class="group-actions u-full-width">
-                                <div id="pot">
-                                    <div id="pot-amount">
-                                        <% if (pot) { %>
-                                            <%= pot %>
-                                        <% } %>
-                                    </div>
-                                </div>
-                                <div id="board">
-                                    <!-- <div id="deep-stack-poker">
-                                        DEEP STACK POKER
-                                    </div> -->
-                                    <div id="backdrop"></div>
-                                    <div id="cards">
-                                        <% let show = true %>
-                                        <% if (roundName == 'deal') { %>
-                                        <div id="flop" class="hidden">
-                                        <% } else { %>
-                                        <div id="flop">
-                                        <% } %>
-                                            <%- include('../partials/card'); %>
-                                            <%- include('../partials/card'); %>
-                                            <%- include('../partials/card'); %>
-                                        </div>
-                                        <% if (roundName == 'deal' || roundName == 'flop') { %>
-                                        <div id="turn" class="hidden">
-                                        <% } else { %>
-                                        <div id="turn">
-                                        <% } %>
-                                            <%- include('../partials/card'); %>
-                                        </div>
-                                        <% if (roundName == 'river' || roundName == 'showdown') { %>
-                                        <div id="river">
-                                        <% } else { %>
-                                        <div id="river" class="hidden">
-                                        <% } %>
-                                            <%- include('../partials/card'); %>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="table-sub-root"></div>
-                        </div>
+                    <div id="ovalparent">
                     </div>
                 </div>
             </main>

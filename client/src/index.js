@@ -9,7 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 // import './index.css';
 import * as serviceWorker from './serviceWorker';
-import TopState from "./components/topstate";
+import TopState, {Table} from "./components/topstate";
 // File imports for webpack
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
@@ -847,6 +847,9 @@ function setState(data) {
         tableState.player = transformPlayer(data.player);
     }
     tableState.gameInProgress = data.gameInProgress;
+    tableState.raceInProgress = data.raceInProgress;
+    tableState.raceSchedule = data.raceSchedule;
+
     renderBetsAndFields();
     if (tableState.gameInProgress && tableState.player) {
         renderStraddleOptions(true);
@@ -987,10 +990,10 @@ socket.on('sync-board', (data) => {
     if (data.logIn) {
         logIn(tableState.player.standingUp);
     }
-    console.log('syncing board', JSON.stringify(data));
-    hideBoardPreFlop();
-
-    dealStreet(data);
+    // console.log('syncing board', JSON.stringify(data));
+    // hideBoardPreFlop();
+    //
+    // dealStreet(data);
 
     // for (let i = 0; i < tableState.table.allPlayers.length; i++) {
     //     const p = tableState.table.allPlayers[i];
@@ -1010,72 +1013,72 @@ socket.on('sync-board', (data) => {
     // }
 });
 
-const dealStreet = (data) => {
-    if (data.street === 'deal') {
-        hideBoardPreFlop();
-        if (data.sound) playSoundIfVolumeOn('deal');
-        return;
-    }
-    showFlop(data.board);
-    if (data.street === 'flop') {
-        if (data.sound) playSoundIfVolumeOn('flop');
-        return;
-    }
-    showTurn(data.board);
-    if (data.street === 'turn') {
-        if (data.sound) playSoundIfVolumeOn('turn');
-        return;
-    }
-    showRiver(data.board);
-    if (data.sound) playSoundIfVolumeOn('river');
-};
+// const dealStreet = (data) => {
+//     if (data.street === 'deal') {
+//         hideBoardPreFlop();
+//         if (data.sound) playSoundIfVolumeOn('deal');
+//         return;
+//     }
+//     showFlop(data.board);
+//     if (data.street === 'flop') {
+//         if (data.sound) playSoundIfVolumeOn('flop');
+//         return;
+//     }
+//     showTurn(data.board);
+//     if (data.street === 'turn') {
+//         if (data.sound) playSoundIfVolumeOn('turn');
+//         return;
+//     }
+//     showRiver(data.board);
+//     if (data.sound) playSoundIfVolumeOn('river');
+// };
 
 // renders the board (flop, turn, river)
-socket.on('render-board', (data) => {
-    $('.pm-btn').removeClass('pm');
-    renderBetsAndFields();
-    dealStreet(data);
-});
+// socket.on('render-board', (data) => {
+//     $('.pm-btn').removeClass('pm');
+//     renderBetsAndFields();
+//     dealStreet(data);
+// });
 
 
 // renders the board (flop, turn, river)
 // data: {street: '', board: [], sound: boolean, handRanks: {'': [{seat: number, handRankMessage: ''},...]}}
-socket.on('render-all-in', (data) => {
-    $('.pm-btn').removeClass('pm');
-    renderBetsAndFields();
-    renderAllIn(data.board, data.handRanks);
-});
+// socket.on('render-all-in', (data) => {
+//     $('.pm-btn').removeClass('pm');
+//     renderBetsAndFields();
+//     renderAllIn(data.board, data.handRanks);
+// });
+//
+// // TODO: implement staggered street showing with React
+// const renderAllIn = (board, handRanks) => {
+//     console.log(board);
+//     if ($('#flop').hasClass('hidden')) {
+//         showFlop(board);
+//         playSoundIfVolumeOn('flop');
+//         // renderHands(handRanks['flop']);
+//         setTimeout(() => {
+//             renderAllIn(board, handRanks);
+//         }, 1200);
+//     } else if ($('#turn').hasClass('hidden')) {
+//         showTurn(board);
+//         playSoundIfVolumeOn('turn');
+//         // renderHands(handRanks['turn']);
+//         setTimeout(() => {
+//             renderAllIn(board, handRanks);
+//         }, 1800);
+//     } else {
+//         showRiver(board);
+//         playSoundIfVolumeOn('river');
+//         // renderHands(handRanks['river']);
+//     }
+// };
 
-// TODO: implement staggered street showing with React
-const renderAllIn = (board, handRanks) => {
-    console.log(board);
-    if ($('#flop').hasClass('hidden')) {
-        showFlop(board);
-        playSoundIfVolumeOn('flop');
-        // renderHands(handRanks['flop']);
-        setTimeout(() => {
-            renderAllIn(board, handRanks);
-        }, 1200);
-    } else if ($('#turn').hasClass('hidden')) {
-        showTurn(board);
-        playSoundIfVolumeOn('turn');
-        // renderHands(handRanks['turn']);
-        setTimeout(() => {
-            renderAllIn(board, handRanks);
-        }, 1800);
-    } else {
-        showRiver(board);
-        playSoundIfVolumeOn('river');
-        // renderHands(handRanks['river']);
-    }
-};
-
-socket.on('update-rank', (data) => {
-    // TODO: update rank on front end
-    renderBetsAndFields();
-    // console.log(`hand rank update: ${data.handRankMessage}`)
-    // renderHandRank(data.seat, data.handRankMessage);
-});
+// socket.on('update-rank', (data) => {
+//     // TODO: update rank on front end
+//     renderBetsAndFields();
+//     // console.log(`hand rank update: ${data.handRankMessage}`)
+//     // renderHandRank(data.seat, data.handRankMessage);
+// });
 
 // renders a players hand. data is formatted like so:
 //{
@@ -1084,32 +1087,32 @@ socket.on('update-rank', (data) => {
 //  folded: false,
 //  handRankMessage: "High Card",
 // }
-socket.on('render-hand', (data) => {
-    console.log('rendering hand');
-    console.log(data.cards, data.handRankMessage);
-    renderBetsAndFields();
-    // renderHand(data.seat, data.cards, data.folded);
-    // renderHandRank(data.seat, data.handRankMessage);
-});
+// socket.on('render-hand', (data) => {
+//     console.log('rendering hand');
+//     console.log(data.cards, data.handRankMessage);
+//     renderBetsAndFields();
+//     // renderHand(data.seat, data.cards, data.folded);
+//     // renderHandRank(data.seat, data.handRankMessage);
+// });
 
 // updates stack when a bet is placed, for example
-socket.on('update-stack', (data) => {
-    // let hand = document.getElementById(data.seat);
-    // hand.querySelector('.stack').innerHTML = data.stack;
-});
+// socket.on('update-stack', (data) => {
+//     // let hand = document.getElementById(data.seat);
+//     // hand.querySelector('.stack').innerHTML = data.stack;
+// });
 
-const updatePot = (amount) => {
-    if (amount) {
-        $('#pot-amount').html(amount);
-    } else {
-        $('#pot-amount').empty();
-    }
-};
-
-// updates pot at beginning of each new street
-socket.on('update-pot', (data) => {
-   updatePot(data.amount);
-});
+// const updatePot = (amount) => {
+//     if (amount) {
+//         $('#pot-amount').html(amount);
+//     } else {
+//         $('#pot-amount').empty();
+//     }
+// };
+//
+// // updates pot at beginning of each new street
+// socket.on('update-pot', (data) => {
+//    updatePot(data.amount);
+// });
 
 // start game (change all cards to red)
 socket.on('start-game', (data) => {
@@ -1193,13 +1196,13 @@ socket.on('folds-through', function (data) {
     // showWinnings(data.amount, data.seat);
 });
 
-const clearEarnings = () => {
-    $('.earnings').empty();
-    $('.earnings').addClass('hidden');
-};
-
-//remove earnings span from previous hand
-socket.on('clear-earnings', clearEarnings);
+// const clearEarnings = () => {
+//     $('.earnings').empty();
+//     $('.earnings').addClass('hidden');
+// };
+//
+// //remove earnings span from previous hand
+// socket.on('clear-earnings', clearEarnings);
 
 // user's action (alert with sound)
 socket.on('players-action-sound', function(data){
@@ -1292,7 +1295,7 @@ const displayButtons = (data) => {
             $(`#${key}`).addClass('collapse');
         }
     }
-    console.log('checked for premove', premove);
+    // console.log('checked for premove', premove);
     if (premove) {
         setTimeout(() => {
             $(`${premove}`).click();
@@ -1362,12 +1365,13 @@ const getPotSize = () => {
 };
 
 function renderBetsAndFields() {
-    const ovalParent = $('.ovalparent');
+    const ovalParent = $('#ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />
+            <Table socket={socket} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()}/>
+            {/*<TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />*/}
         </React.StrictMode>
-    ), document.getElementById('table-sub-root'));
+    ), document.getElementById('ovalparent'));
 }
 $(window).resize(function () {
     // createHands();
