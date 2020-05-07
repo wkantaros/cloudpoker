@@ -3,11 +3,14 @@ const path = require('path');
 const SRC = path.resolve(__dirname, 'src/audio');
 
 module.exports = {
-    entry: './src/index.js',
+    entry: {
+        login: './src/login.js',
+        game: './src/index.js',
+    },
     // login: './src/login.js',
     // game: './src/index.js',
     output: {
-        filename: 'main.js',
+        filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
     resolve: {
@@ -37,11 +40,22 @@ module.exports = {
                  ],
            },
             {
-                test: /\.(png|svg|jpg|gif)$/,
+                test: /\.(png|svg|jpg|gif)$/i,
                 use: [
-                    'file-loader',
+                    {
+                        loader: 'url-loader',
+                        options: {
+                            limit: 8192,
+                        },
+                    },
                 ],
-           },
+            },
+           //  {
+           //      test: /\.(png|svg|jpg|gif)$/,
+           //      use: [
+           //          'file-loader',
+           //      ],
+           // },
             {
                 test: /\.(wav|ogg)$/,
                 include: SRC,
@@ -58,6 +72,13 @@ module.exports = {
                     'exports-loader?window.createjs'
                 ],
             },
+            // load fonts
+            {
+                test: /\.(woff|woff2|eot|ttf|otf)$/,
+                use: [
+                    'file-loader',
+                ],
+           },
         ]
     }
 };

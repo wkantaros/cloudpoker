@@ -177,7 +177,7 @@ h3 {
 }
 
 #table-img {
-    background-image: url("/public/img/table.png");
+    background-image: url("/client/src/img/table.png");
     background-size: 93% 100%;
     background-position: 37.5% 0px;
     background-repeat: no-repeat;

@@ -160,12 +160,14 @@ class SessionManager extends TableManager {
     sendTableStateTo(socketId, playerName) {
         let table = this.table.getPublicInfo();
 
-        const p = this.table.getPlayer(playerName);
+        let p = this.table.getPlayer(playerName);
         if (p) {
             table = Object.assign({}, table); // shallow copy
             table.allPlayers = Array.from(table.allPlayers); // shallow copy
+            p = Object.assign({}, p);
+            delete p.hand; // hacky
+            p = this.table.extraPlayerInfo(p);
             Object.assign(table.allPlayers[p.seat], p);
-            delete table.allPlayers[p.seat].hand; // hacky
         }
 
         this.io.sockets.to(socketId).emit('state-snapshot', {

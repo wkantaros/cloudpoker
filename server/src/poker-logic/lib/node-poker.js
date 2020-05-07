@@ -508,6 +508,7 @@ function turnCards(table, count) {
     }
     for (let i = 0; i < table.players.length; i += 1) {
         table.players[i].talked = false;
+        table.players[i].checked = false;
         table.players[i].bet = 0;
     }
     // table.eventEmitter.emit( "deal" );

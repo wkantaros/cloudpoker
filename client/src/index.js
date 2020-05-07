@@ -2,6 +2,7 @@ import {TableState, Player, GameState}  from './table-state';
 import $ from 'jquery';
 import 'jquery-ui/ui/widgets/resizable';
 import createjs from 'createjs';
+import './css/loadfonts.css';
 import './css/stylesheet.css'
 import './css/card.css'
 import io from 'socket.io-client';
@@ -14,15 +15,15 @@ import Table from "./components/table";
 import VolumeIcon from "./img/volume.svg";
 import MuteIcon from "./img/mute.svg";
 import ActionSound from './audio/action.ogg';
-import CardPLaceSound from './audio/cardPlace1.wav';
+import CardPlaceSound from './audio/cardPlace1.wav';
 import CheckSound from './audio/check.wav';
 import ChipsStackSound from './audio/chipsStack4.wav';
-import DealSOund from './audio/deal.wav';
+import DealSound from './audio/deal.wav';
 import FlopSound from './audio/flop.wav';
-import FOldsound from './audio/fold1.wav';
-// import './audio/fold2.wav';
-// import './audio/river.wav';
+import FoldSound from './audio/fold1.wav';
 import TurnSound from './audio/turn.wav';
+// import './audio/fold2.wav';
+// import RiverSound from './audio/river.wav';
 
 let socket = io();
 
@@ -1033,15 +1034,14 @@ socket.on('alert', function(data) {
 
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
-    console.log(__dirname);
-    createjs.Sound.registerSound('../client/src/audio/fold1.wav', 'fold');
-    createjs.Sound.registerSound('../client/src/audio/deal.wav', 'deal');
-    createjs.Sound.registerSound('../client/src/audio/check.wav', 'check');
-    createjs.Sound.registerSound('../client/src/audio/chipsStack4.wav', 'bet');
-    createjs.Sound.registerSound('../client/src/audio/flop.wav', 'flop');
-    createjs.Sound.registerSound('../client/src/audio/turn.wav', 'turn');
-    createjs.Sound.registerSound('../client/src/audio/cardPlace1.wav', 'river');
-    createjs.Sound.registerSound('../client/src/audio/action.ogg', 'action');
+    createjs.Sound.registerSound('/client/dist/' + FoldSound, 'fold');
+    createjs.Sound.registerSound('/client/dist/' + DealSound, 'deal');
+    createjs.Sound.registerSound('/client/dist/' + CheckSound, 'check');
+    createjs.Sound.registerSound('/client/dist/' + ChipsStackSound, 'bet');
+    createjs.Sound.registerSound('/client/dist/' + FlopSound, 'flop');
+    createjs.Sound.registerSound('/client/dist/' + TurnSound, 'turn');
+    createjs.Sound.registerSound('/client/dist/' + CardPlaceSound, 'river');
+    createjs.Sound.registerSound('/client/dist/' + ActionSound, 'action');
     createjs.Sound.volume = 0.25;
 };
 loadSounds();
@@ -1167,7 +1167,7 @@ function renderBetsAndFields() {
     const ovalParent = $('#ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <Table socket={socket} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={Math.round(0.5 * ovalParent.width())}/>
+            <Table socket={socket} volumeOn={isVolumeOn()} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={Math.round(0.5 * ovalParent.width())}/>
             {/*<TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />*/}
         </React.StrictMode>
     ), document.getElementById('ovalparent'));

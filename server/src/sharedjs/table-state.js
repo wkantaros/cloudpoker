@@ -285,6 +285,7 @@ export class Player {
     constructor(playerName, chips, isStraddling, seat, isMod) {
         this.playerName = playerName;
         this.chips = chips;
+        this.checked = false;
         this.folded = false;
         this.allIn = false;
         this.talked = false;
@@ -308,6 +309,7 @@ export class Player {
 
     // Clear data from the previous hand.
     clearHandState() {
+        this.checked = false;
         this.bet = 0;
         this.folded = false;
         this.talked = false;
@@ -335,6 +337,7 @@ export class Player {
             isMod: this.isMod,
             cards: this.showingCards? this.cards : [],
             showingCards: this.showingCards,
+            checked: this.checked,
         }
     }
 
@@ -363,6 +366,7 @@ export class Player {
     };
 
     applyBet(bet) {
+        if (bet === 0) this.checked = true
         this.chips -= bet;
         this.bet += bet;
         this.talked = true;

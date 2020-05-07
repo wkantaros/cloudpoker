@@ -28,8 +28,8 @@ export function getFieldList({raceInProgress, allPlayers, tableWidth, tableHeigh
 }
 
 
-export default function Table({table, player, gameInProgress, raceInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
-    const playerBets = table.allPlayers.map(p=>p===null ?0:p.bet);
+export default function Table({volumeOn, table, player, gameInProgress, raceInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
+    const playerBets = table.allPlayers.map(p=>p===null ?0:p.checked? 'check': p.bet);
     return (
         <div id="table">
             {/*render pot and board*/}
@@ -38,7 +38,7 @@ export default function Table({table, player, gameInProgress, raceInProgress, be
                 <Pot potAmount={table.game ? table.game.pot : null}/>
                 {/* render the board (cards) */}
                 <Board>
-                    <BoardCards board={table.game? table.game.board : []}/>
+                    <BoardCards volumeOn={volumeOn} board={table.game? table.game.board : []}/>
                 </Board>
             </div>
 
