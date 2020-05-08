@@ -527,10 +527,8 @@ class SessionManager extends TableManager {
     renderActionSeatAndPlayerActions() {
         // get available actions for player to act
         // TODO: allow players to premove
-        for (let playerName in this.playerids) {
-            if (this.playerids.hasOwnProperty(playerName)) {
-                this.io.sockets.to(this.getSocketId(this.playerids[playerName].playerid)).emit('render-action-buttons', super.getAvailableActions(playerName));
-            }
+        for (const p of this.table.allPlayers.filter(p=>p!==null)) {
+            this.io.sockets.to(this.getSocketId(this.getPlayerId(p.playerName))).emit('render-action-buttons', super.getAvailableActions(p.playerName));
         }
     }
 
@@ -646,9 +644,9 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
 
     let playerId = playerIdFromRequest(req);
 
-    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(playerId));
+    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(playerId), 'is seated', s.isSeatedPlayerId(playerId));
     // isActivePlayerId is false if the player previously quit the game
-    const isNewPlayer = (playerId === undefined) || !s.isActivePlayerId(playerId);
+    const isNewPlayer = (playerId === undefined) || !s.isSeatedPlayerId(playerId);
     console.log('inp', isNewPlayer);
     if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
@@ -666,12 +664,12 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         dealer: s.getDealerSeat(),
         color: 'black',
         showCards: false,
-        joinedGame: s.isActivePlayerId(playerId),
+        joinedGame: s.isSeatedPlayerId(playerId),
         waiting: !s.gameInProgress,
         pot: s.getPot(),
         roundName: s.getRoundName(),
         callAmount: s.maxBet,
-        standingUp: s.isActivePlayerId(playerId) && s.isPlayerStandingUp(s.getPlayerById(playerId)), // todo soon
+        standingUp: s.isSeatedPlayerId(playerId) && s.isPlayerStandingUp(s.getPlayerById(playerId)), // todo soon
     });
 
     // hacky
@@ -736,8 +734,8 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
 
         s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
 
-        const isActivePlayerIdValidator = function(value) {
-            if (!s.isActivePlayerId(playerId)) throw new Error('inactive player id');
+        const isSeatedPlayerIdValidator = function(value) {
+            if (!s.isSeatedPlayerId(playerId)) throw new Error('inactive player id');
             return value;
         }
         const isModValidator = function(value) {
@@ -799,7 +797,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
 
         const straddleSwitchSchema = Joi.object({
             isStraddling: Joi.boolean().required()
-        }).external(isActivePlayerIdValidator);
+        }).external(isSeatedPlayerIdValidator);
         socket.on('straddle-switch', asyncSchemaValidator(straddleSwitchSchema, (data) => {
             s.setPlayerStraddling(playerId, data.isStraddling);
             s.sendTableState();
@@ -815,7 +813,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         }));
 
         socket.on('leave-game', async (data) => {
-            if (!s.isActivePlayerId(playerId)) {
+            if (!s.isSeatedPlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
                 return;
             }
@@ -823,7 +821,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('stand-up', () => {
-            if (!s.isActivePlayerId(playerId)) {
+            if (!s.isSeatedPlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted stand-up but is not an active player`);
                 return;
             }
@@ -831,7 +829,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('sit-down', () => {
-            if (!s.isActivePlayerId(playerId)) {
+            if (!s.isSeatedPlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted sit-down but is not an active player`);
                 return;
             }
@@ -861,7 +859,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         socket.on('show-hand', () => {
-            if (!s.isActivePlayerId(playerId)) {
+            if (!s.isSeatedPlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted show-hand but is not an active player`);
                 return;
             }
@@ -887,7 +885,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         const actionSchema = Joi.object({
             action: Joi.string().min(1).required(),
             amount: Joi.number()
-        }).external(isActivePlayerIdValidator);
+        }).external(isSeatedPlayerIdValidator);
         socket.on('action', asyncSchemaValidator(actionSchema, async (data) => {
             // console.log(`data:\n${JSON.stringify(data)}`);
             let playerName = s.getPlayerById(playerId);

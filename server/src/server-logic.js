@@ -176,6 +176,7 @@ export class TableManager extends TableStateManager {
         this.hostStack = hostStack;
         this.trackBuyins = [];
         this.playerids = {};
+        this.modIds = [];
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
         table.getPlayer(hostName).isMod = true;
         this.addToPlayerIds(hostName, playerid);
@@ -354,6 +355,9 @@ export class TableManager extends TableStateManager {
 
     isActivePlayerId(playerid) {
         return Object.values(this.playerids).map(x => x.playerid).includes(playerid);
+    }
+    isSeatedPlayerId(playerid) {
+        return this.table.allPlayers.filter(p=>p!==null).map(p=>p.playerName).includes(this.getPlayerById(playerid));
     }
 
     getPlayerById(pid) {
@@ -588,7 +592,7 @@ export class TableManager extends TableStateManager {
         while(this.playerStacksNextHand.length > 0){
             let playerName = this.playerStacksNextHand[0].name;
             let playerStack = this.playerStacksNextHand[0].stack;
-            if (this.isActivePlayerId(this.getPlayerId(playerName))){
+            if (this.getPlayer(playerName)){
                 let curAmount = this.getPlayer(playerName).chips;
                 let change = playerStack - curAmount;
                 this.updateStackBuyIn(playerName, playerStack, change);
