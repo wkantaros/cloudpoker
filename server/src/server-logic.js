@@ -268,7 +268,8 @@ export class TableManager extends TableStateManager {
             console.log(`${playerName} buys in for ${stack}`);
             if (this.hostName === null){
                 console.log(`transferring host to ${playerName} (pid: ${playerid})`);
-                this.transferHost(playerName);
+                // this.transferHost(playerName);
+                this.setHost(playerName);
                 this.hostStack = stack;
             }
             return true;
@@ -297,31 +298,36 @@ export class TableManager extends TableStateManager {
 
     removePlayer(playerName) {
         this.table.removePlayer(playerName);
+        if (!this.playerids[playerName]) return;
+        let removedPlayerId = this.playerids[playerName].playerid;
+        const removingMod = this.isModPlayerId(removedPlayerId);
         delete this.playerids[playerName];
-        if (playerName === this.hostName){
-            // transfer host name / abilities to next player
-            this.transferHost('');
+        if (removingMod) {
+            const ind = this.modIds.findIndex(pid=>pid===removedPlayerId);
+            this.modIds.splice(ind, 1);
+            if (this.modIds.length === 0) {
+                // transfer host name / abilities to next player
+                this.transferHostToNextPlayer();
+            }
+        }
+    }
+
+    transferHostToNextPlayer() {
+        if (Object.values(this.playerids).length > 0) {
+            this.modIds.push(Object.values(this.playerids)[0].playerid);
         }
     }
 
     transferHost(newHostName) {
-        const previousHost = this.getPlayer(this.hostName);
-        if (previousHost !== null) {
-            previousHost.isMod = false;
+        for (let p of this.table.allPlayers) {
+            if (!p)continue;
+            p.isMod = false;
         }
-        if (newHostName in this.playerids){
-            this.setHost(newHostName);
-            console.log('successfully transferred host to ' + newHostName);
+        this.modIds.splice(0, this.modIds.length);
+        if (newHostName in this.playerids) {
+            this.modIds.push(this.playerids[newHostName].playerid);
+            if (this.getPlayer(newHostName)) this.getPlayer(newHostName).isMod = true;
             return true;
-        } else if (Object.keys(this.playerids).length > 0) {
-            const playerName = Object.keys(this.playerids)[0];
-            this.setHost(playerName);
-            console.log('transferred host to ' + playerName);
-            return true;
-        } else {
-            this.hostName = null;
-            this.hostStack = null;
-            console.log('no player to transfer game to :(');
         }
         return false;
     }
@@ -349,8 +355,9 @@ export class TableManager extends TableStateManager {
     }
 
     isModPlayerId (pid) {
-        if (this.hostName === null) return false;
-        return this.getPlayerId(this.hostName) === pid;
+        return this.modIds.includes(pid);
+        // if (this.hostName === null) return false;
+        // return this.getPlayerId(this.hostName) === pid;
     }
 
     isActivePlayerId(playerid) {
