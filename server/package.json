@@ -4,7 +4,7 @@
   "description": "server for poker games",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \\\"Error: no src/test specified\\\" && exit 1",
+    "test": "echo \\\"Error: no src/test specified\\\" && exit 1"
   },
   "author": "fish",
   "license": "ISC",
