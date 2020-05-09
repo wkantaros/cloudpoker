@@ -446,9 +446,14 @@ function checkForBankrupt(table) {
     }
 }
 
-function Hand(cards) {
-    this.cards = cards;
+class Hand {
+    constructor(cards) {
+        this.cards = cards;
+    }
 }
+// const Hand = function(cards) {
+//     this.cards = cards;
+// }
 
 function progress(table) {
     // table.eventEmitter.emit( "turn" );

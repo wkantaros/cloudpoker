@@ -1,4 +1,4 @@
-module.exports.fillDeck = function (deck) {
+function fillDeck(deck) {
     deck.push('AS');
     deck.push('KS');
     deck.push('QS');
@@ -62,8 +62,8 @@ module.exports.fillDeck = function (deck) {
         deck[j] = tempi;
     }
 }
-
-module.exports.rankKickers = function(ranks, noOfCards) {
+module.exports.fillDeck = fillDeck;
+function rankKickers(ranks, noOfCards) {
     var i, kickerRank, myRanks, rank;
 
     kickerRank = 0.0000;
@@ -96,8 +96,9 @@ module.exports.rankKickers = function(ranks, noOfCards) {
 
     return kickerRank;
 }
+module.exports.rankKickers = rankKickers;
 
-module.exports.rankHandInt = function(hand) {
+function rankHandInt(hand) {
     var rank, message, handRanks, handSuits, ranks, suits, cards, result, i;
 
     rank = 0.0000;
@@ -493,16 +494,16 @@ module.exports.rankHandInt = function(hand) {
 
     return result;
 }
+module.exports.rankHandInt = rankHandInt;
 
-
-module.exports.rankHand = function(hand) {
+function rankHand(hand) {
     var myResult = rankHandInt(hand);
     hand.rank = myResult.rank;
     hand.message = myResult.message;
 
     return hand;
 }
-
+module.exports.rankHand = rankHand;
 function sortNumber(a, b) {
     return b - a;
 }
