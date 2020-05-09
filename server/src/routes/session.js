@@ -7,17 +7,10 @@ router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
-import {TableManager} from '../server-logic';
-import {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} from '../persistent';
-import {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} from '../funcs';
-import * as poker from '../poker-logic/lib/node-poker';
-// import (.*) from (\S*);
-// const $1 = require($2);
-//
-// const {TableManager} = require('../server-logic');
-// const {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} = require('../persistent');
-// const {asyncErrorHandler, sleep, asyncSchemaValidator} = require('../funcs');
-// const poker = require('../../poker-logic/lib/node-poker');
+const {TableManager} = require('../server-logic');
+const {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} = require('../persistent');
+const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require('../funcs');
+const poker = require('../poker-logic/lib/node-poker');
 
 const validateTableName = (val) => {
     if (!val || val.length === 0) return val;

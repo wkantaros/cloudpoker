@@ -1,6 +1,6 @@
-import {Hand, rankHandInt} from "../poker-logic";
+const {Hand, rankHandInt} = require("../poker-logic");
 
-export class TableState {
+class TableState {
     /**
      *
      * @param {number} smallBlind
@@ -274,7 +274,7 @@ export class TableState {
     };
 }
 
-export class Player {
+class Player {
     /**
      * Constructs a Player object for use with Table.
      * @param playerName Name of the player as it should appear on the front end
@@ -404,7 +404,7 @@ export class Player {
     };
 }
 
-export class GameState {
+class GameState {
     constructor(smallBlind, bigBlind) {
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
@@ -431,3 +431,7 @@ export class GameState {
         }
     }
 }
+
+module.exports.Player = Player;
+module.exports.TableState = TableState;
+module.exports.GameState = GameState;

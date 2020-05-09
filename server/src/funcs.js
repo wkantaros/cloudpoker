@@ -1,4 +1,4 @@
-export function asyncErrorHandler(f) {
+module.exports.asyncErrorHandler = function(f) {
     return async function(req, res, next) {
         try {
             await f(req, res, next);
@@ -8,11 +8,11 @@ export function asyncErrorHandler(f) {
     }
 }
 
-export function sleep(ms) {
+module.exports.sleep = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function asyncSchemaValidator(schema, asyncCallback) {
+module.exports.asyncSchemaValidator = function(schema, asyncCallback) {
     return async function(data) {
         console.log(data);
         let value;

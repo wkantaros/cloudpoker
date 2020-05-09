@@ -1,6 +1,6 @@
 // var events = require('events');
-import {fillDeck, rankHandInt, rankHand} from './deck';
-import {TableState, Player, GameState} from '../../sharedjs';
+const {fillDeck, rankHandInt, rankHand} = require('./deck');
+const {TableState, Player, GameState} = require('../../sharedjs');
 
 //Note: methods I've changed/created have been commented: EDITED
 
@@ -11,7 +11,7 @@ import {TableState, Player, GameState} from '../../sharedjs';
 // 1 < x <= players.length - 2: x players can straddle. if x == players.length -2,
 //      the same behavior as -1 occurs.
 // x > players.length - 2: same behavior as -1 occurs.
-export class Table extends TableState{
+class Table extends TableState{
     constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit) {
         let allPlayers = [];
         for (let i = 0; i < maxPlayers; i++) {
@@ -446,7 +446,7 @@ function checkForBankrupt(table) {
     }
 }
 
-export function Hand(cards) {
+function Hand(cards) {
     this.cards = cards;
 }
 
@@ -546,3 +546,6 @@ function rankHands(hands) {
 
     return hands;
 }
+
+module.exports.Table = Table;
+module.exports.Hand = Hand;

@@ -1,2 +1,2 @@
-export * from './lib/deck';
-export * from './lib/node-poker';
+module.exports = require('./lib/deck');
+Object.assign(module.exports, require('./lib/node-poker'));
