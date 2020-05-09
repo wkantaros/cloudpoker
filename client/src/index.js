@@ -22,6 +22,7 @@ import DealSound from './audio/deal.wav';
 import FlopSound from './audio/flop.wav';
 import FoldSound from './audio/fold1.wav';
 import TurnSound from './audio/turn.wav';
+import TableImage from "./components/tableimage";
 // import './audio/fold2.wav';
 // import RiverSound from './audio/river.wav';
 
@@ -1163,12 +1164,30 @@ const getPotSize = () => {
     return tableState.table.game.pot + tableState.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0;
 };
 
+ReactDOM.render((
+    <React.StrictMode>
+        <TableImage>
+            <div id="ovalparent">
+            </div>
+        </TableImage>
+    </React.StrictMode>
+), document.getElementById('table-img-root'));
+
 function renderBetsAndFields() {
-    const ovalParent = $('#ovalparent');
+    // const ovalParent = $('#ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <Table socket={socket} volumeOn={isVolumeOn()} raceInProgress={tableState.raceInProgress} raceSchedule={tableState.raceSchedule} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={Math.round(0.5 * ovalParent.width())}/>
-            {/*<TopState socket={socket} table={tableState.table} player={tableState.player} gameInProgress={tableState.gameInProgress} betWidth={60} betHeight={35} tableWidth={ovalParent.width()} tableHeight={ovalParent.height()} />*/}
+            <Table socket={socket}
+                   volumeOn={isVolumeOn()}
+                   raceInProgress={tableState.raceInProgress}
+                   raceSchedule={tableState.raceSchedule}
+                   table={tableState.table}
+                   player={tableState.player}
+                   gameInProgress={tableState.gameInProgress}
+                   betWidth={60}
+                   betHeight={35}
+                   tableWidth={$('#ovalparent').width()}
+                   tableHeight={Math.floor($('#ovalparent').width()/2)}/>
         </React.StrictMode>
     ), document.getElementById('ovalparent'));
 }
