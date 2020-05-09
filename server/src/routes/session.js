@@ -447,32 +447,6 @@ class SessionManager extends TableManager {
         this.sendTableState();
     }
 
-    // updates the board and hand rank messages after turning a card.
-    // if allInRace is true, sends each hand rank message to this.sid.
-    // if allInRace is false, sends each hand rank message to the respective player.
-    // updateAfterCardTurn(allInRace) {
-    //     this.io.sockets.to(this.sid).emit('render-board', {
-    //         street: super.getRoundName(),
-    //         board: super.getDeal(),
-    //         sound: true
-    //     });
-    //     // TODO: don't think we need to send update-rank is we call this.sendTableState
-    //     for (let i = 0; i < this.table.players.length; i++) {
-    //         const p = this.table.players[i];
-    //         const socketId = allInRace ? this.sid : this.getSocketId(this.getPlayerId(p.playerName));
-    //         this.io.sockets.to(socketId).emit('update-rank', {
-    //             seat: super.getPlayerSeat(p.playerName),
-    //             handRankMessage: this.playerHandState(p.playerName).handRankMessage,
-    //         });
-    //     }
-    // }
-
-    // resetAfterRound() {
-    //     this.sendTableState();
-    //     this.io.sockets.to(this.sid).emit('render-board', {street: 'deal', sound: this.gameInProgress});
-    //     this.io.sockets.to(this.sid).emit('update-pot', {amount: 0});
-    // }
-
     startNextRoundOrWaitingForPlayers () {
         // start new round
         super.startRound();
