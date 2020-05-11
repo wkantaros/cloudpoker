@@ -397,11 +397,14 @@ class SessionManager extends TableManager {
 
         // SHOWDOWN CASE
         if (super.getRoundName() === 'showdown') {
+            let winners = this.getWinners();
+            for (let winnerInfo of winners) {
+                this.getPlayer(winnerInfo.playerName).showHand();
+            }
             this.sendTableState();
             // TODO: ANYONE CAN REVEAL HAND HERE
             this.renderActionSeatAndPlayerActions();
             // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            let winners = this.getWinners();
             console.log('winners');
             console.log('LOSERS');
             let losers = super.getLosers();
