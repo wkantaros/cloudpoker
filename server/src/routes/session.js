@@ -182,7 +182,7 @@ class SessionManager extends TableManager {
             playerName: playerName,
             stack: newPlayer.chips,
         });
-        this.renderActionSeatAndPlayerActions();
+        // this.renderActionSeatAndPlayerActions();
     }
 
     async kickPlayer(playerId) {
@@ -204,7 +204,7 @@ class SessionManager extends TableManager {
         // check if round has ended
         await this.check_round(prev_round);
         // this.sendTableState();
-        this.renderActionSeatAndPlayerActions();
+        // this.renderActionSeatAndPlayerActions();
         // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.io.sockets.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
@@ -215,7 +215,7 @@ class SessionManager extends TableManager {
         this.sendTableState();
         // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
         this.io.sockets.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
-        this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
+        // this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
     }
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
@@ -224,7 +224,7 @@ class SessionManager extends TableManager {
         if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
             this.handlePlayerExit(playerName);
             // highlight cards of player in action seat and get available buttons for players
-            this.renderActionSeatAndPlayerActions();
+            // this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
         } else {
             let stack = super.getStack(playerName);
@@ -239,8 +239,10 @@ class SessionManager extends TableManager {
                 console.log('ACTION ON ALL IN PLAYER 123');
             } else {
                 // highlight cards of player in action seat and get available buttons for players
-                this.renderActionSeatAndPlayerActions();
+                // console.log('possibly need to manually tell client to update actions here');
+                // this.renderActionSeatAndPlayerActions();
             }
+            this.sendTableState();
 
             this.handlePlayerExit(playerName);
             await sleep(250);
@@ -300,7 +302,7 @@ class SessionManager extends TableManager {
         for (let p of playersShowingCards) {
             p.showHand();
         }
-        this.renderActionSeatAndPlayerActions();
+        // this.renderActionSeatAndPlayerActions();
         this.sendTableState(); // show players' cards and hand rank messages
         let prevRound = super.getRoundName();
         // let handRanks = {};
@@ -350,7 +352,8 @@ class SessionManager extends TableManager {
 
     async handleEveryoneFolded(prev_round, data) {
         // TODO: ANYONE CAN REVEAL HAND HERE
-        this.renderActionSeatAndPlayerActions();
+        this.sendTableState();
+        // this.renderActionSeatAndPlayerActions();
         console.log(prev_round);
         // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
         let winnings = super.getWinnings(prev_round);
@@ -403,7 +406,7 @@ class SessionManager extends TableManager {
             }
             this.sendTableState();
             // TODO: ANYONE CAN REVEAL HAND HERE
-            this.renderActionSeatAndPlayerActions();
+            // this.renderActionSeatAndPlayerActions();
             // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
             console.log('winners');
             console.log('LOSERS');
@@ -441,7 +444,6 @@ class SessionManager extends TableManager {
             await this.allInRace();
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
-            this.sendTableState();
             await this.handleEveryoneFolded(prev_round, data);
         } else if (prev_round !== super.getRoundName()) {
             // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
@@ -489,7 +491,7 @@ class SessionManager extends TableManager {
         //
         // }
         // highlight cards of player in action seat and get available buttons for players
-        this.renderActionSeatAndPlayerActions();
+        // this.renderActionSeatAndPlayerActions();
         // abstracting this to be able to work with bomb pots/straddles down the line
         this.io.sockets.to(this.getSocketId(super.getPlayerId(super.getNameByActionSeat()))).emit('players-action-sound', {});
     }
@@ -522,8 +524,8 @@ class SessionManager extends TableManager {
 
             await sleep(250);
             // check if round has ended
-            if (!everyoneFolded)
-                this.renderActionSeatAndPlayerActions();
+            // if (!everyoneFolded)
+            //     this.renderActionSeatAndPlayerActions();
 
             await sleep(250);
             // notify player its their action with sound
@@ -685,7 +687,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         }
         // io.sockets.to(sid).emit('render-players', s.playersInfo());
         // highlight cards of player in action seat and get available buttons for players
-        s.renderActionSeatAndPlayerActions();
+        // s.renderActionSeatAndPlayerActions();
 
         const chatSchema = Joi.object({
             message: Joi.string().trim().min(1).external(xss).required()
@@ -739,7 +741,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 // });
 
                 // highlight cards of player in action seat and get available buttons for players
-                s.renderActionSeatAndPlayerActions();
+                // s.renderActionSeatAndPlayerActions();
                 // Play sound for action seat player
                 if (s.getPlayerId(s.getNameByActionSeat()) === playerId) {
                     io.sockets.to(s.getSocketId(playerId)).emit('players-action-sound', {});

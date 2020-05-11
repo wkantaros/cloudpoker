@@ -145,9 +145,9 @@ export class TableState {
         //     return {availableActions, canPerformPremoves};
 
         // cases where it's the player's action
-        if (this.players[this.currentPlayer].playerName === playerName) {
+        availableActions['your-action'] = this.players[this.currentPlayer].playerName === playerName;
+        if (p.inHand && !p.folded) {
             availableActions['fold'] = true;
-            availableActions['your-action'] = true;
             // TODO: this.getMaxBet() === this.bigBlind will be false if it's heads up
             //   and one player went all in with < this.bigBlind
             // player is in big blind
@@ -158,9 +158,6 @@ export class TableState {
             // bet on table
             else if (this.getMaxBet() > 0) {
                 availableActions['call'] = true;
-                console.log(p);
-                console.log(this.getMaxBet());
-
                 availableActions['raise'] = this.canPlayerRaise(playerName);
             }
             // no bets yet
@@ -171,7 +168,7 @@ export class TableState {
             }
         }
         // cases where its not the players action
-        else if (!p.folded && !p.allIn) {
+        if (!availableActions['your-action'] && !p.folded && !p.allIn) {
             canPerformPremoves = true;
         }
         return {availableActions, canPerformPremoves};

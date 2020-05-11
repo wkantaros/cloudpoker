@@ -3,7 +3,7 @@ export default class BuyInLog extends Component {
     render() {
         return (
             <div id="buyin-log" className="overlay" style={{width: this.props.width}}>
-                <a href={this.props.onClose} className="closebtn" id="closeBuyin">&times;</a>
+                <a onClick={this.props.onClose} className="closebtn" id="closeBuyin">&times;</a>
                 <div className="overlay-content">
                     <div className="h"><h2>Buy-ins</h2></div>
                     <BuyIns data={this.props.buyInData}/>
@@ -21,7 +21,9 @@ export function BuyIns({data}) {
         if (data[i].buyout != null){
             datastr += ` buy-out: ${data[i].buyout}`
         }
-        buyIns.push((<p><span className='info'>${data[i].time} ~</span> {datastr}</p>));
+        buyIns.push((
+            <p key={i}><span className='info'>{data[i].time} ~</span> {datastr}</p>
+        ));
         // $('#buyins').prepend(`<p>${datastr}</p>`);
     }
     return (

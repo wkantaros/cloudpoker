@@ -73,7 +73,7 @@ function HostPageHeader({active, onTabChange}) {
 class BombPotController extends Component {
     constructor(props) {
         super(props);
-        this.state.bombPotNextHand = this.props.bombPotNextHand || false;
+        this.state = {bombPotNextHand: this.props.bombPotNextHand || false};
         this.handleChange = this.handleChange.bind(this);
     }
     handleChange(event) {
