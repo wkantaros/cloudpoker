@@ -273,35 +273,6 @@ function playSoundIfVolumeOn(soundName) {
     }
 }
 
-//chat room functions-----------------------------------------------------------------------------
-//send the contents of the message to the server
-// send_btn.addEventListener('click', () => {
-//     // console.log(name.getElementsByClassName('username')[0].innerHTML);
-//     // console.log(name.innerText);
-//     socket.emit('chat', {
-//         message: message.value,
-//     });
-//     message.value = null;
-// });
-
-//allow user to send message with enter key
-// message.addEventListener("keydown", (event) => {
-//     // Number 13 is the "Enter" key on the keyboard
-//     event.stopPropagation();
-//     if (event.keyCode === 13) {
-//         if (message.value) {
-//             $('#message').blur();
-//             event.preventDefault();
-//             send_btn.click();
-//         }
-//     }
-// });
-
-//let the server know somebody is typing a message
-// message.addEventListener('keypress', () => {
-//     socket.emit('typing');
-// });
-
 //Listen for events--------------------------------------------------------------------------------
 
 const setTurnTimer = (delay) => {
@@ -459,13 +430,6 @@ socket.on('start-game', (data) => {
     $('#start').addClass('collapse');
 });
 
-// renders available buttons for player
-// socket.on('render-action-buttons', (data) => {
-//     // console.log(data);
-//     displayButtons(data);
-// });
-
-// ---------------------------------action buttons --------------------------------------------------------
 // calls
 socket.on('call', (data) => {
     outputEmphasizedMessage(data.username + ' calls');
@@ -694,10 +658,6 @@ $('#host-players-btn').click(() => {
     }
 });
 
-// $('#buyin-log-opn').click( () => openBuyin());
-// $('#closeBuyin').click(() => closeBuyin());
-// $('#game-log-opn').click(() => openLog());
-// $('#closeLog').click(() => closeLog());
 $('#host-btn').click(() => openHostPage());
 $('#closeHostPage').click(() => closeHostPage());
 
