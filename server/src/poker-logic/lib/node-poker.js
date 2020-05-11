@@ -532,7 +532,7 @@ class Game extends GameState {
  */
 
 function maxSkippingIndices(arr, ...ind) {
-    let m = Number.NEGATIVE_INFINITY;
+    let m = 0;
     for (let i = 0; i < arr.length; i++) {
         if (ind.includes(i)) continue;
         m = Math.max(m, arr[i])
