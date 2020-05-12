@@ -4,8 +4,8 @@ class BuyInInfo extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            playerName: null,
-            stackSize: null,
+            playerName: '',
+            stackSize: '',
         }
         this.handleInputChange = this.handleInputChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -66,9 +66,8 @@ class BuyInInfo extends Component {
 export default class BuyInButton extends Component {
     constructor(props) {
         super(props);
-        this.state.showBuyInInfo = false;
+        this.state = {showBuyInInfo: false};
         this.handleClick = this.handleClick.bind(this);
-        this.handleMouseUp = this.handleMouseUp.bind(this);
         this.handleWindowMouseUp = this.handleWindowMouseUp.bind(this);
         this.handleBuyInInfoMouseUp = this.handleBuyInInfoMouseUp.bind(this);
     }

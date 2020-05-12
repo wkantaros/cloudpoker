@@ -11,7 +11,7 @@ export default class QuitButton extends Component {
     render() {
         let className = this.props.loggedIn? "button popup": "button popup collapse";
         return (
-            <anchor className={className} id="quit-btn" onClick={this.handleClick}>Quit</anchor>
+            <a className={className} id="quit-btn" onClick={this.handleClick}>Quit</a>
         );
     }
 }
