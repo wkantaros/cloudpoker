@@ -85,7 +85,8 @@ export default class BelowTable extends Component {
                          socket={this.props.socket}
                          betActionsOpen={this.state.betActionsOpen}
                          toggleBetSlider={this.toggleBetSlider}
-                         actionHandlers={this.actionButtonClickHandlers}/>
+                         actionHandlers={this.actionButtonClickHandlers}
+                         volumeOn={this.props.volumeOn}/>
             </div>
         );
     }

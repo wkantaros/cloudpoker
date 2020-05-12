@@ -2,6 +2,7 @@ import React, {Component} from "react";
 import YourAction from "./yourAction";
 import BetActions, {getMinRaiseAmount} from "./betActions";
 import '../css/stylesheet.css';
+import createjs from 'createjs';
 
 const actionButtonSettings = [
     ['show-hand', 'Show Hand', 'S', 'show-hand-shortcut', 83],
@@ -141,7 +142,16 @@ export default class Actions extends Component {
         this.actionButtonClickHandlers[event.target.closest('.action-btn').id](event);
         this.setState({clickedPremove: null, premoveCallAmount: -1, premoveStreet: this.props.manager.getRoundName()});
     }
+    componentDidMount() {
+        if (this.props.volumeOn && this.props.availableActions['your-action']) {
+            createjs.Sound.play('action');
+        }
+    }
+
     componentDidUpdate(prevProps, prevState, snapshot) {
+        if (this.props.volumeOn && this.props.availableActions['your-action'] && !prevProps.availableActions['your-action']) {
+            createjs.Sound.play('action');
+        }
         // update state.clickedPremove if game state changed and previous choice
         // is no longer valid given new conditions
         let stateUpdate = {}

@@ -289,11 +289,6 @@ socket.on('folds-through', function (data) {
     // showWinnings(data.amount, data.seat);
 });
 
-// user's action (alert with sound)
-socket.on('players-action-sound', function(data){
-    playSoundIfVolumeOn('action');
-});
-
 socket.on('alert', function(data) {
     alert(data.message);
 });
@@ -360,7 +355,8 @@ function renderBelowTable() {
                         messages={messageCache}
                         feedbackText={feedbackText}
                         player={tableState.player}
-                        manager={tableState.manager}/>
+                        manager={tableState.manager}
+                        volumeOn={isVolumeOn()}/>
         </React.StrictMode>
     ), document.getElementById('below-table-root'));
 }

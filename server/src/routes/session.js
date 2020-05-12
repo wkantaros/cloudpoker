@@ -225,10 +225,6 @@ class SessionManager extends TableManager {
             // shift action to next player in hand
             if (super.actionOnAllInPlayer()) {
                 console.log('ACTION ON ALL IN PLAYER 123');
-            } else {
-                // highlight cards of player in action seat and get available buttons for players
-                // console.log('possibly need to manually tell client to update actions here');
-                // this.renderActionSeatAndPlayerActions();
             }
             this.sendTableState();
 
@@ -236,13 +232,6 @@ class SessionManager extends TableManager {
             await sleep(250);
             // check if round has ended
             await this.check_round(prev_round);
-
-            await sleep(250);
-            // notify player its their action with sound
-            const actionSeatPlayerId = super.getPlayerId(super.getNameByActionSeat());
-            if (actionSeatPlayerId){
-                this.io.sockets.to(this.getSocketId(actionSeatPlayerId)).emit('players-action-sound', {});
-            }
         }
         this.sendTableState();
     }
@@ -402,9 +391,6 @@ class SessionManager extends TableManager {
             await this.check_round('showdown');
         } else if (data.everyoneFolded) {
             await this.handleEveryoneFolded(prev_round, data);
-        } else if (prev_round !== super.getRoundName()) {
-            // this.io.sockets.to(this.sid).emit('update-pot', {amount: super.getPot()});
-            // this.updateAfterCardTurn(false);
         }
         this.sendTableState();
     }
@@ -424,41 +410,6 @@ class SessionManager extends TableManager {
         this.io.sockets.to(this.sid).emit('update-header-blinds', {bigBlind: this.table.bigBlind, smallBlind: this.table.smallBlind});
         // this.io.sockets.to(this.sid).emit('nobody-waiting', {});
         this.sendTableState();
-        // this.resetAfterRound();
-        // let data = super.playersInfo();
-        // for (let i = 0; i < data.length; i++) {
-        //     let name = data[i].playerName;
-        //     if (this.getPlayer(name).inHand) {
-        //         this.io.sockets.to(this.getSocketId(`${data[i].playerid}`)).emit('render-hand', {
-        //             cards: super.getCardsByPlayerName(name),
-        //             seat: data[i].seat,
-        //             folded: false,
-        //             handRankMessage: this.playerHandState(name).handRankMessage,
-        //         });
-        //     }
-        //     // else {
-        //     //     this.io.sockets.to(this.sid).emit()
-        //     // }
-        //     this.io.sockets.to(this.sid).emit('update-stack', {
-        //         seat: data[i].seat,
-        //         stack: data[i].stack
-        //     });
-        //
-        // }
-        // highlight cards of player in action seat and get available buttons for players
-        // this.renderActionSeatAndPlayerActions();
-        // abstracting this to be able to work with bomb pots/straddles down the line
-        this.io.sockets.to(this.getSocketId(super.getPlayerId(super.getNameByActionSeat()))).emit('players-action-sound', {});
-    }
-
-    renderActionSeatAndPlayerActions() {
-        // get available actions for player to act
-        // TODO: allow players to premove
-        for (let playerName in this.playerids) {
-            if (this.playerids.hasOwnProperty(playerName)) {
-                this.io.sockets.to(this.getSocketId(this.playerids[playerName].playerid)).emit('render-action-buttons', super.getAvailableActions(playerName));
-            }
-        }
     }
 
     async performAction(playerName, action, amount) {
@@ -473,19 +424,7 @@ class SessionManager extends TableManager {
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');
             }
-            // highlight cards of player in action seat and get available buttons for players
-            let everyoneFolded = this.checkwin().everyoneFolded;
             await this.check_round(prev_round);
-
-            await sleep(250);
-            // check if round has ended
-            // if (!everyoneFolded)
-            //     this.renderActionSeatAndPlayerActions();
-
-            await sleep(250);
-            // notify player its their action with sound
-            if (!everyoneFolded)
-                this.io.sockets.to(this.getSocketId(`${this.getPlayerId(this.getNameByActionSeat())}`)).emit('players-action-sound', {});
         }
     }
 
@@ -679,29 +618,9 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         }
 
         if (!isNewPlayer && s.gameInProgress) {
-            // TODO: get returning player in sync with hand.
-            //  render his cards, etc.
-            console.log(`syncing ${s.getPlayerById(playerId)}`);
             io.sockets.to(sid).emit('player-reconnect', {
                 playerName: s.getPlayerById(playerId),
             });
-            // render player's hand
-            const playerName = s.getPlayerById(playerId);
-            if (s.getPlayer(playerName).inHand) {
-                // io.sockets.to(s.getSocketId(playerId)).emit('render-hand', {
-                //     cards: s.getCardsByPlayerName(playerName),
-                //     seat: s.getPlayerSeat(playerName),
-                //     folded: s.hasPlayerFolded(playerName),
-                //     handRankMessage: s.playerHandState(playerName).handRankMessage,
-                // });
-
-                // highlight cards of player in action seat and get available buttons for players
-                // s.renderActionSeatAndPlayerActions();
-                // Play sound for action seat player
-                if (s.getPlayerId(s.getNameByActionSeat()) === playerId) {
-                    io.sockets.to(s.getSocketId(playerId)).emit('players-action-sound', {});
-                }
-            }
         }
 
         const buyInSchema = Joi.object({
