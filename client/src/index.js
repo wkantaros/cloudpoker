@@ -8,12 +8,9 @@ import './css/card.css'
 import io from 'socket.io-client';
 import React from 'react';
 import ReactDOM from 'react-dom';
-// import './index.css';
 import * as serviceWorker from './serviceWorker';
 import Table from "./components/table";
 // File imports for webpack
-import VolumeIcon from "./img/volume.svg";
-import MuteIcon from "./img/mute.svg";
 import ActionSound from './audio/action.ogg';
 import CardPlaceSound from './audio/cardPlace1.wav';
 import CheckSound from './audio/check.wav';
@@ -98,7 +95,11 @@ $('input[name=multiStraddleBox]').change(function () {
 });
 
 function isVolumeOn() {
-    return document.getElementsByClassName('volume')[0].matches('.on');
+    let volumeIcons = document.getElementsByClassName('volume');
+    // volumeIcons is falsy if the volume Icon has not rendered yet (only true before initial render)
+    if (volumeIcons.length < 1) return true;
+    // volumeIcons should always be of length 1.
+    return volumeIcons[0].matches('.on');
 }
 
 function playSoundIfVolumeOn(soundName) {
@@ -222,16 +223,6 @@ socket.on('render-timer', (data) => {
         // TODO: remove graphics for turn timer
         // no longer display the timer
     }
-});
-
-socket.on('log-in', (data) => {
-    // $('.pm-btn').removeClass('pm');
-    logIn(tableState.player.standingUp);
-});
-
-// start game (change all cards to red)
-socket.on('start-game', (data) => {
-    $('#start').addClass('collapse');
 });
 
 // calls
@@ -375,7 +366,7 @@ function renderBelowTable() {
 }
 $(window).resize(function () {
     // createHands();
-    renderBetsAndFields();
+    if (tableState.table) renderBetsAndFields();
     // renderBelowTable();
     // distributeHands(false);
     // distributeBets();
