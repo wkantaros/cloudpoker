@@ -252,15 +252,6 @@ class SessionManager extends TableManager {
         this.getSocket(playerId).join(`${this.sid}-guest`);
         this.sendTableState();
 
-        // if (modLeavingGame) {
-        //     if (super.getModId() != null){
-        //         this.io.sockets.to(this.getSocketId(super.getModId())).emit('add-mod-abilities');
-        //     }
-        // }
-        // this.io.sockets.to(this.getSocketId(playerId)).emit('bust', {
-        //     removeModAbilities: modLeavingGame
-        // });
-
         if (this.gameInProgress) {
             this.io.sockets.to(this.sid).emit('buy-out', {
                 playerName: playerName,
@@ -279,14 +270,8 @@ class SessionManager extends TableManager {
         for (let p of playersShowingCards) {
             p.showHand();
         }
-        // this.renderActionSeatAndPlayerActions();
         this.sendTableState(); // show players' cards and hand rank messages
         let prevRound = super.getRoundName();
-        // let handRanks = {};
-        // handRanks[prevRound] = playersShowingCards.map(p => {
-        //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-        // });
-
 
         const waitTime = 2000;
         let currentTime = Date.now();
@@ -299,24 +284,11 @@ class SessionManager extends TableManager {
                 await sleep(waitTime);
                 this.sendTableState();
                 this.raceSchedule[prevRound] = currentTime + sleepTime;
-                // handRanks[prevRound] = playersShowingCards.map(p => {
-                //     return {seat: p.seat, handRankMessage: this.playerHandState(p.playerName).handRankMessage};
-                // });
             }
         }
-        // if (sleepTime > 0) {
-        //     this.sendTableState();
-        //     await sleep(sleepTime); // wait before starting next round or continuing
-        // }
         this.raceInProgress = false;
         this.raceSchedule = null;
         this.sendTableState();
-        // this.io.sockets.to(this.sid).emit('render-all-in', {
-        //     street: super.getRoundName(),
-        //     board: super.getDeal(),
-        //     sound: true,
-        //     handRanks: null, // not a mistake. handRanks should not be used
-        // });
     }
 
     async handleEveryoneFolded(prev_round, data) {
@@ -407,8 +379,6 @@ class SessionManager extends TableManager {
     }
 
     begin_round() {
-        this.io.sockets.to(this.sid).emit('update-header-blinds', {bigBlind: this.table.bigBlind, smallBlind: this.table.smallBlind});
-        // this.io.sockets.to(this.sid).emit('nobody-waiting', {});
         this.sendTableState();
     }
 
@@ -612,7 +582,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         }
         if (!isNewPlayer) {
             socket.join(`${sid}-active`);
-            io.sockets.to(s.getSocketId(playerId)).emit('log-in', {});
         } else {
             socket.join(`${sid}-guest`);
         }
@@ -749,13 +718,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                 if (data.smallBlind <= data.bigBlind){
                     console.log('updating blinds next hand');
                     s.updateBlindsNextHand(data.smallBlind, data.bigBlind);
-                    // if game isnt in progress change blinds in header immediately
-                    if (!s.gameInProgress){
-                        io.sockets.to(sid).emit('update-header-blinds', {
-                            bigBlind: s.table.bigBlind,
-                            smallBlind: s.table.smallBlind
-                        });
-                    }
                     s.sendTableState();
                 } else {
                     console.log('big blind must be greater than small blind');
