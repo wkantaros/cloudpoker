@@ -30,18 +30,6 @@ import Header from "./components/header";
 // import RiverSound from './audio/river.wav';
 
 let socket = io();
-
-let host = document.getElementById('host'),
-    newPlayer = document.getElementById('new-playerName'),
-    newStack = document.getElementById('new-stack'),
-    buyinSubmit = document.getElementById('buyin-btn'),
-    buyin = document.getElementById('buyin'),
-    quit = document.getElementById('quit-btn'),
-    standUp = document.getElementById('stand-up'),
-    sitDown = document.getElementById('sit-down');
-    // standup = document.getElementById('standup-btn');
-
-
 //resize page (to fit)
 
 var $el = $("#page-contents");
@@ -77,150 +65,6 @@ var starterData = {
 };
 doResize(null, starterData);
 
-//helper function
-const getMaxRoundBet = () => {
-    if (!tableState.table) return 0;
-    return Math.max(...tableState.table.players.map(p=>p.bet));
-};
-
-//header functions--------------------------------------------------------------------------------
-// $(document).mouseup(function (e) {
-//     let buyinInfo = $('#buyin-info');
-//     // if the target of the click isn't the container nor a descendant of the container
-//     if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
-//         buyinInfo.removeClass('show');
-//     }
-// });
-
-let loggedIn = false;
-// $('#buyin').on('click', () => {
-//     if (!loggedIn)
-//         $('#buyin-info').addClass('show');
-// });
-
-/**
- * logIn hides buyin-info ("Join Game") button in header and replaces it with the quit button
- */
-const logIn = (standingUp) => {
-    loggedIn = true;
-    // $('#buyin-info').removeClass('show');
-    // $('#quit-btn').removeClass('collapse');
-    // $('#buyin').addClass('collapse');
-    // if (standingUp) {
-    //     showSitDownButton();
-    // } else {
-    //     showStandUpButton();
-    // }
-};
-//
-const logOut = () => {
-    loggedIn = false;
-    // $('#quit-btn').addClass('collapse');
-    // $('#buyin').removeClass('collapse');
-    // $('#sit-down').addClass('collapse');
-    // $('#stand-up').addClass('collapse');
-};
-
-// $('#buyin-btn').on('click', () => {
-//     console.log('here!');
-//     let regex = RegExp(/^\w+(?:\s+\w+)*$/);
-//     let playerName = newPlayer.value.trim();
-//     if (playerName.length < 2 || playerName.length > 10) {
-//         alert('name must be between 2 and 10 characters');
-//     } else if (!regex.test(playerName)){
-//         alert('no punctuation in username');
-//     } else if (playerName === 'guest'){
-//         alert("'guest' cannot be a username");
-//     } else if (alreadyExistingName(playerName)){
-//         alert('please enter a username that is not already at the table')
-//     } else if (!parseInt(newStack.value) && (parseInt(newStack.value) > 0)) {
-//         alert("Please enter valid stackinformation");
-//     } else {
-//         logIn(false);
-//         let playerName = newPlayer.value;
-//         let stack = parseInt(newStack.value);
-//         socket.emit('buy-in', {
-//             playerName: playerName,
-//             stack: stack
-//         });
-//     }
-// });
-
-// $('#buyin-info').keydown(function (e){
-//     e.stopPropagation();
-// });
-
-// quit.addEventListener('click', () => {
-//     socket.emit('leave-game', {});
-//     logOut();
-// });
-
-// const showSitDownButton = () => {
-//     $('#stand-up').addClass('collapse');
-//     $('#sit-down').removeClass('collapse');
-// };
-//
-// const showStandUpButton = () => {
-//     console.log('should be removing class');
-//     $('#sit-down').addClass('collapse');
-//     $('#stand-up').removeClass('collapse');
-// };
-
-// standUp.addEventListener('click', () => {
-//     socket.emit('stand-up');
-//     showSitDownButton();
-// });
-//
-// sitDown.addEventListener('click', () => {
-//     socket.emit('sit-down');
-//     showStandUpButton()
-// });
-
-// $('#getLink').click(() => copyLink());
-
-// let copyLink = () => {
-//     copyStringToClipboard(window.location.href);
-//     let link = document.getElementById('getLink');
-//     link.innerHTML = 'link copied!';
-//     setTimeout(() => {
-//         link.innerHTML = 'get sharable link'
-//     }, 2000);
-// };
-//
-// function copyStringToClipboard(str) {
-//     // Create new element
-//     var el = document.createElement('textarea');
-//     // Set value (string to be copied)
-//     el.value = str;
-//     // Set non-editable to avoid focus and move outside of view
-//     el.setAttribute('readonly', '');
-//     el.style = {
-//         position: 'absolute',
-//         left: '-9999px'
-//     };
-//     document.body.appendChild(el);
-//     // Select text inside element
-//     el.select();
-//     // Copy text to clipboard
-//     document.execCommand('copy');
-//     // Remove temporary element
-//     document.body.removeChild(el);
-// }
-
-// let isStraddling = false;
-// straddleSwitch.addEventListener('click', () => {
-//     isStraddling = !isStraddling;
-//     console.log(`straddle enabled: ${isStraddling}`);
-//     if (isStraddling) {
-//         $('#straddle-switch').html('Disable Straddling');
-//     } else {
-//         $('#straddle-switch').html('Enable Straddling');
-//     }
-//     socket.emit('straddle-switch', {
-//         isStraddling: isStraddling
-//     });
-// });
-
 $('input[name=singleStraddleBox]').change(function () {
     if ($(this).is(':checked')) {
         console.log('player elects to straddle utg');
@@ -254,19 +98,8 @@ $('input[name=multiStraddleBox]').change(function () {
 });
 
 function isVolumeOn() {
-    return $('.volume').hasClass('on');
+    return document.getElementsByClassName('volume')[0].matches('.on');
 }
-
-// $(".volume").click( function (e) {
-//     if (isVolumeOn()){
-//         $('#volume-icon').attr('src', MuteIcon);
-//         $('.volume').removeClass('on');
-//     } else {
-//         $('#volume-icon').attr('src', VolumeIcon);
-//         $('.volume').addClass('on');
-//     }
-// } );
-
 
 function playSoundIfVolumeOn(soundName) {
     if (isVolumeOn()){
@@ -278,11 +111,6 @@ function playSoundIfVolumeOn(soundName) {
 
 const setTurnTimer = (delay) => {
     socket.emit('set-turn-timer', {delay: delay});
-};
-
-const kickPlayer = (playerName) => {
-    console.log(`kicking player ${playerName}`);
-    socket.emit('kick-player', {playerName: playerName});
 };
 
 socket.on('player-disconnect', (data) => {
@@ -340,33 +168,6 @@ function setState(data) {
 }
 
 socket.on('state-snapshot', setState);
-
-// const addModAbilities = () => {
-//     $('#quit-btn').removeClass('collapse');
-//     $('#buyin').addClass('collapse');
-//     $('#host-btn').removeClass('collapse');
-//     // TODO: show mod panel or set turn timer button
-// };
-//
-// const removeModAbilities = () => {
-//     $('#host-btn').addClass('collapse');
-//     $('#start').addClass('collapse');
-// };
-
-// add additional abilities for mod
-// socket.on('add-mod-abilities', addModAbilities);
-
-// socket.on('bust', (data) => {
-//     logOut();
-//     // remove additional abilities for mod when mod leaves
-//     if (data.removeModAbilities)
-//         removeModAbilities();
-// });
-//
-// // remove additional abilities for mod when mod leaves
-// socket.on('remove-mod-abilities', (data) => {
-//     removeModAbilities();
-// });
 
 //incoming chat
 socket.on('chat', (data) => {
@@ -524,18 +325,6 @@ const cleanInput = (input) => {
     return $('<div/>').text(input).html();
 };
 
-const alreadyExistingName = (playerName) => {
-    return tableState.table.allPlayers.filter(p=>p!==null).map(p => p.playerName).includes(playerName);
-};
-
-const getBigBlind = () => {
-    return tableState.table.bigBlind;
-};
-
-const getSmallBlind = () => {
-    return tableState.table.smallBlind;
-};
-
 ReactDOM.render((
     <React.StrictMode>
         <TableImage>
@@ -598,155 +387,6 @@ $(window).resize(function () {
     };
     doResize(null, resizeData);
 });
-
-// function openHostPage() {
-//     renderGamePrefVals();
-//     renderHostPlayerVals();
-//     $('#game-pref-btn').click();
-//     // $('#host-players-btn').click();
-//     document.getElementById("host-page").style.width = "100%";
-// }
-
-// let renderGamePrefVals = () => {
-//     $('#checkbp').prop("checked", false);
-//     $('#smallblind-input').val(getSmallBlind());
-//     $('#bigblind-input').val(getBigBlind());
-//     $('#straddle-input').val('');
-// }
-
-// let renderHostPlayerVals = () => {
-//     for (let i = 0; i < 10; i++) {
-//         let rowplayerid = `#player${i}`
-//         $(rowplayerid).addClass('collapse');
-//         let seat = `#${i}`
-//         if (!$(seat).hasClass('hidden')){
-//             let name = $(seat).find('.username').html();
-//             let stack = parseInt($(seat).find('.stack').html());
-//             console.log(name);
-//             console.log('stack', stack);
-//             $(rowplayerid).find('.playername-input').val(name);
-//             $(rowplayerid).find('.stack-input').val(stack);
-//             $(rowplayerid).removeClass('collapse');
-//         }
-//     }
-// }
-
-// let closeGamePrefVals = () => {
-//     $('#successfully-submitted').addClass('collapse');
-//     $('#game-pref-form').removeClass('collapse');
-//     $('.game-pref').addClass('collapse');
-//     $('#game-pref-btn').removeClass('active');
-// }
-//
-// let closePlayerVals = () => {
-//     $('#successfully-submitted-players').addClass('collapse');
-//     $('.player-rows').removeClass('collapse');
-//     $('.players-host-page').addClass('collapse');
-//     $('#host-players-btn').removeClass('active');
-// }
-
-// function closeHostPage() {
-//     closeGamePrefVals();
-//     closePlayerVals();
-//     document.getElementById("host-page").style.width = "0%";
-// }
-
-// $('#game-pref-btn').click(() => {
-//     $('#successfully-submitted').addClass('collapse');
-//     $('#game-pref-form').removeClass('collapse');
-//     $('.game-pref').removeClass('collapse');
-//     $('#game-pref-btn').addClass('active');
-//     closePlayerVals();
-// });
-
-// $('#host-players-btn').click(() => {
-//     $('#successfully-submitted-players').addClass('collapse');
-//     $('.player-rows').removeClass('collapse');
-//     $('.players-host-page').removeClass('collapse');
-//     $('#host-players-btn').addClass('active');
-//     closeGamePrefVals();
-//     if (!$('#player0').hasClass('collapse')){
-//         $('#player0').find('.stack-input').focus();
-//     }
-// });
-
-// $('#host-btn').click(() => openHostPage());
-// $('#closeHostPage').click(() => closeHostPage());
-
-// host page capabilities
-// const gamePrefForm = document.getElementById('game-pref-form');
-// gamePrefForm.addEventListener('submit', (event) => {
-//     event.preventDefault();
-//     console.log('form successfully submitted');
-//     const formData = new FormData(gamePrefForm);
-//     const smallBlind = parseInt(formData.get('smallblind-input')) || 25;
-//     const bigBlind = parseInt(formData.get('bigblind-input')) || 50;
-//     const straddleLimit = formData.get('straddle-inp');
-//     const bombPotNextHand = formData.get('bombpot-nexthand') != null ? true : false;
-//
-//     const gamePref = {
-//         smallBlind,
-//         bigBlind,
-//         straddleLimit,
-//         bombPotNextHand
-//     };
-//
-//     console.log(gamePref);
-//     $('#successfully-submitted').removeClass('collapse');
-//     $('#game-pref-form').addClass('collapse');
-//     handleUpdatedGamePreferences(gamePref);
-// });
-
-// const handleUpdatedGamePreferences = (gamePref) => {
-//     // todo: update big blind, small blind for next turn, if things change
-//     let bb = gamePref.bigBlind;
-//     let sb = gamePref.smallBlind;
-//     if (bb !== getBigBlind() || sb !== getSmallBlind()){
-//         socket.emit('update-blinds-next-round', {smallBlind: sb, bigBlind: bb});
-//     }
-//     // todo: update straddle rules if selected for next turn
-//     if (gamePref.straddleLimit !== tableState.table.straddleLimit) {
-//         socket.emit('update-straddle-next-round', {straddleLimit: gamePref.straddleLimit});
-//     }
-//     // todo: queue bombpot for next hand
-// }
-
-// $('.transfer-ownership-btn').click(function() {
-//     let playerid = $(this).parents('.row').attr('id');
-//     let seat = parseInt(playerid.substring(6));
-//     socket.emit('transfer-host', {seat});
-//     closeHostPage();
-// });
-
-// $('.update-stack-row').click(function() {
-//     let playerid = $(this).parents('.row').attr('id');
-//     let seat = parseInt(playerid.substring(6));
-//     let newStackAmount = parseInt($(`#${playerid}`).find('.stack-input').val());
-//     socket.emit('update-player-stack', {seat, newStackAmount});
-//     $('#successfully-submitted-players').removeClass('collapse');
-//     $('.player-rows').addClass('collapse');
-// });
-
-// socket.on('update-player-stack', (data) => {
-//     console.log(data);
-//     $('#sb').html(data.smallBlind);
-//     $('#bb').html(data.bigBlind);
-// });
-
-// $('.kick-option-btn').click(function () {
-//     let playerid = $(this).parents('.row').attr('id');
-//     let seat = parseInt(playerid.substring(6));
-//     socket.emit('kick-player', {
-//         seat
-//     });
-//     closeHostPage();
-// });
-
-// socket.on('update-header-blinds', (data) => {
-//     console.log(data);
-//     $('#sb').html(data.smallBlind);
-//     $('#bb').html(data.bigBlind);
-// });
 
 const renderStraddleOptions = (canRender) => {
     // console.log('tableState', tableState);
