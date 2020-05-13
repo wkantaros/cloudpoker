@@ -130,11 +130,11 @@ class SessionManager extends TableManager {
 
     canPlayerJoin(playerId, playerName, stack, isStraddling) {
         if (super.isPlayerNameUsed(playerName)) {
-            this.io.sockets.to(this.getSocketId(playerId)).emit('alert',
+            this.io.to(this.getSocketId(playerId)).emit('alert',
                 {'message': `Player name ${playerName} is already taken.`});
             return false;
         } else if (playerName.toLowerCase().indexOf('guest') === 0) {
-            this.io.sockets.to(this.getSocketId(playerId)).emit('alert',
+            this.io.to(this.getSocketId(playerId)).emit('alert',
                 {'message': `Player name cannot start with "guest"`});
             return false;
         }
@@ -143,7 +143,7 @@ class SessionManager extends TableManager {
 
     emitAction(action, playerName, betAmount) {
         this.sendTableState();
-        this.io.sockets.to(this.sid).emit(action, {
+        this.io.to(this.sid).emit(action, {
             username: playerName,
             stack: this.getStack(playerName),
             pot: this.getPot(),
@@ -176,7 +176,7 @@ class SessionManager extends TableManager {
             Object.assign(table.allPlayers[p.seat], p);
         }
 
-        this.io.sockets.to(socketId).emit('state-snapshot', {
+        this.io.to(socketId).emit('state-snapshot', {
             table: table,
             gameInProgress: this.gameInProgress,
             player: p,
@@ -197,7 +197,7 @@ class SessionManager extends TableManager {
             this.getSocket(playerid).leave(`${this.sid}-guest`);
             this.getSocket(playerid).join(`${this.sid}-active`);
             this.sendTableState();
-            this.io.sockets.to(this.sid).emit('buy-in', {
+            this.io.to(this.sid).emit('buy-in', {
                 playerName: playerName,
                 stack: stack,
             });
@@ -228,16 +228,16 @@ class SessionManager extends TableManager {
         await this.check_round(prev_round);
         // this.sendTableState();
         // this.renderActionSeatAndPlayerActions();
-        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
-        this.io.sockets.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+        // this.io.to(this.sid).emit('render-players', this.playersInfo());
+        this.io.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
     sitDownPlayer(playerName) {
         if (!this.isPlayerStandingUp(playerName)) return;
 
         super.sitDownPlayer(playerName);
         this.sendTableState();
-        // this.io.sockets.to(this.sid).emit('render-players', this.playersInfo());
-        this.io.sockets.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+        // this.io.to(this.sid).emit('render-players', this.playersInfo());
+        this.io.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
         // this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
     }
 
@@ -288,7 +288,7 @@ class SessionManager extends TableManager {
         this.sendTableState();
 
         if (this.gameInProgress) {
-            this.io.sockets.to(this.sid).emit('buy-out', {
+            this.io.to(this.sid).emit('buy-out', {
                 playerName: playerName,
                 stack: stack,
                 seat: seat
@@ -347,7 +347,7 @@ class SessionManager extends TableManager {
         });
         this.sendTableState();
         // tell clients who won the pot
-        this.io.sockets.to(this.sid).emit('folds-through', {
+        this.io.to(this.sid).emit('folds-through', {
             username: data.winner.playerName,
             amount: winnings,
             seat: super.getPlayerSeat(data.winner.playerName)
@@ -379,7 +379,7 @@ class SessionManager extends TableManager {
             console.log('winners');
             console.log('LOSERS');
             let losers = super.getLosers();
-            this.io.sockets.to(this.sid).emit('showdown', winners);
+            this.io.to(this.sid).emit('showdown', winners);
 
             await sleep(3000);
             // handle losers
@@ -478,7 +478,7 @@ class SessionManager extends TableManager {
             this.timer = null;
             this.timerDelay = -1;
         }
-        this.io.sockets.to(this.sid).emit('render-timer', {
+        this.io.to(this.sid).emit('render-timer', {
             seat: this.actionSeat,
             time: delay
         });
@@ -567,6 +567,7 @@ function makeAuthHandler(s) {
 async function handleOnAuth(s, socket) {
     let playerId = socket.decoded_token.playerId;
     const sid = s.sid;
+    const io = s.io;
     console.log('socket id!:', socket.id, 'player id', playerId);
     console.log(s.table.allPlayers);
 
@@ -591,7 +592,7 @@ async function handleOnAuth(s, socket) {
 
         socket.on('disconnect', (reason) => {
             console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
-            io.sockets.to(sid).emit('player-disconnect', {
+            io.to(sid).emit('player-disconnect', {
                 playerName: s.getPlayerById(playerId),
             });
             // io.removeAllListeners('connection');
@@ -605,7 +606,7 @@ async function handleOnAuth(s, socket) {
         // chatroom features
         // send a message in the chatroom
         socket.on('chat', asyncSchemaValidator(chatSchema,(data) => {
-            io.sockets.to(sid).emit('chat', {
+            io.to(sid).emit('chat', {
                 handle: s.getPlayerChatName(playerId),
                 message: data.message
             });
@@ -628,7 +629,7 @@ async function handleOnAuth(s, socket) {
         }
 
         if (s.isSeatedPlayerId(playerId) && s.gameInProgress) {
-            io.sockets.to(sid).emit('player-reconnect', {
+            io.to(sid).emit('player-reconnect', {
                 playerName: s.getPlayerById(playerId),
             });
         }
@@ -722,7 +723,7 @@ async function handleOnAuth(s, socket) {
         });
 
         socket.on('get-buyin-info', () => {
-            io.sockets.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
+            io.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
         });
 
         const actionSchema = Joi.object({
