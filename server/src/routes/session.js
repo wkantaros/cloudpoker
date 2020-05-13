@@ -573,11 +573,11 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
 
         const isSeatedPlayerIdValidator = function(value) {
-            if (!s.isSeatedPlayerId(playerId)) throw new Error('inactive player id');
+            if (!s.isSeatedPlayerId(playerId)) throw new Error('not a seated player\'s id');
             return value;
         }
         const isModValidator = function(value) {
-            if (!s.isModPlayerId(playerId)) throw new Error('not a mod player id');
+            if (!s.isModPlayerId(playerId)) throw new Error('not a mod\'s player id');
             return value;
         }
         if (!isNewPlayer) {

@@ -176,7 +176,7 @@ class TableManager extends TableStateManager {
         this.hostStack = hostStack;
         this.trackBuyins = [];
         this.playerids = {};
-        this.modIds = [];
+        this.modIds = [playerid];
         table.AddPlayer(hostName, hostStack, hostIsStraddling);
         table.getPlayer(hostName).isMod = true;
         this.addToPlayerIds(hostName, playerid);
@@ -269,7 +269,7 @@ class TableManager extends TableStateManager {
             if (this.hostName === null){
                 console.log(`transferring host to ${playerName} (pid: ${playerid})`);
                 // this.transferHost(playerName);
-                this.setHost(playerName);
+                this.setHost(playerName, playerid);
                 this.hostStack = stack;
             }
             return true;
@@ -334,7 +334,8 @@ class TableManager extends TableStateManager {
     }
 
     // private method
-    setHost(playerName) {
+    setHost(playerName, playerId) {
+        this.modIds.push(playerId);
         this.hostName = playerName;
         this.hostStack = this.getStack(playerName);
         this.table.getPlayer(playerName).isMod = true;
@@ -382,6 +383,11 @@ class TableManager extends TableStateManager {
 
     updatePlayerId(playerName, playerid) {
         let oldplayerid = this.playerids[playerName].playerid;
+
+        let oldModIndex = this.modIds.indexOf(oldplayerid);
+        if (oldModIndex > -1) // if oldplayerid is the player ID of a mod
+            this.modIds.splice(oldModIndex, 1, playerid);
+
         for (let i = 0; i < this.trackBuyins.length; i++) {
             if (this.trackBuyins[i].playerName === playerName && this.trackBuyins[i].playerid === oldplayerid){
                 this.trackBuyins[i].playerid = playerid;
