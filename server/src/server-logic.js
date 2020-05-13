@@ -340,10 +340,6 @@ class TableManager extends TableStateManager {
             return undefined;
     }
 
-    getModId() {
-        return this.modIds.length > 0 ? this.modIds[0] : null;
-    }
-
     isModPlayerId (pid) {
         return this.modIds.includes(pid);
     }

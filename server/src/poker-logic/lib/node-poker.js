@@ -252,13 +252,16 @@ class Table extends TableState{
         if (ind === -1) return false;
         // this.playersToRemove.push(ind);
 
-        const p = this.allPlayers[ind];
-        this.allPlayers[p.seat].leavingGame = true;
-        if (this.game != null) {
+        if (this.game !== null) {
+            const p = this.allPlayers[ind];
+            this.allPlayers[p.seat].leavingGame = true;
             this.game.pot += p.bet;
             // this.allPlayers[ind] = null;
             p.Fold();
             progress(this);
+        } else {
+            // if no game is in progress, simply remove the player
+            this.allPlayers[ind] = null;
         }
         return true;
     }
