@@ -176,7 +176,7 @@ class SessionManager extends TableManager {
         });
     }
 
-    buyin(playerName, playerid, stack, isStraddling) {
+    handleBuyIn(playerName, playerid, stack, isStraddling) {
         const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling);
         if (addedPlayer) {
             if (this.registeredGuests[playerid]) {
@@ -565,6 +565,13 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             socket_ids[socket_id[0]] = true;
 
         s.setSocket(playerId, socket);
+        //adds socket to room (actually a sick feature)
+        socket.join(sid);
+        if (!isNewPlayer) {
+            socket.join(`${sid}-active`);
+        } else {
+            socket.join(`${sid}-guest`);
+        }
 
         socket.on('disconnect', (reason) => {
             console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
@@ -575,15 +582,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         });
 
         console.log('a user connected at', socket.id, 'with player ID', playerId);
-
-        //adds socket to room (actually a sick feature)
-        socket.join(sid);
-        if (s.getModId(sid) != null){
-            io.sockets.to(s.getSocketId(s.getModId())).emit('add-mod-abilities');
-        }
-        // io.sockets.to(sid).emit('render-players', s.playersInfo());
-        // highlight cards of player in action seat and get available buttons for players
-        // s.renderActionSeatAndPlayerActions();
 
         const chatSchema = Joi.object({
             message: Joi.string().trim().min(1).external(xss).required()
@@ -612,11 +610,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             if (!s.isModPlayerId(playerId)) throw new Error('not a mod\'s player id');
             return value;
         }
-        if (!isNewPlayer) {
-            socket.join(`${sid}-active`);
-        } else {
-            socket.join(`${sid}-guest`);
-        }
 
         if (!isNewPlayer && s.gameInProgress) {
             io.sockets.to(sid).emit('player-reconnect', {
@@ -633,7 +626,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
-            s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
+            s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true);
         }));
 
         const straddleSwitchSchema = Joi.object({
