@@ -19,6 +19,7 @@ module.exports.asyncSchemaValidator = function(schema, asyncCallback) {
         try {
             value = await schema.validateAsync(data);
         } catch (validationError) {
+            console.log(validationError);
             return;
         }
         try {

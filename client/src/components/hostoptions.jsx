@@ -16,38 +16,31 @@ class PlayerRows extends Component {
             playerStacks: this.props.table.allPlayers.map(p=>p===null?null:{playerName: p.playerName, chips: p.chips})
         }
         this.handleUpdateStackSubmit = this.handleUpdateStackSubmit.bind(this);
-        this.handleInputChange = this.handleInputChange.bind(this);
+        this.handleStackInputChange = this.handleStackInputChange.bind(this);
         this.transferHost = this.transferHost.bind(this);
         this.kickPlayer = this.kickPlayer.bind(this);
     }
-    handleUpdateStackSubmit(e) {
-        let seat = parseInt(e.target.closest('row').id.substring(6));
+    handleUpdateStackSubmit(seat, e) {
         let newStackAmount = this.state.playerStacks[seat].chips;
         this.props.socket.emit('update-player-stack', {seat, newStackAmount});
         this.props.onSubmit(e);
     }
-    handleInputChange(event) {
+    handleStackInputChange(seat, event) {
         const target = event.target;
         if (target.name === "stack-input") {
+            let value = parseInt(event.target.value) || '';
             this.setState((state, props) => {
                 let stateCopy = Array.from(state.playerStacks);
-                let seat = parseInt(event.target.closest('row').id.substring(6));
-                stateCopy[seat] = Object.assign(stateCopy[seat], {chips: parseInt(event.target.value)})
-                this.setState({playerStacks: stateCopy})
+                stateCopy[seat] = Object.assign(stateCopy[seat], {chips: value})
+                return {playerStacks: stateCopy};
             })
-        } else {
-            this.setState({
-                [target.name]: target.value
-            });
         }
     }
-    transferHost(e) {
-        let seat = parseInt(e.target.closest('row').id.substring(6));
+    transferHost(seat, e) {
         this.props.socket.emit('transfer-host', {seat});
         this.props.closeHostPage();
     }
-    kickPlayer(e) {
-        let seat = parseInt(e.target.closest('row').id.substring(6));
+    kickPlayer(seat, e) {
         this.props.socket.emit('kick-player', {seat});
         this.props.closeHostPage();
     }
@@ -59,6 +52,10 @@ class PlayerRows extends Component {
             }
             let playerid = `player${p.seat}`;
             let playerName = p.playerName;
+            const handleStackChange = (e) => {this.handleStackInputChange(p.seat, e)};
+            const handleStackUpdateSubmit = (e) => {this.handleUpdateStackSubmit(p.seat, e)};
+            const handleTransferHostClick = (e) => {this.transferHost(p.seat, e)};
+            const handleKickPlayerClick = (e) => {this.kickPlayer(p.seat, e)};
             rows.push((
                 <div className="row" id={playerid} key={p.playerName}>
                     <div className="three columns">
@@ -67,13 +64,13 @@ class PlayerRows extends Component {
                     </div>
                     <div className="five columns">
                         <div className="update-stack-host">
-                            <input className="u-tq-width inp stack-input" type="number" name="stack-input" onChange={this.handleInputChange} value={this.state.playerStacks[p.seat].chips}/>
-                            <input className="button-primary update-stack-row" type="submit" value="Update Stack" onClick={this.handleUpdateStackSubmit}/>
+                            <input className="u-tq-width inp stack-input" type="number" name="stack-input" onChange={handleStackChange} value={this.state.playerStacks[p.seat].chips}/>
+                            <input className="button-primary update-stack-row" type="submit" value="Update Stack" onClick={handleStackUpdateSubmit}/>
                         </div>
                     </div>
                     <div className="four columns">
-                        <button className="kick-option-btn" onClick={this.kickPlayer}>Kick player</button>
-                        <button className="button-primary transfer-ownership-btn" onClick={this.transferHost}>Transfer Host</button>
+                        <button className="kick-option-btn" onClick={handleKickPlayerClick}>Kick player</button>
+                        <button className="button-primary transfer-ownership-btn" onClick={handleTransferHostClick}>Transfer Host</button>
                     </div>
                 </div>
             ));
