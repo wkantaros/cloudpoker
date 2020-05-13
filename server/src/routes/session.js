@@ -2,18 +2,18 @@ const router = require('express').Router();
 const cookieParser = require('cookie-parser');
 const xss = require("xss");
 
+router.use('/', cookieParser(process.env.COOKIE_SECRET));
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
 const {TableManager} = require('../server-logic');
-const {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} = require('../persistent');
 const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require('../funcs');
 const poker = require('../poker-logic/lib/node-poker');
-const {PLAYER_UUID_COOKIE_NAME} = require("../persistent");
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {getOrSetPlayerIdCookie} = require("../persistent");
 
 const validateTableName = (val) => {
     if (!val || val.length === 0) return val;
@@ -68,8 +68,9 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
         return;
     }
 
-    let playerId = newPlayerId();
-    setPlayerIdCookie(playerId, value.tableName, res);
+    // let playerId = newPlayerId();
+    // setPlayerIdCookie(playerId, value.tableName, res);
+    const playerId = getOrSetPlayerIdCookie(req, res);
 
     value.isValid = true;
     await res.json(value);
@@ -143,7 +144,7 @@ class SessionManager extends TableManager {
 
     emitAction(action, playerName, betAmount) {
         this.sendTableState();
-        this.io.to(this.sid).emit(action, {
+        this.io.emit(action, {
             username: playerName,
             stack: this.getStack(playerName),
             pot: this.getPot(),
@@ -153,11 +154,12 @@ class SessionManager extends TableManager {
     }
 
     sendTableState() {
-        this.sendTableStateTo(`${this.sid}-guest`, 'guest');
+        this.sendTableStateTo('guest', 'guest');
         // send each active player
         for (let p of this.table.allPlayers) {
             // this.getPlayerId(p.playerName) is falsy if handlePlayerExit called this function.
             if (!p || !this.getPlayerId(p.playerName)) continue;
+            console.log('got player id for', p.playerName, this.getPlayerId(p.playerName));
             this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
         }
     }
@@ -194,10 +196,11 @@ class SessionManager extends TableManager {
                 delete this.registeredGuests[playerid];
             }
 
-            this.getSocket(playerid).leave(`${this.sid}-guest`);
-            this.getSocket(playerid).join(`${this.sid}-active`);
+            console.log('socket id on buy in', this.getSocket(playerid).id);
+            this.getSocket(playerid).leave(`guest`);
+            this.getSocket(playerid).join(`active`);
             this.sendTableState();
-            this.io.to(this.sid).emit('buy-in', {
+            this.io.emit('buy-in', {
                 playerName: playerName,
                 stack: stack,
             });
@@ -228,16 +231,16 @@ class SessionManager extends TableManager {
         await this.check_round(prev_round);
         // this.sendTableState();
         // this.renderActionSeatAndPlayerActions();
-        // this.io.to(this.sid).emit('render-players', this.playersInfo());
-        this.io.to(this.sid).emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+        // this.io.emit('render-players', this.playersInfo());
+        this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
     sitDownPlayer(playerName) {
         if (!this.isPlayerStandingUp(playerName)) return;
 
         super.sitDownPlayer(playerName);
         this.sendTableState();
-        // this.io.to(this.sid).emit('render-players', this.playersInfo());
-        this.io.to(this.sid).emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
+        // this.io.emit('render-players', this.playersInfo());
+        this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
         // this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
     }
 
@@ -270,7 +273,7 @@ class SessionManager extends TableManager {
         }
         this.sendTableState();
     }
-    
+
     // private method
     // removes players not in the current hand
     handlePlayerExit(playerName) {
@@ -283,12 +286,12 @@ class SessionManager extends TableManager {
         super.removePlayer(playerName);
 
         this.registeredGuests[playerId] = playerName;
-        this.getSocket(playerId).leave(`${this.sid}-active`);
-        this.getSocket(playerId).join(`${this.sid}-guest`);
+        this.getSocket(playerId).leave(`active`);
+        this.getSocket(playerId).join(`guest`);
         this.sendTableState();
 
         if (this.gameInProgress) {
-            this.io.to(this.sid).emit('buy-out', {
+            this.io.emit('buy-out', {
                 playerName: playerName,
                 stack: stack,
                 seat: seat
@@ -347,7 +350,7 @@ class SessionManager extends TableManager {
         });
         this.sendTableState();
         // tell clients who won the pot
-        this.io.to(this.sid).emit('folds-through', {
+        this.io.emit('folds-through', {
             username: data.winner.playerName,
             amount: winnings,
             seat: super.getPlayerSeat(data.winner.playerName)
@@ -379,7 +382,7 @@ class SessionManager extends TableManager {
             console.log('winners');
             console.log('LOSERS');
             let losers = super.getLosers();
-            this.io.to(this.sid).emit('showdown', winners);
+            this.io.emit('showdown', winners);
 
             await sleep(3000);
             // handle losers
@@ -478,7 +481,7 @@ class SessionManager extends TableManager {
             this.timer = null;
             this.timerDelay = -1;
         }
-        this.io.to(this.sid).emit('render-timer', {
+        this.io.emit('render-timer', {
             seat: this.actionSeat,
             time: delay
         });
@@ -527,17 +530,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
     // const io = req.app.get('socketio');
     // s.io = io;
 
-    let playerId = playerIdFromRequest(req);
-
-    console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(playerId), 'is seated', s.isSeatedPlayerId(playerId));
-    // isActivePlayerId is false if the player previously quit the game
-    // const isNewPlayer = (playerId === undefined) || !s.isSeatedPlayerId(playerId);
-    // console.log('inp', isNewPlayer);
-    // if (isNewPlayer) {
-    //     // Create new player ID and set it as a cookie in user's browser
-    //     playerId = newPlayerId();
-    //     setPlayerIdCookie(playerId, req.params.id, res);
-    // }
+    const playerId = getOrSetPlayerIdCookie(req, res);
 
     const token = jwt.sign({playerId: playerId},
         process.env.PKR_JWT_SECRET, {expiresIn: "2 days"});
@@ -566,7 +559,6 @@ function makeAuthHandler(s) {
  */
 async function handleOnAuth(s, socket) {
     let playerId = socket.decoded_token.playerId;
-    const sid = s.sid;
     const io = s.io;
     console.log('socket id!:', socket.id, 'player id', playerId);
     console.log(s.table.allPlayers);
@@ -582,17 +574,18 @@ async function handleOnAuth(s, socket) {
         // socket_ids[socket_id[0]] = true;
 
         s.setSocket(playerId, socket);
+        // console.log(s.socketMap);
         //adds socket to room (actually a sick feature)
-        socket.join(sid);
+        // socket.join(sid);
         if (s.isSeatedPlayerId(playerId)) {
-            socket.join(`${sid}-active`);
+            socket.join(`active`);
         } else {
-            socket.join(`${sid}-guest`);
+            socket.join(`guest`);
         }
 
         socket.on('disconnect', (reason) => {
             console.log('pid', playerId, 'socket ID', socket.id, 'disconnect reason', reason);
-            io.to(sid).emit('player-disconnect', {
+            io.emit('player-disconnect', {
                 playerName: s.getPlayerById(playerId),
             });
             // io.removeAllListeners('connection');
@@ -606,7 +599,7 @@ async function handleOnAuth(s, socket) {
         // chatroom features
         // send a message in the chatroom
         socket.on('chat', asyncSchemaValidator(chatSchema,(data) => {
-            io.to(sid).emit('chat', {
+            io.emit('chat', {
                 handle: s.getPlayerChatName(playerId),
                 message: data.message
             });
@@ -614,7 +607,7 @@ async function handleOnAuth(s, socket) {
 
         // typing
         socket.on('typing', () => {
-            socket.broadcast.to(sid).emit('typing', s.getPlayerById(playerId));
+            socket.broadcast.emit('typing', s.getPlayerById(playerId));
         });
 
         s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
@@ -629,7 +622,7 @@ async function handleOnAuth(s, socket) {
         }
 
         if (s.isSeatedPlayerId(playerId) && s.gameInProgress) {
-            io.to(sid).emit('player-reconnect', {
+            io.emit('player-reconnect', {
                 playerName: s.getPlayerById(playerId),
             });
         }
@@ -723,7 +716,7 @@ async function handleOnAuth(s, socket) {
         });
 
         socket.on('get-buyin-info', () => {
-            io.to(sid).emit('get-buyin-info', s.getBuyinBuyouts());
+            io.emit('get-buyin-info', s.getBuyinBuyouts());
         });
 
         const actionSchema = Joi.object({

@@ -18,6 +18,19 @@ function newPlayerId() {
 
 module.exports.newPlayerId = newPlayerId;
 
+function getOrSetPlayerIdCookie(req, res) {
+    let playerId = playerIdFromRequest(req);
+
+    console.log('playerIdFromRequest', playerId);
+    if (!playerId) {
+        // Create new player ID and set it as a cookie in user's browser
+        playerId = newPlayerId();
+        setPlayerIdCookie(playerId, req.params.id, res);
+    }
+    return playerId;
+}
+module.exports.getOrSetPlayerIdCookie = getOrSetPlayerIdCookie;
+
 function cookieOptions(sessionId) {
     return {
         // Make the player ID unique to this table by using the table's path
