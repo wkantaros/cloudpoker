@@ -945,11 +945,10 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
                     let newHostSocketId = s.getSocketId(s.getPlayerId(newHostName));
                     io.sockets.to(s.getSocketId(playerId)).emit('remove-mod-abilities');
                     io.sockets.to(newHostSocketId).emit('add-mod-abilities');
-                    s.sendTableState();
                 } else {
                     console.log('unable to transfer host');
-                    s.sendTableState();
                 }
+                s.sendTableState();
             }
         }));
 

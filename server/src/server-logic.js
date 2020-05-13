@@ -329,6 +329,7 @@ export class TableManager extends TableStateManager {
             if (this.getPlayer(newHostName)) this.getPlayer(newHostName).isMod = true;
             return true;
         }
+        this.transferHostToNextPlayer();
         return false;
     }
 
