@@ -1,12 +1,11 @@
 import React, {Component} from "react";
-import $ from "jquery";
 
-export class BuyInInfo extends Component {
+class BuyInInfo extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            playerName: null,
-            stackSize: null,
+            playerName: '',
+            stackSize: '',
         }
         this.handleInputChange = this.handleInputChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -67,24 +66,31 @@ export class BuyInInfo extends Component {
 export default class BuyInButton extends Component {
     constructor(props) {
         super(props);
-        this.state.showBuyInInfo = false;
+        this.state = {showBuyInInfo: false};
         this.handleClick = this.handleClick.bind(this);
+        this.handleWindowMouseUp = this.handleWindowMouseUp.bind(this);
+        this.handleBuyInInfoMouseUp = this.handleBuyInInfoMouseUp.bind(this);
     }
     handleClick() {
         if (!this.props.loggedIn) {
             this.setState({showBuyInInfo: true});
         }
     }
-    componentDidMount() {
-        $(document).mouseup((e) => {
-            let buyinInfo = $('#buyin-info');
-            // if the target of the click isn't the container nor a descendant of the container
-            if (!buyinInfo.is(e.target) && buyinInfo.has(e.target).length === 0) {
-                this.setState({showBuyInInfo: false});
-                // buyinInfo.removeClass('show');
-            }
-        });
+    handleWindowMouseUp(e) {
+        this.setState({showBuyInInfo: false});
     }
+    handleBuyInInfoMouseUp(e) {
+        e.stopPropagation();
+    }
+    componentDidMount() {
+        window.addEventListener('mouseup', this.handleWindowMouseUp);
+        document.getElementById('buyin-info').addEventListener('mouseup', this.handleBuyInInfoMouseUp)
+    }
+    componentWillUnmount() {
+        window.removeEventListener('mouseup', this.handleWindowMouseUp);
+        document.getElementById('buyin-info').removeEventListener('mouseup', this.handleBuyInInfoMouseUp)
+    }
+
     render() {
         let className = this.props.loggedIn? "button popup collapse": "button popup";
         return (

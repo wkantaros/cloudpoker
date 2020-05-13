@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React from "react";
 import '../css/stylesheet.css';
 
 export default function Pot({potAmount}) {

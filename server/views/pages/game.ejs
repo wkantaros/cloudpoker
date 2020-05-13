@@ -9,7 +9,7 @@
     <div class="scaleable-wrapper" id="scaleable-wrapper">
         <div class="page-contents" id="page-contents">
             <header>
-                <%- include('../partials/header'); %>
+                <div id="header-root"></div>
             </header>
             <div id="straddle-abilities">
                 <label class="single-straddle cbox collapse">
@@ -22,17 +22,9 @@
                 </label>
             </div>
             <main class="container">
-                <div id="table-img">
-                    <div id="ovalparent">
-                    </div>
-                </div>
+                <div id="table-img-root"></div>
             </main>
-            <div class="below-table u-full-width">
-                <%- include('../partials/buyinLog'); %>
-                <%- include('../partials/gameLog'); %>
-                <%- include('../partials/chatroom'); %>
-                <%- include('../partials/actions'); %>
-            </div>
+            <div id="below-table-root"></div>
         </div>
     </div>
 <!--    <script type="module" src="../poker-logic/lib/table-state.js"></script>-->

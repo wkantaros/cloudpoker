@@ -1,19 +1,24 @@
 const shortid = require('shortid');
 const cookie = require('cookie');
 
-export const PLAYER_UUID_COOKIE_NAME = "plar_uuid";
+const PLAYER_UUID_COOKIE_NAME = "plar_uuid";
+module.exports.PLAYER_UUID_COOKIE_NAME = PLAYER_UUID_COOKIE_NAME;
 // Player UUIDs expire after 48 hours
-export const PLAYER_UUID_EXPIRY = 48 * 60 * 60 * 1000;
-
-export function playerIdFromRequest(req) {
+const PLAYER_UUID_EXPIRY = 48 * 60 * 60 * 1000;
+module.exports.PLAYER_UUID_EXPIRY=PLAYER_UUID_EXPIRY;
+function playerIdFromRequest(req) {
     return req.cookies[PLAYER_UUID_COOKIE_NAME];
 }
 
-export function newPlayerId() {
+module.exports.playerIdFromRequest = playerIdFromRequest;
+
+function newPlayerId() {
     return shortid.generate();
 }
 
-export function setPlayerIdCookie(pid, req, res) {
+module.exports.newPlayerId = newPlayerId;
+
+function setPlayerIdCookie(pid, req, res) {
     res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, {
         // Make the player ID unique to this table by using the table's path
         path: `${req.baseUrl}/${req.params.id}`,
@@ -22,8 +27,9 @@ export function setPlayerIdCookie(pid, req, res) {
         maxAge: PLAYER_UUID_EXPIRY,
     }));
 }
+module.exports.setPlayerIdCookie = setPlayerIdCookie
 
-export function TwoWayMap() {
+function TwoWayMap() {
     // maps player ID (from cookie) -> socket ID (from socket.io session)
     this.kv = new Map();
     // maps socket ID -> player ID
@@ -68,3 +74,4 @@ TwoWayMap.prototype.getKv = function() {
 TwoWayMap.prototype.getVk = function() {
     return this.vk
 };
+module.exports.TwoWayMap = TwoWayMap;

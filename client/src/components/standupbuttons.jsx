@@ -12,7 +12,7 @@ export class StandUpButton extends Component {
         let className = "button popup";
         // if (!this.props.loggedIn || this.props.player.standingUp) className += " collapse";
         return (
-            <button className={className} id="stand-up">Stand Up</button>
+            <button className={className} id="stand-up" onClick={this.handleClick}>Stand Up</button>
         );
     }
 }
@@ -29,7 +29,7 @@ export class SitDownButton extends Component {
         let className = "button popup";
         // if (!this.props.loggedIn || !this.props.player.standingUp) className += " collapse";
         return (
-            <button className={className} id="sit-down">Sit Down</button>
+            <button className={className} id="sit-down" onClick={this.handleClick}>Sit Down</button>
         );
     }
 }

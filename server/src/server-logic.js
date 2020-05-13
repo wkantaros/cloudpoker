@@ -1,6 +1,6 @@
-import {Hand, rankHandInt} from './poker-logic';
+const {Hand, rankHandInt} = require('./poker-logic');
 
-export class TableStateManager {
+class TableStateManager {
     /**
      *
      * @param {TableState} table
@@ -161,7 +161,7 @@ export class TableStateManager {
     }
 }
 
-export class TableManager extends TableStateManager {
+class TableManager extends TableStateManager {
     /**
      *
      * @param {Table} table
@@ -408,29 +408,6 @@ export class TableManager extends TableStateManager {
         return this.table.getAvailableSeat();
     };
 
-    // returns a list of {playerName, seat, stack, playerid, waiting, betAmount}
-    // playerName -> { playerid, seat }
-    playersInfo() {
-        let info = [];
-        const waitingPlayerNames = this.table.waitingPlayers.map(x => x.playerName);
-        for (let name in this.playerids){
-            if (this.playerids.hasOwnProperty(name)) {
-                let isWaiting = waitingPlayerNames.includes(name);
-                info.push({
-                    playerName: name,
-                    seat: this.getPlayerSeat(name),
-                    stack: this.getStack(name),
-                    playerid: this.playerids[name].playerid,
-                    waiting: isWaiting,
-                    standingUp: this.isPlayerStandingUp(name),
-                    betAmount: this.getBet(name), // amount that name bet so far in this street
-                })
-            }
-        }
-        // console.log(info);
-        return info;
-    };
-
     startGame() {
         this.gameInProgress = true;
         this.updateBlinds();
@@ -610,3 +587,6 @@ export class TableManager extends TableStateManager {
         }
     }
 }
+
+module.exports.TableStateManager=TableStateManager;
+module.exports.TableManager=TableManager;

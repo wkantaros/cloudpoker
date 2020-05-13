@@ -1,6 +1,7 @@
-import {Hand, rankHandInt} from "../poker-logic";
+const {rankHandInt} = require("../poker-logic/lib/deck");
+const {Hand} = require("../poker-logic/lib/node-poker");
 
-export class TableState {
+class TableState {
     /**
      *
      * @param {number} smallBlind
@@ -64,7 +65,7 @@ export class TableState {
 
     // extra info used only on the front end
     extraPlayerInfo(info) {
-        info.handRankMessage = info.cards.length > 0? rankHandInt(new Hand(info.cards.concat(this.game.board))).message : '';
+        info.handRankMessage = info.cards.length > 0? rankHandInt({cards: info.cards.concat(this.game.board)}).message : '';
         info.isDealer = this.game !== null && this.dealer > -1 && this.players[this.dealer] && this.players[this.dealer].playerName === info.playerName;
         info.isActionSeat = this.game !== null && this.currentPlayer > -1 && this.players[this.currentPlayer] && this.actionSeat === info.seat;
         info.earnings = 0;
@@ -274,7 +275,7 @@ export class TableState {
     };
 }
 
-export class Player {
+class Player {
     /**
      * Constructs a Player object for use with Table.
      * @param playerName Name of the player as it should appear on the front end
@@ -404,7 +405,7 @@ export class Player {
     };
 }
 
-export class GameState {
+class GameState {
     constructor(smallBlind, bigBlind) {
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
@@ -431,3 +432,7 @@ export class GameState {
         }
     }
 }
+
+module.exports.Player = Player;
+module.exports.TableState = TableState;
+module.exports.GameState = GameState;
