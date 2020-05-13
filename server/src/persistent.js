@@ -18,14 +18,19 @@ function newPlayerId() {
 
 module.exports.newPlayerId = newPlayerId;
 
-function setPlayerIdCookie(pid, req, res) {
-    res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, {
+function cookieOptions(sessionId) {
+    return {
         // Make the player ID unique to this table by using the table's path
-        path: `${req.baseUrl}/${req.params.id}`,
-        // TODO: should httpOnly be true?
-        // httpOnly: true,
+        path: `session/${sessionId}`,
         maxAge: PLAYER_UUID_EXPIRY,
-    }));
+        sameSite: 'lax', // idk if we should do strict
+        httpOnly: true,
+    }
+}
+module.exports.cookieOptions = cookieOptions;
+
+function setPlayerIdCookie(pid, sessionId, res) {
+    res.setHeader('Set-Cookie', cookie.serialize(PLAYER_UUID_COOKIE_NAME, pid, cookieOptions(sessionId)));
 }
 module.exports.setPlayerIdCookie = setPlayerIdCookie
 

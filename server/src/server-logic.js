@@ -172,15 +172,10 @@ class TableManager extends TableStateManager {
      */
     constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
         super(table, false);
-        this.hostName = hostName;
-        this.hostStack = hostStack;
         this.trackBuyins = [];
         this.playerids = {};
-        this.modIds = [playerid];
-        table.AddPlayer(hostName, hostStack, hostIsStraddling);
-        table.getPlayer(hostName).isMod = true;
-        this.addToPlayerIds(hostName, playerid);
-        this.addToBuyins(hostName, playerid, hostStack);
+        this.modIds = [];
+        this.buyin(hostName, playerid, hostStack, hostIsStraddling);
         this.bigBlindNextHand = undefined;
         this.smallBlindNextHand = undefined;
         this.playerStacksNextHand = [];
@@ -266,11 +261,9 @@ class TableManager extends TableStateManager {
             this.addToPlayerIds(playerName, playerid);
             this.addToBuyins(playerName, playerid, stack);
             console.log(`${playerName} buys in for ${stack}`);
-            if (this.hostName === null){
-                console.log(`transferring host to ${playerName} (pid: ${playerid})`);
-                // this.transferHost(playerName);
+            if (this.modIds.length === 0){
+                console.log(`transferring host to ${playerName} (pid: ${playerid}) because modIds is empty`);
                 this.setHost(playerName, playerid);
-                this.hostStack = stack;
             }
             return true;
         } else {
@@ -336,9 +329,8 @@ class TableManager extends TableStateManager {
     // private method
     setHost(playerName, playerId) {
         this.modIds.push(playerId);
-        this.hostName = playerName;
-        this.hostStack = this.getStack(playerName);
-        this.table.getPlayer(playerName).isMod = true;
+        const p = this.table.getPlayer(playerName);
+        if (p) p.isMod = true;
     }
 
     getPlayerId(playerName) {
@@ -349,17 +341,11 @@ class TableManager extends TableStateManager {
     }
 
     getModId() {
-        if (this.hostName != null){
-            return this.getPlayerId(this.hostName);
-        } else {
-            return null;
-        }
+        return this.modIds.length > 0 ? this.modIds[0] : null;
     }
 
     isModPlayerId (pid) {
         return this.modIds.includes(pid);
-        // if (this.hostName === null) return false;
-        // return this.getPlayerId(this.hostName) === pid;
     }
 
     isActivePlayerId(playerid) {

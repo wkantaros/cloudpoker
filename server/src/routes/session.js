@@ -64,10 +64,14 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
         });
         return;
     }
+
+    let playerId = newPlayerId();
+    setPlayerIdCookie(playerId, value.tableName, res);
+
     value.isValid = true;
     await res.json(value);
-    console.log(`starting new table with id: ${value.tableName}`);
-    sessionManagers.set(value.tableName, new SessionManager(null, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, 6969));
+    console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
+    sessionManagers.set(value.tableName, new SessionManager(null, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, playerId));
 }));
 
 // maps sid -> SessionManager
@@ -262,7 +266,6 @@ class SessionManager extends TableManager {
     // removes players not in the current hand
     handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
-        const modLeavingGame = playerId === super.getModId();
         const seat = super.getPlayerSeat(playerName);
         console.log(`${playerName} leaves game`);
 
@@ -508,7 +511,7 @@ class SessionManager extends TableManager {
 router.route('/:id').get(asyncErrorHandler((req, res) => {
     let sid = req.params.id;
     const s = sessionManagers.get(sid);
-    if (!s) {
+    if (!s) { // redirect user to login page if the request's table ID does not exist
         res.redirect('/');
         return;
     }
@@ -524,7 +527,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
     if (isNewPlayer) {
         // Create new player ID and set it as a cookie in user's browser
         playerId = newPlayerId();
-        setPlayerIdCookie(playerId, req, res);
+        setPlayerIdCookie(playerId, req.params.id, res);
     }
 
     res.render('pages/game', {
@@ -549,6 +552,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
     let socket_id = [];
     io.once('connection', async function (socket) {
         console.log('socket id!:', socket.id, 'player id', playerId);
+        console.log(s.table.allPlayers);
 
         if (!socket_ids[socket.id]) {
             socket_id.push(socket.id);
@@ -556,7 +560,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             if (socket_id[0] === socket.id) {
                 io.removeAllListeners('connection');
             }
-            console.log('a user connected at', socket.id);
 
             // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
             socket_ids[socket_id[0]] = true;
@@ -571,12 +574,6 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             // io.removeAllListeners('connection');
         });
 
-        // make sure host has a socketid associate with name (player who sent in login form)
-
-        if (s.getModId() != null && s.getModId() === 6969) {
-            s.updatePlayerId(s.getPlayerById(s.getModId()), playerId);
-            console.log('updating hostname playerid to:', playerId);
-        }
         console.log('a user connected at', socket.id, 'with player ID', playerId);
 
         //adds socket to room (actually a sick feature)
