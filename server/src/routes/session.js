@@ -11,6 +11,9 @@ const {TableManager} = require('../server-logic');
 const {playerIdFromRequest, newPlayerId, setPlayerIdCookie, TwoWayMap} = require('../persistent');
 const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require('../funcs');
 const poker = require('../poker-logic/lib/node-poker');
+const {PLAYER_UUID_COOKIE_NAME} = require("../persistent");
+const socketioJwt   = require('socketio-jwt');
+const jwt = require('jsonwebtoken');
 
 const validateTableName = (val) => {
     if (!val || val.length === 0) return val;
@@ -71,7 +74,8 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
     value.isValid = true;
     await res.json(value);
     console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
-    sessionManagers.set(value.tableName, new SessionManager(null, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, playerId));
+    const tableNamespace = req.app.get('socketio').of('/' + value.tableName);
+    sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, playerId));
 }));
 
 // maps sid -> SessionManager
@@ -79,7 +83,7 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
 const sessionManagers = new Map();
 
 // hacky fix
-const socket_ids = {};
+// const socket_ids = {};
 
 class SessionManager extends TableManager {
     // io;
@@ -105,6 +109,11 @@ class SessionManager extends TableManager {
         this.registeredGuestCount = 0;
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
+
+        this.io.on('connection', socketioJwt.authorize({
+            secret: process.env.PKR_JWT_SECRET,
+            timeout: 15000 // 15 seconds to send the authentication message
+        })).on('authenticated', makeAuthHandler(this));
     }
 
     setSocket(playerId, socket) {
@@ -515,59 +524,66 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         res.redirect('/');
         return;
     }
-    const io = req.app.get('socketio');
-    s.io = io;
+    // const io = req.app.get('socketio');
+    // s.io = io;
 
     let playerId = playerIdFromRequest(req);
 
     console.log('playerIdFromRequest', playerId, 'is active', s.isActivePlayerId(playerId), 'is seated', s.isSeatedPlayerId(playerId));
     // isActivePlayerId is false if the player previously quit the game
-    const isNewPlayer = (playerId === undefined) || !s.isSeatedPlayerId(playerId);
-    console.log('inp', isNewPlayer);
-    if (isNewPlayer) {
-        // Create new player ID and set it as a cookie in user's browser
-        playerId = newPlayerId();
-        setPlayerIdCookie(playerId, req.params.id, res);
-    }
+    // const isNewPlayer = (playerId === undefined) || !s.isSeatedPlayerId(playerId);
+    // console.log('inp', isNewPlayer);
+    // if (isNewPlayer) {
+    //     // Create new player ID and set it as a cookie in user's browser
+    //     playerId = newPlayerId();
+    //     setPlayerIdCookie(playerId, req.params.id, res);
+    // }
 
+    const token = jwt.sign({playerId: playerId},
+        process.env.PKR_JWT_SECRET, {expiresIn: "2 days"});
     res.render('pages/game', {
-        bigBlind: s.table.bigBlind,
-        smallBlind: s.table.smallBlind,
-        rank: 'A',
-        suit: 'S',
-        action: false,
-        actionSeat: s.actionSeat,
-        dealer: s.getDealerSeat(),
-        color: 'black',
-        showCards: false,
-        joinedGame: s.isSeatedPlayerId(playerId),
-        waiting: !s.gameInProgress,
-        pot: s.getPot(),
-        roundName: s.getRoundName(),
-        callAmount: s.maxBet,
-        standingUp: s.isSeatedPlayerId(playerId) && s.isPlayerStandingUp(s.getPlayerById(playerId)), // todo soon
+        sid: sid,
+        // playerIdCookieKey: PLAYER_UUID_COOKIE_NAME,
+        token: token
     });
 
     // hacky
-    let socket_id = [];
-    io.once('connection', async function (socket) {
-        console.log('socket id!:', socket.id, 'player id', playerId);
-        console.log(s.table.allPlayers);
+    // let socket_id = [];
+    // io.once('connection', );
+}));
 
-        if (!socket_ids[socket.id]) {
-            socket_id.push(socket.id);
-            // rm connection listener for any subsequent connections with the same ID
-            if (socket_id[0] === socket.id) {
-                io.removeAllListeners('connection');
-            }
 
-            // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
-            socket_ids[socket_id[0]] = true;
+function makeAuthHandler(s) {
+    return async function (socket) {
+        return await handleOnAuth(s, socket);
+    }
+}
+/**
+ *
+ * @param s {SessionManager}
+ * @param socket {Socket}
+ * @return {Promise<void>}
+ */
+async function handleOnAuth(s, socket) {
+    let playerId = socket.decoded_token.playerId;
+    const sid = s.sid;
+    console.log('socket id!:', socket.id, 'player id', playerId);
+    console.log(s.table.allPlayers);
+
+    // if (!socket_ids[socket.id]) {
+    //     socket_id.push(socket.id);
+        // rm connection listener for any subsequent connections with the same ID
+        // if (socket_id[0] === socket.id) {
+        //     io.removeAllListeners('connection');
+        // }
+
+        // added this because of duplicate sockets being sent with (when using ngrok, not sure why)
+        // socket_ids[socket_id[0]] = true;
 
         s.setSocket(playerId, socket);
         //adds socket to room (actually a sick feature)
         socket.join(sid);
-        if (!isNewPlayer) {
+        if (s.isSeatedPlayerId(playerId)) {
             socket.join(`${sid}-active`);
         } else {
             socket.join(`${sid}-guest`);
@@ -611,7 +627,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             return value;
         }
 
-        if (!isNewPlayer && s.gameInProgress) {
+        if (s.isSeatedPlayerId(playerId) && s.gameInProgress) {
             io.sockets.to(sid).emit('player-reconnect', {
                 playerName: s.getPlayerById(playerId),
             });
@@ -646,7 +662,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             await s.kickPlayer(s.getPlayerId(playerName));
         }));
 
-        socket.on('leave-game', async (data) => {
+        socket.on('leave-game', async () => {
             if (!s.isSeatedPlayerId(playerId)) {
                 console.log(`playerid ${playerId} emitted leave-game but is not an active player`);
                 return;
@@ -669,13 +685,13 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             }
             s.sitDownPlayer(s.getPlayerById(playerId));
         });
-        
+
         const setTurnTimerSchema = Joi.object({delay: Joi.number().integer().required()}).external(isModValidator);
         socket.on('set-turn-timer', asyncSchemaValidator(setTurnTimerSchema, (data) => { // delay
             s.setTimer(data.delay);
         }));
 
-        socket.on('start-game', (data) => {
+        socket.on('start-game', () => {
             if (!s.isModPlayerId(playerId)) {
                 console.log(`${s.getPlayerById(playerId)} cannot start the game because they are not a mod.`);
                 return;
@@ -792,10 +808,9 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         }));
 
         // this if else statement is a nonsense fix need to find a better one
-        } else {
-            console.log('already connected');
-        }
-    });
-}));
+    // } else {
+    //     console.log('already connected');
+    // }
+}
 
 module.exports = router;

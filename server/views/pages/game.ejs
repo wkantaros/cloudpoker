@@ -3,6 +3,10 @@
 
 <head>
     <%- include('../partials/head'); %>
+    <script>
+        const SESSION_ID = '<%=sid%>';
+        localStorage.setItem('token', '<%=token%>');
+    </script>
 </head>
 
 <body>

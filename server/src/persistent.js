@@ -21,7 +21,7 @@ module.exports.newPlayerId = newPlayerId;
 function cookieOptions(sessionId) {
     return {
         // Make the player ID unique to this table by using the table's path
-        path: `/session/${sessionId}`,
+        // path: `/session/${sessionId}`,
         maxAge: PLAYER_UUID_EXPIRY,
         sameSite: 'lax', // idk if we should do strict
         httpOnly: true,

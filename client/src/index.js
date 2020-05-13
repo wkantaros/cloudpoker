@@ -26,7 +26,17 @@ import Header from "./components/header";
 // import './audio/fold2.wav';
 // import RiverSound from './audio/river.wav';
 
-let socket = io();
+let socket = io('/' + SESSION_ID);
+socket.on('connect', () => {
+    socket.emit('authenticate', { token: localStorage.getItem('token') });
+    socket.on('authenticated', () => {
+        console.log('authenticated');
+    });
+    socket.on('unauthorized', (msg) => {
+        console.log(`unauthorized: ${JSON.stringify(msg.data)}`);
+        throw new Error(msg.data.type);
+    });
+});
 //resize page (to fit)
 
 var $el = $("#page-contents");
