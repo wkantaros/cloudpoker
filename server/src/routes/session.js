@@ -96,6 +96,11 @@ class SessionManager extends TableManager {
         this.timer = null;
         this.raceInProgress = false;
         this.raceSchedule = null;
+        // registeredGuestCount counts how many guests have spoken in chat. It is used
+        // to uniquely identify guests in chat by naming them "guest 1," "guest 2," etc.
+        this.registeredGuestCount = 0;
+        // stores chat names for users who have not joined the game and have sent a chat message
+        this.registeredGuests = {};
     }
 
     setSocket(playerId, socket) {
@@ -114,6 +119,10 @@ class SessionManager extends TableManager {
         if (super.isPlayerNameUsed(playerName)) {
             this.io.sockets.to(this.getSocketId(playerId)).emit('alert',
                 {'message': `Player name ${playerName} is already taken.`});
+            return false;
+        } else if (playerName.toLowerCase().indexOf('guest') === 0) {
+            this.io.sockets.to(this.getSocketId(playerId)).emit('alert',
+                {'message': `Player name cannot start with "guest"`});
             return false;
         }
         return true;
@@ -163,14 +172,27 @@ class SessionManager extends TableManager {
         });
     }
 
-    addPlayer(playerName) {
-        this.sendTableState();
+    buyin(playerName, playerid, stack, isStraddling) {
+        const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling);
+        if (addedPlayer) {
+            if (this.registeredGuests[playerid]) {
+                // remove playerid from registeredGuests as player is no longer a guest.
+                //  their username is now stored in super.playerids
+                delete this.registeredGuests[playerid];
+            }
 
-        const newPlayer = this.table.getPlayer(playerName);
-        this.io.sockets.to(this.sid).emit('buy-in', {
-            playerName: playerName,
-            stack: newPlayer.chips,
-        });
+            this.getSocket(playerid).leave(`${this.sid}-guest`);
+            this.getSocket(playerid).join(`${this.sid}-active`);
+            this.sendTableState();
+            this.io.sockets.to(this.sid).emit('buy-in', {
+                playerName: playerName,
+                stack: stack,
+            });
+        } else {
+            // set or update this guest's name
+            this.registeredGuests[playerid] = playerName;
+        }
+        return addedPlayer;
     }
 
     async kickPlayer(playerId) {
@@ -248,6 +270,7 @@ class SessionManager extends TableManager {
         super.addBuyOut(playerName, playerId, stack);
         super.removePlayer(playerName);
 
+        this.registeredGuests[playerId] = playerName;
         this.getSocket(playerId).leave(`${this.sid}-active`);
         this.getSocket(playerId).join(`${this.sid}-guest`);
         this.sendTableState();
@@ -468,6 +491,18 @@ class SessionManager extends TableManager {
     canSendMessage(playerId, message) {
         return message.length > 0;
     }
+    getPlayerChatName(playerId) {
+        let playerName = super.getPlayerById(playerId);
+        if (playerName !== 'guest') return playerName;
+        if (this.registeredGuests[playerId]) {
+            return this.registeredGuests[playerId];
+        } else {
+            this.registeredGuestCount++;
+            let guestName = `guest ${this.registeredGuestCount}`;
+            this.registeredGuests[playerId] = guestName;
+            return guestName;
+        }
+    }
 }
 
 router.route('/:id').get(asyncErrorHandler((req, res) => {
@@ -560,7 +595,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
         // send a message in the chatroom
         socket.on('chat', asyncSchemaValidator(chatSchema,(data) => {
             io.sockets.to(sid).emit('chat', {
-                handle: s.getPlayerById(playerId),
+                handle: s.getPlayerChatName(playerId),
                 message: data.message
             });
         }));
@@ -601,15 +636,7 @@ router.route('/:id').get(asyncErrorHandler((req, res) => {
             if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
                 return;
             }
-            socket.leave(`${sid}-guest`);
-            socket.join(`${sid}-active`);
-            const addedPlayer = s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
-            if (addedPlayer) {
-                s.addPlayer(data.playerName);
-            } else {
-                console.log('buyin returned false for data:', JSON.stringify(data));
-            }
-            s.sendTableState();
+            s.buyin(data.playerName, playerId, data.stack, data.isStraddling === true);
         }));
 
         const straddleSwitchSchema = Joi.object({
