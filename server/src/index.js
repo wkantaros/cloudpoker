@@ -25,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/client', express.static(__dirname + '/../../client'));
 app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
-console.log(process.env.PKR_JWT_SECRET)
+
 //handling login
 const loginRouter = require('./routes/login');
 app.use(loginRouter); 
