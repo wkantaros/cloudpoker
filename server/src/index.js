@@ -1,7 +1,7 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
-const path = require('path');
 const cors = require('cors');
 const socketIO = require('socket.io');
 // const ejs = require('ejs');
@@ -25,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/client', express.static(__dirname + '/../../client'));
 app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
-
+console.log(process.env.PKR_JWT_SECRET)
 //handling login
 const loginRouter = require('./routes/login');
 app.use(loginRouter); 
