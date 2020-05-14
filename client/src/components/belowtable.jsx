@@ -21,6 +21,7 @@ export default class BelowTable extends Component {
         this.closeGameLog = this.closeGameLog.bind(this);
         this.toggleBetSlider = this.toggleBetSlider.bind(this);
         this.getBuyInListener = this.getBuyInListener.bind(this);
+        this.buttonsAboveChatroom = this.buttonsAboveChatroom.bind(this);
 
         this.actionButtonClickHandlers = {
             'show-hand': () => {
@@ -62,6 +63,14 @@ export default class BelowTable extends Component {
     toggleBetSlider() {
         this.setState((state, props) => ({betActionsOpen: !state.betActionsOpen}));
     }
+    buttonsAboveChatroom() {
+        return (
+            <div id="buttons-above-chatroom">
+                <a onClick={this.openGameLog} className="button" id="game-log-opn">Log</a>
+                <a onClick={this.openBuyInLog} className="button" id="buyin-log-opn">Buy-ins</a>
+            </div>
+        );
+    }
     render() {
         let actionData = this.props.manager.getAvailableActions(this.props.player? this.props.player.playerName: undefined);
         return (
@@ -75,8 +84,7 @@ export default class BelowTable extends Component {
                 <ChatRoomContainer socket={this.props.socket}
                                    messages={this.props.messages}
                                    feedbackText={this.props.feedbackText}
-                                   openGameLog={this.openGameLog}
-                                   openBuyInLog={this.openBuyInLog}
+                                   buttonsAbove={this.buttonsAboveChatroom()}
                                    collapse={this.state.betActionsOpen}/>
                 <Actions availableActions={actionData.availableActions}
                          canPerformPremoves={actionData.canPerformPremoves}

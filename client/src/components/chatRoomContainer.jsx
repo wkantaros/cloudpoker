@@ -66,10 +66,7 @@ export default class ChatRoomContainer extends Component {
         let className = this.props.collapse? "c collapse": "c";
         return (
             <div className={className} id="c">
-                <div id="buttons-above-chatroom">
-                    <a onClick={this.props.openGameLog} className="button" id="game-log-opn">Log</a>
-                    <a onClick={this.props.openBuyInLog} className="button" id="buyin-log-opn">Buy-ins</a>
-                </div>
+                {this.props.buttonsAbove}
                 <ChatRoom
                     messages={this.props.messages}
                     feedbackText={this.props.feedbackText}
