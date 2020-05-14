@@ -156,12 +156,10 @@ class Table extends TableState{
 
     initNewRound () {
         this.removeAndAddPlayers();
+        let handNextRound = this.allPlayers.filter(p=>p!==null&&!p.standingUp).length >= 2;
         for (let i = 0; i < this.allPlayers.length; i += 1) {
             if (this.allPlayers[i] === null) continue;
-            if (this.allPlayers[i].standingUp) {
-                console.log('MASSIVE ERROR PLAYER IS STANDING UP', this.players[i]);
-            }
-            this.allPlayers[i].inHand = this.players.length >= 2;
+            this.allPlayers[i].inHand = !this.allPlayers[i].standingUp && handNextRound;
             this.allPlayers[i].clearHandState();
         }
         if (this.players.length < 2) {
