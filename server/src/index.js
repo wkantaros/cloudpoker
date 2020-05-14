@@ -10,7 +10,7 @@ const socketIO = require('socket.io');
 const app = express();
 const port = process.env.PORT || 8080;
 app.set('port', port);
-const server = http.Server(app);
+const server = new http.Server(app);
 
 //socket setup
 let io = socketIO(server);
