@@ -123,6 +123,7 @@ export default class Actions extends Component {
         //  is a <span> tag. to access the clicked button, from which we need the ID, we use .closest('.action-btn').
         const target = event.target.closest('.action-btn');
         if (target.id === this.state.clickedPremove) {
+            console.log('unclicking', target.id);
             this.setState({clickedPremove: null, premoveStreet: this.props.manager.getRoundName()});
             if (target.id === 'pm-call') {
                 this.setState({premoveCallAmount: -1});
@@ -162,7 +163,7 @@ export default class Actions extends Component {
         } else if (this.state.clickedPremove === 'pm-checkfold' && this.props.player.bet < maxBet) {
             // fold if someone bet after pm-checkfold was clicked
             stateUpdate = {clickedPremove: 'pm-fold'};
-        } else if (this.state.clickedPremove === 'pm-check' && maxBet > 0) {
+        } else if (this.state.clickedPremove === 'pm-check' && this.props.player.bet < maxBet) {
             // can't check if someone bet
             stateUpdate = {clickedPremove: null};
         }

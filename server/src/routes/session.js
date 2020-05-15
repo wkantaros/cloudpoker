@@ -421,6 +421,7 @@ class SessionManager extends TableManager {
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');
             }
+            await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
     }
