@@ -73,7 +73,6 @@ export default class Actions extends Component {
             clickedPremove: null,
             premoveStreet: this.props.manager.getRoundName(),
             premoveCallAmount: -1,
-            betActionsOpen: false,
             betInputValue: this.props.player? this.props.manager.table.minimumBetAllowed(this.props.player.playerName): 0,
             raiseInputValue: this.props.player? Math.min(getMinRaiseAmount({table: this.props.manager.table}), this.props.player.bet + this.props.player.chips): 0,
         };
@@ -182,7 +181,7 @@ export default class Actions extends Component {
         // apply premove state update
         if (Object.keys(stateUpdate).length > 0) this.setState(stateUpdate);
 
-        if (!this.state.betActionsOpen) {
+        if (!this.props.betActionsOpen) {
             let betInputValue = this.props.player? this.props.manager.table.minimumBetAllowed(this.props.player.playerName): 0;
             if (betInputValue > this.state.betInputValue) this.setState({betInputValue});
             let raiseInputValue = this.props.player? Math.min(getMinRaiseAmount({table: this.props.manager.table}), this.props.player.bet + this.props.player.chips): 0;
@@ -282,16 +281,16 @@ export default class Actions extends Component {
             amount: betAmount,
             action: 'bet'
         });
-        if (this.state.betActionsOpen) {
-            this.setState({betActionsOpen: false})
+        if (this.props.betActionsOpen) {
+            this.props.toggleBetSlider();
         }
         return true;
     }
     setBetInputValue(amount) {
-        this.setState({betInputValue: amount});
+        this.setState({betInputValue: amount || amount === 0? amount : ''});
     }
     setRaiseInputValue(amount) {
-        this.setState({raiseInputValue: amount});
+        this.setState({raiseInputValue: amount || amount === 0? amount : ''});
     }
     render() {
         let showBetActions = this.props.availableActions['bet'] && !this.props.canPerformPremoves;
