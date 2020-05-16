@@ -179,7 +179,15 @@ export default class Actions extends Component {
             } else console.log('not doing premove');
             stateUpdate = {clickedPremove: null, premoveCallAmount: -1, premoveStreet: this.props.manager.getRoundName()};
         }
+        // apply premove state update
         if (Object.keys(stateUpdate).length > 0) this.setState(stateUpdate);
+
+        if (!this.state.betActionsOpen) {
+            let betInputValue = this.props.player? this.props.manager.table.minimumBetAllowed(this.props.player.playerName): 0;
+            if (betInputValue > this.state.betInputValue) this.setState({betInputValue});
+            let raiseInputValue = this.props.player? Math.min(getMinRaiseAmount({table: this.props.manager.table}), this.props.player.bet + this.props.player.chips): 0;
+            if (raiseInputValue > this.state.raiseInputValue) this.setState({raiseInputValue});
+        }
     }
 
     getPremoves() {
