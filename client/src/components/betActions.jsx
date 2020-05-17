@@ -9,10 +9,8 @@ export function getMinRaiseAmount ({table}) {
     // if the biggest bet is the bb then double it
     if (biggestBet === table.bigBlind) {
         minRaiseAmount = biggestBet + biggestBet;
-        console.log('minRaiseAmount = biggestBet + biggestBet');
     } else {
         minRaiseAmount = 2 * (biggestBet - secondBiggestBet) + secondBiggestBet;
-        console.log('2b', biggestBet, secondBiggestBet);
     }
     return minRaiseAmount;
 }
