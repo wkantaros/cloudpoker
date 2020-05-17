@@ -9,8 +9,10 @@ export function getMinRaiseAmount ({table}) {
     // if the biggest bet is the bb then double it
     if (biggestBet === table.bigBlind) {
         minRaiseAmount = biggestBet + biggestBet;
+        console.log('minRaiseAmount = biggestBet + biggestBet');
     } else {
         minRaiseAmount = 2 * (biggestBet - secondBiggestBet) + secondBiggestBet;
+        console.log('2b', biggestBet, secondBiggestBet);
     }
     return minRaiseAmount;
 }
@@ -19,12 +21,12 @@ export class RaiseButtonContainer extends Component {
         super(props);
         this.handleBetButtonClick=this.handleBetButtonClick.bind(this);
         this.betButtonValues = {
-            'mr': () => { return getMinRaiseAmount({table: this.props.manager.table})},
+            'mr': () => { return getMinRaiseAmount({table: this.props.table})},
             'rp': this.getPotSize,
             'rsqp': () => { return 6 * this.getPotSize() / 4},
             'rtp': () => { return 2 * this.getPotSize()},
             'rthp': () => { return 3 * this.getPotSize()},
-            'rai': () => { return this.props.manager.table.maxBetPossible(this.props.player.playerName)},
+            'rai': () => { return this.props.table.maxBetPossible(this.props.player.playerName)},
         };
     }
     handleBetButtonClick(event) {
@@ -32,10 +34,10 @@ export class RaiseButtonContainer extends Component {
         this.props.setInputValue(betAmount);
     }
     getBigBlind() {
-        return this.props.manager.table.bigBlind;
+        return this.props.table.bigBlind;
     }
     getPotSize() {
-        return this.props.manager.table.game.pot + this.props.manager.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0
+        return this.props.table.game.pot + this.props.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0
     }
     render() {
         return (
@@ -57,9 +59,9 @@ export class BetButtonContainer extends Component {
         super(props);
         this.handleBetButtonClick=this.handleBetButtonClick.bind(this);
         this.betButtonValues = {
-            'betplus': () => {return Math.min(this.props.inputValue + this.getBigBlind(), this.props.manager.table.maxBetPossible(this.props.player.playerName))},
+            'betplus': () => {return Math.min(this.props.inputValue + this.getBigBlind(), this.props.table.maxBetPossible(this.props.player.playerName))},
             'betminus': () => {return Math.max(this.props.inputValue - this.getBigBlind(), this.getBigBlind())},
-            'bai': () => {return this.props.manager.table.maxBetPossible(this.props.player.playerName)},
+            'bai': () => {return this.props.table.maxBetPossible(this.props.player.playerName)},
             'bp': () => {return this.getPotSize()},
             'btqp': () => {return Math.floor(3 * this.getPotSize() / 4)},
             'bhp': () => {return Math.floor(this.getPotSize() / 2)},
@@ -72,10 +74,10 @@ export class BetButtonContainer extends Component {
         this.props.setInputValue(betAmount);
     }
     getBigBlind() {
-        return this.props.manager.table.bigBlind;
+        return this.props.table.bigBlind;
     }
     getPotSize() {
-        return this.props.manager.table.game.pot + this.props.manager.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0
+        return this.props.table.game.pot + this.props.table.players.map(p => p.bet).reduce((acc, cv) => acc + cv) || 0
     }
     render() {
         return (
@@ -91,28 +93,28 @@ export class BetButtonContainer extends Component {
     }
 }
 
-export function RaiseMinusButton({inputValue, setInputValue, manager, player}) {
+export function RaiseMinusButton({inputValue, setInputValue, table, player}) {
     const onClick= (e) => {
-        setInputValue(Math.max(inputValue - manager.table.bigBlind, getMinRaiseAmount(manager)));
+        setInputValue(Math.max(inputValue - table.bigBlind, getMinRaiseAmount({table})));
     }
     return (<button onClick={onClick} className="button-primary" id="raiseminus">-</button>);
 }
-export function RaisePlusButton({inputValue, setInputValue, manager, player}) {
+export function RaisePlusButton({inputValue, setInputValue, table, player}) {
     const onClick= (e) => {
-        setInputValue(Math.min(inputValue + manager.table.bigBlind, manager.table.maxBetPossible(player.playerName)));
+        setInputValue(Math.min(inputValue + table.bigBlind, table.maxBetPossible(player.playerName)));
     }
 
     return (<button onClick={onClick} className="button-primary" id="raiseplus">+</button>);
 }
-export function BetMinusButton({inputValue, setInputValue, manager, player}) {
+export function BetMinusButton({inputValue, setInputValue, table, player}) {
     const onClick= (e) => {
-        setInputValue(Math.max(inputValue - manager.table.bigBlind, manager.table.minimumBetAllowed(player.playerName)));
+        setInputValue(Math.max(inputValue - table.bigBlind, table.minimumBetAllowed(player.playerName)));
     }
     return (<button onClick={onClick} className="button-primary" id="betminus">-</button>);
 }
-export function BetPlusButton({inputValue, setInputValue, manager, player}) {
+export function BetPlusButton({inputValue, setInputValue, table, player}) {
     const onClick= (e) => {
-        setInputValue(Math.min(inputValue + manager.table.bigBlind, manager.table.maxBetPossible(player.playerName)));
+        setInputValue(Math.min(inputValue + table.bigBlind, table.maxBetPossible(player.playerName)));
     }
 
     return (<button onClick={onClick} className="button-primary" id="betplus">+</button>);
@@ -165,15 +167,15 @@ export default class BetActions extends Component {
         let rangeId = this.props.actionKind + "Range";
         let actionsId = this.props.actionKind + "-actions";
         if (this.props.actionKind === 'bet') {
-            sliderMin = this.props.manager.table.minimumBetAllowed(this.props.player.playerName);
-            betMinus = <BetMinusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
-            betPlus = <BetPlusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
-            betButtons = <BetButtonContainer setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
+            sliderMin = this.props.table.minimumBetAllowed(this.props.player.playerName);
+            betMinus = <BetMinusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
+            betPlus = <BetPlusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
+            betButtons = <BetButtonContainer setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
         } else if (this.props.actionKind === 'raise') {
-            sliderMin = Math.min(getMinRaiseAmount({table: this.props.manager.table}), this.props.player.bet + this.props.player.chips);
-            betMinus = <RaiseMinusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
-            betPlus = <RaisePlusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
-            betButtons = <RaiseButtonContainer setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} manager={this.props.manager}/>
+            sliderMin = Math.min(getMinRaiseAmount({table: this.props.table}), this.props.player.bet + this.props.player.chips);
+            betMinus = <RaiseMinusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
+            betPlus = <RaisePlusButton setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
+            betButtons = <RaiseButtonContainer setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
         }
         return (
             <div className={this.props.collapse?"slidecontainer collapse": "slidecontainer"} id={actionsId}>
@@ -186,7 +188,7 @@ export default class BetActions extends Component {
                                className="slider"
                                id={rangeId}
                                min={sliderMin}
-                               max={this.props.manager.table.maxBetPossible(this.props.player.playerName)}
+                               max={this.props.table.maxBetPossible(this.props.player.playerName)}
                                value={this.props.inputValue}
                                onChange={this.handleBetInputChange}/>
                                {/*onInput={this.handleBetInputChange}/>*/}

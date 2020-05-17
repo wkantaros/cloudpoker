@@ -305,7 +305,7 @@ export default class Actions extends Component {
                     {showBetActions &&
                     <BetActions placeBet={this.placeBet}
                                 player={this.props.player}
-                                manager={this.props.manager}
+                                table={this.props.manager.table}
                                 toggleSlider={this.props.toggleBetSlider}
                                 collapse={!this.props.betActionsOpen}
                                 inputValue={this.state.betInputValue}
@@ -314,7 +314,7 @@ export default class Actions extends Component {
                     {showRaiseActions &&
                     <BetActions placeBet={this.placeRaise}
                                 player={this.props.player}
-                                manager={this.props.manager}
+                                table={this.props.manager.table}
                                 toggleSlider={this.props.toggleBetSlider}
                                 collapse={!this.props.betActionsOpen}
                                 inputValue={this.state.raiseInputValue}
