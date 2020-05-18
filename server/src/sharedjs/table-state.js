@@ -1,5 +1,5 @@
 const {rankHandInt} = require("../poker-logic/lib/deck");
-const {Hand} = require("../poker-logic/lib/node-poker");
+const { v4 } = require('uuid');
 
 class TableState {
     /**
@@ -415,6 +415,7 @@ class GameState {
         this.board = [];
         this.winners = [];
         this.losers = [];
+        this.id = v4();
     }
 
     getPublicInfo() {

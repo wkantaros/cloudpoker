@@ -5,6 +5,8 @@ const xss = require("xss");
 router.use('/', cookieParser(process.env.COOKIE_SECRET));
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
 
+const {client} = require('../redisClient');
+
 const path = require('path');
 const Joi = require('@hapi/joi');
 const shortid = require('shortid');
@@ -13,6 +15,7 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {initializeGameRedis, addActionToRedis, addBoardCardsToRedis} = require("../redisHelpers");
 const {getOrSetPlayerIdCookie} = require("../persistent");
 
 const validateTableName = (val) => {
@@ -100,6 +103,8 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
+        this.previousBoardLength = 0;
+
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
             timeout: 15000 // 15 seconds to send the authentication message
@@ -140,6 +145,11 @@ class SessionManager extends TableManager {
             seat: this.getPlayerSeat(playerName),
             amount: betAmount
         });
+        addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, betAmount);
+        if (this.table.game.board.length > this.previousBoardLength) {
+            addBoardCardsToRedis(this.table.game.id, this.table.game.board.slice(this.previousBoardLength));
+            this.previousBoardLength = this.table.game.board.length;
+        }
     }
 
     sendTableState() {
@@ -400,6 +410,9 @@ class SessionManager extends TableManager {
         this.sendTableState();
         if (!this.gameInProgress) {
             console.log('waiting for more players to rejoin!');
+        } else {
+            this.previousBoardLength = 0;
+            initializeGameRedis(this.table, this.sid);
         }
     }
 
@@ -653,12 +666,7 @@ async function handleOnAuth(s, socket) {
         }
         const playersInNextHand = s.playersInNextHand().length;
         console.log(`players in next hand: ${playersInNextHand}`);
-        if (playersInNextHand >= 2 && playersInNextHand <= 10) {
-            s.startRound();
-            s.sendTableState();
-        } else {
-            console.log("waiting on players");
-        }
+        s.startNextRoundOrWaitingForPlayers();
     });
 
     socket.on('show-hand', () => {
