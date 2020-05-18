@@ -24,7 +24,7 @@ class TableState {
         // allPlayers[i].seat === i. empty seats correspond to a null element.
         this.allPlayers = allPlayers;
         this.dealer = dealer; //Track the dealer position between games
-        this.currentPlayer = currentPlayer; // Initialized to 1 in initializeBlinds (called by startGame)
+        this.currentPlayer = currentPlayer;
         this.minBuyIn = minBuyIn;
         this.maxBuyIn = maxBuyIn;
         this.straddleLimit = straddleLimit;
@@ -411,7 +411,6 @@ class GameState {
         this.bigBlind = bigBlind;
         this.pot = 0;
         this.roundName = 'deal'; //Start the first round
-        this.betName = 'bet'; //bet,raise,re-raise,cap
         this.roundBets = [];
         this.board = [];
         this.winners = [];

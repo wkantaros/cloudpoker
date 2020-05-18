@@ -394,16 +394,10 @@ class TableManager extends TableStateManager {
 
     getAvailableSeat() {
         return this.table.getAvailableSeat();
-    };
-
-    startGame() {
-        this.gameInProgress = true;
-        this.updateBlinds();
-        this.updateQueuedStackChanges();
-        this.table.StartGame();
     }
 
     startRound() {
+        this.gameInProgress = true;
         this.updateBlinds();
         this.updateQueuedStackChanges();
         this.table.initNewRound();

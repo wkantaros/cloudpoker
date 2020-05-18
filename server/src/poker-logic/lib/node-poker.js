@@ -141,22 +141,9 @@ class Table extends TableState{
         return betAmount;
     };
 
-    // getAllHands(){
-    //     var all = this.losers.concat( this.players );
-    //     var allHands = [];
-    //     for( var i in all ){
-    //         allHands.push({
-    //             playerName: all[i].playerName,
-    //             chips: all[i].chips,
-    //             hand: all[i].cards,
-    //         });
-    //     }
-    //     return allHands;
-    // };
-
     initNewRound () {
         this.removeAndAddPlayers();
-        let handNextRound = this.allPlayers.filter(p=>p!==null&&!p.standingUp).length >= 2;
+        let handNextRound = this.allPlayers.filter(p => p !== null && !p.standingUp).length >= 2;
         for (let i = 0; i < this.allPlayers.length; i += 1) {
             if (this.allPlayers[i] === null) continue;
             this.allPlayers[i].inHand = !this.allPlayers[i].standingUp && handNextRound;
@@ -170,42 +157,18 @@ class Table extends TableState{
             return;
         }
         this.dealer = (this.dealer + 1) % this.players.length;
-        this.game.pot = 0;
-        this.game.roundName = 'deal'; //Start the first round
-        this.game.betName = 'bet'; //bet,raise,re-raise,cap
-        this.game.deck.splice(0, this.game.deck.length);
-        this.game.board.splice(0, this.game.board.length);
-        fillDeck(this.game.deck);
-
-        this.game.winners = [];
-        this.game.losers = [];
+        this.game = new Game(this.smallBlind, this.bigBlind);
 
         //Deal 2 cards to each player
         for (let i = 0; i < this.players.length; i += 1) {
-            this.players[i].cards.push(this.game.deck.pop());
-            this.players[i].cards.push(this.game.deck.pop());
+            this.players[i].cards.push(this.game.deck.pop(), this.game.deck.pop());
             this.players[i].bet = 0;
             this.game.roundBets[i] = 0;
         }
         this.initializeBlinds();
 
         // this.eventEmitter.emit( "newRound" );
-    };
-
-    canStartGame () {
-        // return this.playersToAdd && this.playersToAdd.length >= 2 && this.playersToAdd.length <= 10;
-        // console.log(this.playersToAdd);
-        // return (!this.game && this.players.length >= 2 && this.players.length <= 10);
-        return true;
     }
-
-    StartGame () {
-        //If there is no current game and we have enough players, start a new game.
-        if (!this.game) {
-            this.game = new Game(this.smallBlind, this.bigBlind);
-            this.initNewRound();
-        }
-    };
     standUpPlayer(playerName) {
         const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
         if (!p) return false;
