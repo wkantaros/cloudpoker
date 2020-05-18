@@ -16,7 +16,15 @@ const fmtPlayerStateId = (gameId, seat) => `player:${gameId}:${seat}`;
 const fmtGameStreamId = (gameId) => `actionStream:${gameId}`;
 // module.exports.fmtGameStreamId = fmtGameStreamId;
 
+const smembersAsync = promisify(client.smembers).bind(client);
 const hgetallAsync = promisify(client.hgetall).bind(client);
+const hsetAsync = promisify(client.hset).bind(client);
+const hdelAsync = promisify(client.hdel).bind(client);
+const xrangeAsync = promisify(client.xrange).bind(client);
+const xaddAsync = promisify(client.xadd).bind(client);
+const execMultiAsync = (multi) => {
+    return promisify(multi.exec).bind(multi);
+}
 
 async function getGameState(gameId) {
     let value;
@@ -30,25 +38,25 @@ async function getGameState(gameId) {
     table = new poker.Table(value.smallBlind, value.bigBlind, 2, 10, 1, 500000000000, 0);
     table.dealer = value.dealer;
     for (let i =0; i < 10; i++) {
-        client.hgetall(fmtPlayerStateId(gameId, i), function (err, value) {
-            if (err) {
-                console.log('this error is likely because the seat is empty:');
-                console.error(err);
-                return;
-            }
-            table.allPlayers[i] = new Player(value.playerName, value.chips, value.isStraddling, i, value.isMod)
-            table.allPlayers[i].inHand = value.inHand;
-            table.allPlayers[i].standingUp = value.standingUp;
-        })
+        try {
+            value = await hgetallAsync(fmtPlayerStateId(gameId, i));
+        } catch (err) {
+            console.log('this error is likely because the seat is empty:');
+            console.error(err);
+            return;
+        }
+        table.allPlayers[i] = new Player(value.playerName, value.chips, value.isStraddling, i, value.isMod)
+        table.allPlayers[i].inHand = value.inHand;
+        table.allPlayers[i].standingUp = value.standingUp;
     }
     table.initNewRound();
-    client.xrange(fmtGameStreamId(gameId), '-', '+', function(err, value) {
-        if (err) console.error(err);
-        console.log(value);
-    })
     return table;
 }
 module.exports.getGameState = getGameState;
+
+async function getGameActions(gameId) {
+    return await xrangeAsync(fmtGameStreamId(gameId), '-', '+')
+}
 
 function deleteGameOnRedis(sid, gameId) {
     let multi = client.multi();
@@ -80,21 +88,8 @@ function addSidToRedis(sid) {
 }
 module.exports.addSidToRedis = addSidToRedis;
 
-function getSids() {
-    let members;
-    let err;
-    client.smembers('sids', function(e, value) {
-        if (e) {
-            console.error(e);
-            err = e;
-            return;
-        }
-        console.log('sids smembers');
-        console.log(value);
-        members = value;
-    })
-    if (err) throw err;
-    return members;
+async function getSids() {
+    return await smembersAsync('sids');
 }
 module.exports.getSids = getSids;
 /**
@@ -102,7 +97,7 @@ module.exports.getSids = getSids;
  * @param {Table} table
  * @param sid
  */
-function initializeGameRedis(table, sid) {
+async function initializeGameRedis(table, sid) {
     let multi = client.multi();
     multi.set(fmtGameId(sid), table.game.id);
     multi.hmset(fmtGameStateId(table.game.id),
@@ -134,37 +129,12 @@ function initializeGameRedis(table, sid) {
     //         performActionHelper(multi, table.game.id, p.seat, 'bet', p.bet);
     //     }
     // }
-    multi.exec();
+    await execMultiAsync(multi)();
 }
 module.exports.initializeGameRedis = initializeGameRedis;
 
-function performActionHelper(clientOrMulti, gameId, seat, action, amount) {
-    if (amount || amount === 0) {
-        return clientOrMulti.xadd(fmtGameStreamId(gameId), '*',
-            'seat', seat,
-            'action', action,
-            'amount', amount
-        );
-    } else {
-        return clientOrMulti.xadd(fmtGameStreamId(gameId), '*',
-            'seat', seat,
-            'action', action
-        );
-    }
-}
-
-function getPlayerIdsForTable(sid) {
-    let pids;
-    let err;
-    client.hgetall(fmtPlayerIdsId(sid), function(e, v) {
-        if (e) {
-            console.error(e);
-            err = e;
-            return;
-        }
-        pids = v;
-    });
-    if (err) throw err;
+async function getPlayerIdsForTable(sid) {
+    let pids = await hgetallAsync(fmtPlayerIdsId(sid));
     let playerids = {}
     for (let playerName of Object.keys(pids)) {
         playerids[playerName] = {playerid: pids[playerName]}
@@ -172,25 +142,36 @@ function getPlayerIdsForTable(sid) {
     return playerids;
 }
 module.exports.getPlayerIdsForTable = getPlayerIdsForTable;
-function addPlayerToRedis(sid, playerName, playerId) {
-    client.hset(fmtPlayerIdsId(sid), playerName, playerId);
+async function addPlayerToRedis(sid, playerName, playerId) {
+    await hsetAsync(fmtPlayerIdsId(sid), playerName, playerId);
 }
 module.exports.addPlayerToRedis = addPlayerToRedis;
-function deletePlayerOnRedis(sid, playerName) {
-    client.hdel(fmtPlayerIdsId(sid), playerName);
+async function deletePlayerOnRedis(sid, playerName) {
+    await hdelAsync(fmtPlayerIdsId(sid), playerName);
 }
 module.exports.deletePlayerOnRedis = deletePlayerOnRedis;
 
-function addBoardCardsToRedis(gameId, cards) {
+async function addBoardCardsToRedis(gameId, cards) {
     for (let c of cards) {
-        client.xadd(fmtGameStreamId(gameId), '*',
+        await xaddAsync(fmtGameStreamId(gameId), '*',
             'action', 'boardCard',
             'card', c,
         );
     }
 }
 module.exports.addBoardCardsToRedis = addBoardCardsToRedis;
-function addActionToRedis(gameId, seat, action, amount) {
-    return performActionHelper(client, gameId, seat, action, amount);
+async function addActionToRedis(gameId, seat, action, amount) {
+    if (amount || amount === 0) {
+        return await xaddAsync(fmtGameStreamId(gameId), '*',
+            'seat', seat,
+            'action', action,
+            'amount', amount,
+        );
+    } else {
+        return await xaddAsync(fmtGameStreamId(gameId), '*',
+            'seat', seat,
+            'action', action,
+        );
+    }
 }
 module.exports.addActionToRedis = addActionToRedis;

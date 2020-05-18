@@ -3,6 +3,7 @@ require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const socketIO = require('socket.io');
 const {initializeSocket} = require("./initsocket");
 // const ejs = require('ejs');
 
@@ -12,23 +13,25 @@ const port = process.env.PORT || 8080;
 app.set('port', port);
 const server = new http.Server(app);
 
+const {setSio} = require("./initsocket");
 //socket setup
-initializeSocket(server);
+setSio(socketIO(server));
 
+// initializeSocket(server);
 //ejs
 app.set('views', path.join(__dirname, '../views'));
-app.set('view engine', 'ejs');
 
+app.set('view engine', 'ejs');
 //middleware
 app.use(cors());
 app.use(express.json());
 app.use('/client', express.static(__dirname + '/../../client'));
-app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
 
+app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
 //handling login
 const loginRouter = require('./routes/login');
-app.use(loginRouter); 
 
+app.use(loginRouter);
 //handling sessions
 const sessionRouter = require('./routes/session');
 app.use('/session', sessionRouter);

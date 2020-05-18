@@ -94,13 +94,13 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
 // TODO: delete sid from sessionManagers when table finishes
 const sessionManagers = new Map();
 
-(()=>{
-    let sids = getSids() || [];
+(async ()=>{
+    let sids = await getSids();
     console.log(sids);
     for (let sid of sids) {
         let gameId = getGameId(sid);
-        let table = getGameState(gameId);
-        const pids = getPlayerIdsForTable(sid);
+        let table = await getGameState(gameId);
+        const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + value.tableName);
         sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids));
     }
