@@ -3,7 +3,7 @@ require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const socketIO = require('socket.io');
+const {initializeSocket} = require("./initsocket");
 // const ejs = require('ejs');
 
 //instantiate server
@@ -13,8 +13,7 @@ app.set('port', port);
 const server = new http.Server(app);
 
 //socket setup
-let io = socketIO(server);
-app.set('socketio', io);
+initializeSocket(server);
 
 //ejs
 app.set('views', path.join(__dirname, '../views'));

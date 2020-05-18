@@ -168,14 +168,17 @@ class TableManager extends TableStateManager {
      * @param {string} hostName
      * @param {number} hostStack
      * @param {boolean} hostIsStraddling
-     * @param {*} playerid
+     * @param {string} playerid
+     * @param {Object} playerids
      */
-    constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
+    constructor(table, hostName, hostStack, hostIsStraddling, playerid, playerids) {
         super(table, false);
         this.trackBuyins = [];
-        this.playerids = {};
         this.modIds = [];
-        this.buyin(hostName, playerid, hostStack, hostIsStraddling);
+        if (!playerids) {
+            this.playerids = {};
+            this.buyin(hostName, playerid, hostStack, hostIsStraddling);
+        } else this.playerids = playerids;
         this.bigBlindNextHand = undefined;
         this.smallBlindNextHand = undefined;
         this.playerStacksNextHand = [];
