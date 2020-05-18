@@ -1,5 +1,8 @@
 const { client } = require('./redisClient');
+const poker = require('./poker-logic/lib/node-poker')
 
+const getSocketMapId = (sid) => `table:${sid}:socketMap`;
+const getSocketMapId = (sid) => `table:${sid}:socketMap`;
 const getGameListId = (sid) => `table:${sid}:gameList`;
 // module.exports.getTableId = getTableId;
 
@@ -14,13 +17,13 @@ const getGameStreamId = (gameId) => `actionStream:${gameId}`;
 
 function getGameState(sid) {
     let gameId;
-    client.lindex(getGameListId(sid), function(err, res) {
+    client.lindex(getGameListId(sid), function(err, value) {
         if (err) console.error(err);
-        else gameId = res.toString();
+        else gameId = value.toString();
     });
     let table;
-    client.hgetall(getGameStateId(gameId), function(err, res) {
-        table = new
+    client.hgetall(getGameStateId(gameId), function(err, value) {
+        table = new poker.Table(value.smallBlind, value.bigBlind, 2, 10, 1, 500000000000, 0);
     })
 }
 
