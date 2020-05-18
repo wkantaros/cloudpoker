@@ -17,9 +17,11 @@
     "ejs": "^3.0.1",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
+    "redis": "^3.0.2",
     "shortid": "^2.2.15",
     "socket.io": "^2.3.0",
     "socketio-jwt": "^4.5.0",
+    "uuid": "^8.0.0",
     "xss": "^1.0.6"
   },
   "devDependencies": {
