@@ -382,7 +382,6 @@ export class GameState {
         this.bigBlind = bigBlind;
         this.pot = 0;
         this.roundName = 'deal'; //Start the first round
-        this.betName = 'bet'; //bet,raise,re-raise,cap
         this.roundBets = [];
         this.board = [];
         this.winners = [];

@@ -388,25 +388,19 @@ class SessionManager extends TableManager {
             console.log('doing all in race');
             await this.allInRace();
             await this.check_round('showdown');
+            this.sendTableState();
         } else if (data.everyoneFolded) {
             await this.handleEveryoneFolded(prev_round, data);
         }
-        this.sendTableState();
     }
 
     startNextRoundOrWaitingForPlayers () {
         // start new round
         super.startRound();
-        if (this.gameInProgress) {
-            this.begin_round();
-        } else {
-            this.sendTableState();
+        this.sendTableState();
+        if (!this.gameInProgress) {
             console.log('waiting for more players to rejoin!');
         }
-    }
-
-    begin_round() {
-        this.sendTableState();
     }
 
     async performAction(playerName, action, amount) {
@@ -660,8 +654,7 @@ async function handleOnAuth(s, socket) {
         const playersInNextHand = s.playersInNextHand().length;
         console.log(`players in next hand: ${playersInNextHand}`);
         if (playersInNextHand >= 2 && playersInNextHand <= 10) {
-            s.startGame();
-            s.begin_round();
+            s.startRound();
             s.sendTableState();
         } else {
             console.log("waiting on players");
