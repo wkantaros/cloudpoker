@@ -124,6 +124,7 @@ const sessionManagers = new Map();
                 } else {
                     let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
                     if (betAmount <= 0) console.log('betAmount:', betAmount);
+                    manager.actionOnAllInPlayer();
                 }
             }
         }

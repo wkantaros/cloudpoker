@@ -40,7 +40,8 @@ async function getTableState(sid) {
         table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false')
         table.allPlayers[i].inHand = playerVal.inHand !== 'false';
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
-        playerCards[i] = playerVal.cards.split(',');
+        if (table.allPlayers[i].inHand)
+            playerCards[i] = playerVal.cards.split(',');
     }
     table.dealer = parseInt(gameVal.dealer);
 
