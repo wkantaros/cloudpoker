@@ -3,8 +3,6 @@ require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const socketIO = require('socket.io');
-const {initializeSocket} = require("./initsocket");
 // const ejs = require('ejs');
 
 //instantiate server
@@ -13,9 +11,9 @@ const port = process.env.PORT || 8080;
 app.set('port', port);
 const server = new http.Server(app);
 
-const {setSio} = require("./initsocket");
 //socket setup
-setSio(socketIO(server));
+const {setSio} = require("./sio");
+setSio(require('socket.io')(server));
 
 // initializeSocket(server);
 //ejs
