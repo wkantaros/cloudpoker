@@ -63,7 +63,7 @@ class TableState {
     extraPlayerInfo(info) {
         info.handRankMessage = info.cards.length > 0? rankHandInt({cards: info.cards.concat(this.game.board)}).message : '';
         info.isDealer = this.game !== null && this.dealer > -1 && this.players[this.dealer] && this.players[this.dealer].playerName === info.playerName;
-        info.isActionSeat = this.game !== null && this.currentPlayer > -1 && this.players[this.currentPlayer] && this.actionSeat === info.seat;
+        info.isActionSeat = this.game !== null && this.currentPlayer > -1 && this.players[this.currentPlayer] && this.actionSeat === info.seat && this.game.roundName.toLowerCase() !== 'showdown';
         let winnerIndex = this.game === null? -1: this.game.winners.findIndex(wi=>wi.seat===info.seat);
         info.earnings = winnerIndex >= 0? this.game.winners[winnerIndex].amount: 0;
         return info;
