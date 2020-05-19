@@ -59,27 +59,18 @@ class TableState {
         }
     }
 
-    playerPublicInfo(p) {
-        return this.extraPlayerInfo(p.getPublicInfo());
-    }
-
     // extra info used only on the front end
     extraPlayerInfo(info) {
         info.handRankMessage = info.cards.length > 0? rankHandInt({cards: info.cards.concat(this.game.board)}).message : '';
         info.isDealer = this.game !== null && this.dealer > -1 && this.players[this.dealer] && this.players[this.dealer].playerName === info.playerName;
         info.isActionSeat = this.game !== null && this.currentPlayer > -1 && this.players[this.currentPlayer] && this.actionSeat === info.seat;
-        info.earnings = 0;
+        let winnerIndex = this.game === null? -1: this.game.winners.findIndex(wi=>wi.seat===info.seat);
+        info.earnings = winnerIndex >= 0? this.game.winners[winnerIndex].amount: 0;
         return info;
     }
 
     get playerStates() {
-        let states = this.allPlayers.map(p => p === null ? null: this.playerPublicInfo(p));
-        if (this.game) {
-            for (let winnerInfo of this.game.winners) {
-                states[winnerInfo.seat].earnings = winnerInfo.amount;
-            }
-        }
-        return states;
+        return this.allPlayers.map(p => p === null ? null: this.extraPlayerInfo(p.getPublicInfo()));
     }
 
     get players() {
