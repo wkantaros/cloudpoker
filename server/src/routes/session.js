@@ -104,13 +104,14 @@ const sessionManagers = new Map();
         let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
-        sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids));
+        let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
+        sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds));
     }
 })();
 
 class SessionManager extends TableManager {
-    constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids) {
-        super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids);
+    constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
+        super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds);
         this.io = io;
         this.socketMap = new Map();
         // maps player id -> playerName when kicked
