@@ -135,9 +135,7 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
-const transformTable = (data) => {
-    // console.log('transformTable', data);
-    const t = data.table;
+const transformTable = (t) => {
     // Make game a GameState object
     t.game = t.game === null ? null: Object.assign(new GameState(t.game.bigBlind, t.game.smallBlind), t.game);
     t.allPlayers = t.allPlayers.map(p => p === null ? null: transformPlayer(p));
@@ -152,13 +150,7 @@ let tableState = {}; // not used for rendering.
 let messageCache = [];
 let feedbackText = '';
 function setState(data) {
-    if (data.table) {
-        tableState.table = transformTable(data);
-
-        // if (data.gameInProgress && tableState.table.canPlayersRevealHands()) {
-        //     displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
-        // }
-    }
+    tableState.table = transformTable(data.table);
     tableState.player = data.player? transformPlayer(data.player): null;
     tableState.gameInProgress = data.gameInProgress;
     tableState.manager = new TableStateManager(tableState.table, tableState.gameInProgress);
@@ -337,8 +329,6 @@ function renderBetsAndFields() {
                    raceInProgress={tableState.raceInProgress}
                    raceSchedule={tableState.raceSchedule}
                    table={tableState.table}
-                   player={tableState.player}
-                   gameInProgress={tableState.gameInProgress}
                    betWidth={60}
                    betHeight={35}
                    tableWidth={$('#ovalparent').width()}
