@@ -32,8 +32,7 @@ module.exports.execMultiAsync = execMultiAsync;
 async function getTableState(sid) {
     let gameId = await getGameIdForTable(sid);
     let gameVal = await hgetallAsync(fmtGameStateId(sid, gameId));
-    let table = new poker.Table(gameVal.smallBlind, gameVal.bigBlind, 2, 10, 1, 500000000000, 0);
-    table.dealer = gameVal.dealer;
+    let table = new poker.Table(parseInt(gameVal.smallBlind), parseInt(gameVal.bigBlind), 2, 10, 1, 500000000000, 0);
     let playerCards = [].fill(null, 0, 10);
     for (let i =0; i < 10; i++) {
         let playerVal = await hgetallAsync(fmtPlayerStateId(sid, gameId, i));
@@ -43,8 +42,10 @@ async function getTableState(sid) {
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
         playerCards[i] = playerVal.cards.split(',');
     }
+    table.dealer = parseInt(gameVal.dealer);
 
     if (gameId !== 'none') {
+        table.dealer = (table.dealer - 1) % table.players.length;
         table.initNewRound();
         table.game.id = gameId;
         table.game.deck = gameVal.deck.split(',');
@@ -156,16 +157,31 @@ async function deletePlayerOnRedis(sid, playerName) {
     await hdelAsync(fmtPlayerIdsId(sid), playerName);
 }
 module.exports.deletePlayerOnRedis = deletePlayerOnRedis;
-
-async function addBoardCardsToRedis(gameId, cards) {
-    for (let c of cards) {
-        await xaddAsync(fmtGameStreamId(gameId), '*',
-            'action', 'boardCard',
-            'card', c,
-        );
+async function handlePlayerSitsDownRedis(sid, table, seat) {
+    if (table.game) {
+        return await addActionToRedis(table.game.id, seat, 'sitDown');
+    } else {
+        return await hsetAsync(fmtPlayerStateId(sid, 'none', seat), 'standingUp', false);
     }
 }
-module.exports.addBoardCardsToRedis = addBoardCardsToRedis;
+async function handlePlayerStandsUpRedis(sid, table, seat) {
+    if (table.game) {
+        return await addActionToRedis(table.game.id, seat, 'standUp');
+    } else {
+        return await hsetAsync(fmtPlayerStateId(sid, 'none', seat), 'standingUp', true);
+    }
+}
+function formatActionObject(actionObjectArray) {
+    console.log(actionObjectArray);
+    let y = {
+        seat: parseInt(actionObjectArray[1][1]),
+        action: actionObjectArray[1][3],
+    };
+    if (actionObjectArray[1].length > 4)
+        y.amount = parseInt(actionObjectArray[1][5]);
+    console.log('y', y)
+    return y;
+}
 async function addActionToRedis(gameId, seat, action, amount) {
     if (amount || amount === 0) {
         return await xaddAsync(fmtGameStreamId(gameId), '*',
@@ -180,4 +196,7 @@ async function addActionToRedis(gameId, seat, action, amount) {
         );
     }
 }
+module.exports.formatActionObject = formatActionObject;
+module.exports.handlePlayerStandsUpRedis = handlePlayerStandsUpRedis;
+module.exports.handlePlayerSitsDownRedis = handlePlayerSitsDownRedis;
 module.exports.addActionToRedis = addActionToRedis;

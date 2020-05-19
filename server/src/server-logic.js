@@ -257,6 +257,13 @@ class TableManager extends TableStateManager {
         return this.trackBuyins;
     };
 
+    // async because subclass method is async
+    async handlePlayerExit(playerName) {
+        console.log(`${playerName} leaves game`);
+        this.addBuyOut(playerName, this.getPlayerId(playerName), this.getStack(playerName));
+        await this.removePlayer(playerName);
+    }
+
     // adds the player to this.playerids
     // adds the player to the table
     buyin(playerName, playerid, stack, isStraddling) {
@@ -407,6 +414,39 @@ class TableManager extends TableStateManager {
         this.table.initNewRound();
         if (!this.table.game)
             this.gameInProgress = false;
+    }
+
+    /**
+     * @param {string} playerName
+     * @param {string} action Player's action
+     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
+     * @return {number} Amount bet. -1 if action cannot be performed
+     */
+    performActionHelper(playerName, action, amount) {
+        if (amount < 0) {
+            return -1;
+        }
+        let actualBetAmount = 0;
+        if (action === 'bet') {
+            actualBetAmount = this.bet(playerName, amount);
+        } else if (action === 'raise') {
+            actualBetAmount = this.raise(playerName, amount);
+        } else if (action === 'call') {
+            if (this.getRoundName() === 'deal') {
+                actualBetAmount = this.callBlind(playerName);
+            } else {
+                actualBetAmount = this.call(playerName);
+            }
+        } else if (action === 'fold') {
+            actualBetAmount = 0;
+            this.fold(playerName);
+        } else if (action === 'check') {
+            let canPerformAction = this.check(playerName);
+            if (canPerformAction) {
+                actualBetAmount = 0;
+            }
+        }
+        return actualBetAmount;
     }
 
     getCardsByPlayerName(playerName) {

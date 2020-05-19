@@ -13,6 +13,10 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {handlePlayerSitsDownRedis} = require("../redisHelpers");
+const {formatActionObject} = require("../redisHelpers");
+const {handlePlayerStandsUpRedis} = require("../redisHelpers");
+const {handlePlayerStandsUp} = require("../redisHelpers");
 const {getGameActions} = require("../redisHelpers");
 const {getGameIdForTable} = require("../redisHelpers");
 const {sio} = require('../sio');
@@ -23,7 +27,7 @@ const {addSidToRedis} = require("../redisHelpers");
 const {deleteGameOnRedis} = require("../redisHelpers");
 const {deletePlayerOnRedis} = require("../redisHelpers");
 const {addPlayerToRedis} = require("../redisHelpers");
-const {initializeGameRedis, addActionToRedis, addBoardCardsToRedis} = require("../redisHelpers");
+const {initializeGameRedis, addActionToRedis} = require("../redisHelpers");
 const {getOrSetPlayerIdCookie} = require("../persistent");
 
 const validateTableName = (val) => {
@@ -104,11 +108,25 @@ const sessionManagers = new Map();
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
-        sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds));
-        let gameId = await getGameIdForTable(sid);
 
-        if (gameId)
-            console.log(await getGameActions(gameId));
+        const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds);
+        sessionManagers.set(sid, manager);
+
+        if (table.game) {
+            let actions = await getGameActions(table.game.id);
+            actions = actions.map(formatActionObject);
+            for (let {action, seat, amount} of actions) {
+                console.log(action, seat, amount, manager.getPlayerBySeat(seat));
+                if (action === 'standUp') {
+                    manager.superStandUpPlayer(manager.getPlayerBySeat(seat))
+                } else if (action === 'standUp') {
+                    manager.superSitDownPlayer(manager.getPlayerBySeat(seat));
+                } else {
+                    let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
+                    if (betAmount <= 0) console.log('betAmount:', betAmount);
+                }
+            }
+        }
     }
 })();
 
@@ -128,8 +146,6 @@ class SessionManager extends TableManager {
         this.registeredGuestCount = 0;
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
-
-        this.previousBoardLength = table.game ? table.game.board.length : 0;
 
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
@@ -162,7 +178,16 @@ class SessionManager extends TableManager {
         return true;
     }
 
-    async emitAction(action, playerName, betAmount) {
+    /**
+     *
+     * @param action
+     * @param playerName
+     * @param betAmount
+     * @param addToRedis should be false only when standing up or player leaves game
+     * @param {number} ogBetAmount original amount passed to/ to pass to performActionHelper.
+     * @return {Promise<void>}
+     */
+    async emitAction(action, playerName, betAmount, addToRedis, ogBetAmount) {
         this.sendTableState();
         this.io.emit(action, {
             username: playerName,
@@ -171,11 +196,7 @@ class SessionManager extends TableManager {
             seat: this.getPlayerSeat(playerName),
             amount: betAmount
         });
-        await addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, betAmount);
-        if (this.table.game.board.length > this.previousBoardLength) {
-            await addBoardCardsToRedis(this.table.game.id, this.table.game.board.slice(this.previousBoardLength));
-            this.previousBoardLength = this.table.game.board.length;
-        }
+        await addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, ogBetAmount || betAmount);
     }
 
     sendTableState() {
@@ -253,11 +274,17 @@ class SessionManager extends TableManager {
         await this.playerLeaves(playerId);
     }
 
+    superStandUpPlayer(playerName) {
+        return super.standUpPlayer(playerName);
+    }
+    superSitDownPlayer(playerName) {
+        return super.sitDownPlayer(playerName);
+    }
     async standUpPlayer(playerName) {
         if (this.isPlayerStandingUp(playerName)) return;
-
+        await handlePlayerStandsUpRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
         if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
-            await this.emitAction('fold', playerName, 0);
+            await this.emitAction('fold', playerName, 0, false);
         }
         let prev_round = super.getRoundName();
         super.standUpPlayer(playerName);
@@ -268,9 +295,9 @@ class SessionManager extends TableManager {
         // this.io.emit('render-players', this.playersInfo());
         this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
-    sitDownPlayer(playerName) {
+    async sitDownPlayer(playerName) {
         if (!this.isPlayerStandingUp(playerName)) return;
-
+        await handlePlayerSitsDownRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
         super.sitDownPlayer(playerName);
         this.sendTableState();
         // this.io.emit('render-players', this.playersInfo());
@@ -282,7 +309,7 @@ class SessionManager extends TableManager {
     async playerLeaves(playerId) {
         let playerName = super.getPlayerById(playerId);
         if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
-            this.handlePlayerExit(playerName);
+            await this.handlePlayerExit(playerName);
             // highlight cards of player in action seat and get available buttons for players
             // this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
@@ -300,7 +327,7 @@ class SessionManager extends TableManager {
             }
             this.sendTableState();
 
-            this.handlePlayerExit(playerName);
+            await this.handlePlayerExit(playerName);
             await sleep(250);
             // check if round has ended
             await this.check_round(prev_round);
@@ -310,14 +337,11 @@ class SessionManager extends TableManager {
 
     // private method
     // removes players not in the current hand
-    handlePlayerExit(playerName) {
+    async handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const seat = super.getPlayerSeat(playerName);
-        console.log(`${playerName} leaves game`);
-
         const stack = this.getStack(playerName);
-        super.addBuyOut(playerName, playerId, stack);
-        this.removePlayer(playerName);
+        await super.handlePlayerExit(playerName);
 
         this.registeredGuests[playerId] = playerName;
         this.getSocket(playerId).leave(`active`);
@@ -402,7 +426,7 @@ class SessionManager extends TableManager {
         await this.startNextRoundOrWaitingForPlayers();
     }
 
-    //checks if round has ended (reveals next card)
+    //checks if round has ended
     async check_round (prev_round) {
         let data = super.checkwin();
 
@@ -421,7 +445,7 @@ class SessionManager extends TableManager {
             await sleep(3000);
             // handle losers
             for (let i = 0; i < losers.length; i++){
-                this.handlePlayerExit(losers[i].playerName);
+                await this.handlePlayerExit(losers[i].playerName);
             }
             this.sendTableState();
 
@@ -447,7 +471,6 @@ class SessionManager extends TableManager {
         if (!this.gameInProgress) {
             console.log('waiting for more players to rejoin!');
         } else {
-            this.previousBoardLength = 0;
             await deleteGameOnRedis(this.sid, previousGameId);
             await initializeGameRedis(this.table, this.sid);
         }
@@ -460,7 +483,7 @@ class SessionManager extends TableManager {
 
         if (canPerformAction) {
             this.refreshTimer();
-            await this.emitAction(action, playerName, actualBetAmount);
+            await this.emitAction(action, playerName, actualBetAmount, true, amount);
             // shift action to next player in hand
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');
@@ -468,39 +491,6 @@ class SessionManager extends TableManager {
             await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
-    }
-
-    /**
-     * @param {string} playerName
-     * @param {string} action Player's action
-     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
-     * @return {number} Amount bet. -1 if action cannot be performed
-     */
-    performActionHelper(playerName, action, amount) {
-        if (amount < 0) {
-            return -1;
-        }
-        let actualBetAmount = 0;
-        if (action === 'bet') {
-            actualBetAmount = super.bet(playerName, amount);
-        } else if (action === 'raise') {
-            actualBetAmount = super.raise(playerName, amount);
-        } else if (action === 'call') {
-            if (super.getRoundName() === 'deal') {
-                actualBetAmount = super.callBlind(playerName);
-            } else {
-                actualBetAmount = super.call(playerName);
-            }
-        } else if (action === 'fold') {
-            actualBetAmount = 0;
-            super.fold(playerName);
-        } else if (action === 'check') {
-            let canPerformAction = super.check(playerName);
-            if (canPerformAction) {
-                actualBetAmount = 0;
-            }
-        }
-        return actualBetAmount;
     }
 
     setTimer (delay) {
