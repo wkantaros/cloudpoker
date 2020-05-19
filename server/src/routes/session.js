@@ -288,6 +288,7 @@ class SessionManager extends TableManager {
         }
         let prev_round = super.getRoundName();
         super.standUpPlayer(playerName);
+        this.actionOnAllInPlayer();
         // check if round has ended
         await this.check_round(prev_round);
         // this.sendTableState();
@@ -485,9 +486,7 @@ class SessionManager extends TableManager {
             this.refreshTimer();
             await this.emitAction(action, playerName, actualBetAmount, true, amount);
             // shift action to next player in hand
-            if (this.actionOnAllInPlayer()){
-                console.log('ACTION ON ALL IN PLAYER');
-            }
+            this.actionOnAllInPlayer();
             await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
