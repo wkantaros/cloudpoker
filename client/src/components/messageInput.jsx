@@ -6,6 +6,7 @@ export default class MessageInput extends Component {
         this.state = {value: ''}
         this.handleChange = this.handleChange.bind(this);
         this.messageKeypressListener = this.messageKeypressListener.bind(this);
+        this.messageKeydownListener = this.messageKeydownListener.bind(this);
         this.send = this.send.bind(this);
     }
     documentKeydownListener(event) {
