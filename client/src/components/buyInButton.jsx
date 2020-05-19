@@ -45,6 +45,13 @@ class BuyInInfo extends Component {
     }
     handleKeyDown(e) {
         e.stopPropagation();
+        // Number 13 is the "Enter" key on the keyboard
+        if (e.keyCode === 13) {
+            if (this.state.playerName && (this.state.stackSize || this.state.stackSize === 0)) {
+                e.preventDefault();
+                this.handleSubmit();
+            }
+        }
     }
     componentDidMount() {
         document.getElementById('buyin-info').addEventListener('keydown', this.handleKeyDown);
