@@ -13,10 +13,10 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {getGameIdForTable} = require("../redisHelpers");
 const {sio} = require('../sio');
 const {getPlayerIdsForTable} = require("../redisHelpers");
-const {getGameState} = require("../redisHelpers");
-const {getGameId} = require("../redisHelpers");
+const {getTableState} = require("../redisHelpers");
 const {getSids} = require("../redisHelpers");
 const {addSidToRedis} = require("../redisHelpers");
 const {deleteGameOnRedis} = require("../redisHelpers");
@@ -81,13 +81,15 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
     const playerId = getOrSetPlayerIdCookie(req, res);
 
     value.isValid = true;
-    await res.json(value);
-    console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
+
     const tableNamespace = sio.of('/' + value.tableName);
     let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit,)
-
-    addSidToRedis(value.tableName);
+    await addSidToRedis(value.tableName);
     sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, playerId));
+    await initializeGameRedis(table, value.tableName);
+
+    await res.json(value);
+    console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
 }));
 
 // maps sid -> SessionManager
@@ -98,19 +100,18 @@ const sessionManagers = new Map();
     let sids = await getSids();
     console.log(sids);
     for (let sid of sids) {
-        let gameId = getGameId(sid);
-        let table = await getGameState(gameId);
+        // let gameId = await getGameIdForTable(sid);
+        let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
-        const tableNamespace = sio.of('/' + value.tableName);
+        const tableNamespace = sio.of('/' + sid);
         sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids));
     }
 })();
 
 class SessionManager extends TableManager {
     constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids) {
-        super(table, hostName, hostStack, hostIsStraddling, playerid, playerids);
+        super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids);
         this.io = io;
-        this.sid = sid;
         this.socketMap = new Map();
         // maps player id -> playerName when kicked
         this.kickedPlayers = {};
@@ -124,7 +125,7 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
-        this.previousBoardLength = table.game? table.game.board.length: 0;
+        this.previousBoardLength = table.game ? table.game.board.length : 0;
 
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
@@ -157,7 +158,7 @@ class SessionManager extends TableManager {
         return true;
     }
 
-    emitAction(action, playerName, betAmount) {
+    async emitAction(action, playerName, betAmount) {
         this.sendTableState();
         this.io.emit(action, {
             username: playerName,
@@ -166,9 +167,9 @@ class SessionManager extends TableManager {
             seat: this.getPlayerSeat(playerName),
             amount: betAmount
         });
-        addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, betAmount);
+        await addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, betAmount);
         if (this.table.game.board.length > this.previousBoardLength) {
-            addBoardCardsToRedis(this.table.game.id, this.table.game.board.slice(this.previousBoardLength));
+            await addBoardCardsToRedis(this.table.game.id, this.table.game.board.slice(this.previousBoardLength));
             this.previousBoardLength = this.table.game.board.length;
         }
     }
@@ -207,13 +208,13 @@ class SessionManager extends TableManager {
         });
     }
 
-    addToPlayerIds(playerName, playerid) {
+    async addToPlayerIds(playerName, playerid) {
         super.addToPlayerIds(playerName, playerid);
-        addPlayerToRedis(this.sid, playerName, playerid);
+        await addPlayerToRedis(this.sid, playerName, playerid);
     }
-    removePlayer(playerName) {
+    async removePlayer(playerName) {
         super.removePlayer(playerName);
-        deletePlayerOnRedis(this.sid, playerName);
+        await deletePlayerOnRedis(this.sid, playerName);
     }
 
     handleBuyIn(playerName, playerid, stack, isStraddling) {
@@ -252,7 +253,7 @@ class SessionManager extends TableManager {
         if (this.isPlayerStandingUp(playerName)) return;
 
         if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
-            this.emitAction('fold', playerName, 0);
+            await this.emitAction('fold', playerName, 0);
         }
         let prev_round = super.getRoundName();
         super.standUpPlayer(playerName);
@@ -288,7 +289,7 @@ class SessionManager extends TableManager {
             // fold player
             // note: dont actually fold him (just emit folding noise)
             //super.fold(playerName);
-            this.emitAction('fold', playerName, 0);
+            await this.emitAction('fold', playerName, 0);
             // shift action to next player in hand
             if (super.actionOnAllInPlayer()) {
                 console.log('ACTION ON ALL IN PLAYER 123');
@@ -394,7 +395,7 @@ class SessionManager extends TableManager {
         console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
 
         // next round
-        this.startNextRoundOrWaitingForPlayers();
+        await this.startNextRoundOrWaitingForPlayers();
     }
 
     //checks if round has ended (reveals next card)
@@ -421,7 +422,7 @@ class SessionManager extends TableManager {
             this.sendTableState();
 
             // start new round
-            this.startNextRoundOrWaitingForPlayers()
+            await this.startNextRoundOrWaitingForPlayers()
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (super.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
@@ -434,7 +435,7 @@ class SessionManager extends TableManager {
         }
     }
 
-    startNextRoundOrWaitingForPlayers () {
+    async startNextRoundOrWaitingForPlayers () {
         let previousGameId = this.table.game? this.table.game.id: null;
         // start new round
         super.startRound();
@@ -443,8 +444,8 @@ class SessionManager extends TableManager {
             console.log('waiting for more players to rejoin!');
         } else {
             this.previousBoardLength = 0;
-            deleteGameOnRedis(this.sid, previousGameId);
-            initializeGameRedis(this.table, this.sid);
+            await deleteGameOnRedis(this.sid, previousGameId);
+            await initializeGameRedis(this.table, this.sid);
         }
     }
 
@@ -455,7 +456,7 @@ class SessionManager extends TableManager {
 
         if (canPerformAction) {
             this.refreshTimer();
-            this.emitAction(action, playerName, actualBetAmount);
+            await this.emitAction(action, playerName, actualBetAmount);
             // shift action to next player in hand
             if (this.actionOnAllInPlayer()){
                 console.log('ACTION ON ALL IN PLAYER');

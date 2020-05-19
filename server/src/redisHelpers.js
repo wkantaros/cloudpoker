@@ -7,16 +7,18 @@ const fmtPlayerIdsId = (sid) => `table:${sid}:playerids`;
 const fmtGameId = (sid) => `table:${sid}:gameId`;
 // module.exports.fmtGameId = fmtGameId;
 
-const fmtGameStateId = (gameId) => `game:${gameId}`;
+const fmtGameStateId = (sid, gameId) => `${sid}:game:${gameId}`;
 // module.exports.getGameInitialStateId = fmtGameStateId;
 
-const fmtPlayerStateId = (gameId, seat) => `player:${gameId}:${seat}`;
+const fmtPlayerStateId = (sid, gameId, seat) => `${sid}:player:${gameId}:${seat}`;
 // module.exports.getPlayerInitialStateId = fmtPlayerStateId;
 
 const fmtGameStreamId = (gameId) => `actionStream:${gameId}`;
 // module.exports.fmtGameStreamId = fmtGameStreamId;
 
+const getAsync = promisify(client.get).bind(client);
 const smembersAsync = promisify(client.smembers).bind(client);
+const saddAsync = promisify(client.sadd).bind(client);
 const hgetallAsync = promisify(client.hgetall).bind(client);
 const hsetAsync = promisify(client.hset).bind(client);
 const hdelAsync = promisify(client.hdel).bind(client);
@@ -25,52 +27,44 @@ const xaddAsync = promisify(client.xadd).bind(client);
 const execMultiAsync = (multi) => {
     return promisify(multi.exec).bind(multi);
 }
+module.exports.execMultiAsync = execMultiAsync;
 
-async function getGameState(gameId) {
-    let value;
-    // let gameId;
-    // client.get(fmtGameId(sid), function(err, value) {
-    //     if (err) console.error(err);
-    //     else gameId = value.toString();
-    // });
-    let table;
-    value = await hgetallAsync(fmtGameStateId(gameId));
-    table = new poker.Table(value.smallBlind, value.bigBlind, 2, 10, 1, 500000000000, 0);
+async function getTableState(sid) {
+    let gameId = await getGameIdForTable(sid);
+    let value = await hgetallAsync(fmtGameStateId(sid, gameId));
+    let table = new poker.Table(value.smallBlind, value.bigBlind, 2, 10, 1, 500000000000, 0);
     table.dealer = value.dealer;
     for (let i =0; i < 10; i++) {
-        try {
-            value = await hgetallAsync(fmtPlayerStateId(gameId, i));
-        } catch (err) {
-            console.log('this error is likely because the seat is empty:');
-            console.error(err);
-            return;
-        }
-        table.allPlayers[i] = new Player(value.playerName, value.chips, value.isStraddling, i, value.isMod)
-        table.allPlayers[i].inHand = value.inHand;
-        table.allPlayers[i].standingUp = value.standingUp;
+        let playerVal = await hgetallAsync(fmtPlayerStateId(sid, gameId, i));
+        if (playerVal === null) continue;
+        table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false')
+        table.allPlayers[i].inHand = playerVal.inHand !== 'false';
+        table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
     }
     table.initNewRound();
     return table;
 }
-module.exports.getGameState = getGameState;
+module.exports.getTableState = getTableState;
 
 async function getGameActions(gameId) {
     return await xrangeAsync(fmtGameStreamId(gameId), '-', '+')
 }
+module.exports.getGameActions = getGameActions;
 
-function deleteGameOnRedis(sid, gameId) {
+async function deleteGameOnRedis(sid, gameId) {
     let multi = client.multi();
-    multi.del(fmtGameStateId(gameId))
+    // let doExec = !multi;
+    multi.del(fmtGameStateId(sid, gameId))
     for (let i = 0; i < 10; i++) {
-        multi.del(fmtPlayerStateId(gameId, i))
+        multi.del(fmtPlayerStateId(sid, gameId, i))
     }
     multi.del(fmtGameStreamId(gameId));
-    multi.exec();
+    await execMultiAsync(multi)();
 }
 module.exports.deleteGameOnRedis = deleteGameOnRedis;
 
-function getGameIdForTable(sid) {
-    return client.get(fmtGameId(sid));
+async function getGameIdForTable(sid) {
+    return await getAsync(fmtGameId(sid));
 }
 module.exports.getGameIdForTable = getGameIdForTable;
 function getActiveGameIds() {
@@ -83,8 +77,8 @@ function getActiveGameIds() {
 }
 module.exports.getActiveGameIds = getActiveGameIds;
 
-function addSidToRedis(sid) {
-    client.sadd('sids', sid);
+async function addSidToRedis(sid) {
+    await saddAsync('sids', sid);
 }
 module.exports.addSidToRedis = addSidToRedis;
 
@@ -92,22 +86,23 @@ async function getSids() {
     return await smembersAsync('sids');
 }
 module.exports.getSids = getSids;
+
 /**
- *
  * @param {Table} table
- * @param sid
+ * @param {string} sid
  */
 async function initializeGameRedis(table, sid) {
     let multi = client.multi();
-    multi.set(fmtGameId(sid), table.game.id);
-    multi.hmset(fmtGameStateId(table.game.id),
+    let gameId = table.game? table.game.id: 'none';
+    multi.set(fmtGameId(sid), gameId);
+    multi.hmset(fmtGameStateId(sid, gameId),
         'smallBlind', table.smallBlind,
         'bigBlind', table.bigBlind,
         'dealer', table.dealer,
         'startTime', Date.now());
     for (let p of table.allPlayers) {
         if (p===null) continue;
-        let args = [fmtPlayerStateId(table.game.id, p.seat),
+        let args = [fmtPlayerStateId(sid, gameId, p.seat),
             'playerName', p.playerName,
             'inHand', p.inHand,
             'standingUp', p.standingUp,
