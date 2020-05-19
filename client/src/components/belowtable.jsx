@@ -75,12 +75,8 @@ export default class BelowTable extends Component {
         let actionData = this.props.manager.getAvailableActions(this.props.player? this.props.player.playerName: undefined);
         return (
             <div className="below-table u-full-width">
-                {this.state.isBuyInLogOpen &&
-                <BuyInLog buyInData={this.state.buyInData} onClose={this.closeBuyInLog} width="100%"/>}
-                {/*<BuyInLog buyInData={} onClose={this.closeBuyInLog} width={this.state.isBuyInLogOpen? "100%": "0%"}/>*/}
-                {this.state.isGameLogOpen &&
-                <GameLog onClose={this.closeGameLog} width="100%"/>}
-                {/*<GameLog onClose={this.closeGameLog} width={this.state.isGameLogOpen? "100%": "0%"}/>*/}
+                <BuyInLog buyInData={this.state.buyInData} onClose={this.closeBuyInLog} width={this.state.isBuyInLogOpen? "100%": "0%"}/>
+                <GameLog onClose={this.closeGameLog} width={this.state.isGameLogOpen? "100%": "0%"}/>
                 <ChatRoomContainer socket={this.props.socket}
                                    messages={this.props.messages}
                                    feedbackText={this.props.feedbackText}

@@ -4,12 +4,8 @@ import '../css/stylesheet.css';
 import Card from "./card";
 
 class HandRankMessageContainer extends Component {
-    // props used: this.props.player.handRankMessage
     render () {
         if (!this.props.handRank || this.props.handRank.length === 0) return null;
-        // let className = "hand-rank-message-container";
-        // if (!this.props.player.handRankMessage) className += " collapse";
-        // let handRankMessage = this.props.player.handRankMessage ? this.props.player.handRankMessage : "waiting";
         return (
             <div className="hand-rank-message-container">
                 <div className="hand-rank-message">{this.props.handRank}</div>
@@ -29,8 +25,6 @@ function Earnings(props) {
 }
 
 class PlayerNameContainer extends Component {
-    // props used: this.props.player.isActionSeat, this.props.player.isDealer
-    // this.props.player.earnings, this.props.player.chips
     render () {
         if (!this.props.player) {
             return null;
@@ -47,8 +41,6 @@ class PlayerNameContainer extends Component {
 }
 
 export class Hand extends Component {
-    // props: this.props.player{.seat, .inHand, .folded, .cards}
-    // sent: this.props.player,
     render() {
         if (!this.props.player) return null;
         let leftCard = this.props.player.cards && this.props.player.cards.length > 0 ? this.props.player.cards[0] : null;

@@ -11,18 +11,6 @@ class TableStateManager {
         this.gameInProgress = gameInProgress;
     }
 
-    get gameState() {
-        return {
-            smallBlind: this.table.smallBlind,
-            bigBlind: this.table.bigBlind,
-            dealer: this.getDealerSeat(),
-            actionSeat: this.actionSeat,
-            pot: this.getPot(),
-            street: this.getRoundName(),
-            board: this.getDeal()
-        };
-    }
-
     get playerStates() {
         return this.table.playerStates;
     }
@@ -512,22 +500,6 @@ class TableManager extends TableStateManager {
         this.updateBuyIn(playerName, this.getPlayerId(playerName), change);
     }
 
-    // Idk why this returns bigBlind if game is not in progress. I don't want to break anything.
-    get maxBet() {
-        if (this.gameInProgress)
-            return this.table.getMaxBet();
-        else
-            return this.table.bigBlind;
-    };
-
-    // return an array of seat, bet objects
-    // may lead to a bug down the line still unsure
-    getInitialBets() {
-        return this.table.players.filter(p=>p.bet > 0).map(p=> {
-            return {seat: p.seat, bet: p.bet,}
-        });
-    }
-
     getWinners() {
         return this.table.getWinners();
     }
@@ -550,10 +522,6 @@ class TableManager extends TableStateManager {
 
     hasPlayerFolded(playerName) {
         return this.table.getPlayer(playerName).folded;
-    }
-
-    getPlayerIds() {
-        return Object.values(this.playerids).map(x => x.playerid);
     }
 
     updateBlindsNextHand(smallBlind, bigBlind) {
