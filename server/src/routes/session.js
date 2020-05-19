@@ -13,6 +13,7 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {getGameActions} = require("../redisHelpers");
 const {getGameIdForTable} = require("../redisHelpers");
 const {sio} = require('../sio');
 const {getPlayerIdsForTable} = require("../redisHelpers");
@@ -98,14 +99,16 @@ const sessionManagers = new Map();
 
 (async ()=>{
     let sids = await getSids();
-    console.log(sids);
     for (let sid of sids) {
-        // let gameId = await getGameIdForTable(sid);
         let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
         sessionManagers.set(sid, new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds));
+        let gameId = await getGameIdForTable(sid);
+
+        if (gameId)
+            console.log(await getGameActions(gameId));
     }
 })();
 

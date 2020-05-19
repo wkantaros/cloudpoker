@@ -172,7 +172,7 @@ class TableManager extends TableStateManager {
      * @param {Object} playerids
      */
     constructor(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
-        super(table, false);
+        super(table, table.game !== null);
         this.sid = sid;
         this.trackBuyins = [];
         this.modIds = modIds || [];

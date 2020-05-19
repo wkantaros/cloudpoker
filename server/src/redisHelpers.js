@@ -31,17 +31,27 @@ module.exports.execMultiAsync = execMultiAsync;
 
 async function getTableState(sid) {
     let gameId = await getGameIdForTable(sid);
-    let value = await hgetallAsync(fmtGameStateId(sid, gameId));
-    let table = new poker.Table(value.smallBlind, value.bigBlind, 2, 10, 1, 500000000000, 0);
-    table.dealer = value.dealer;
+    let gameVal = await hgetallAsync(fmtGameStateId(sid, gameId));
+    let table = new poker.Table(gameVal.smallBlind, gameVal.bigBlind, 2, 10, 1, 500000000000, 0);
+    table.dealer = gameVal.dealer;
+    let playerCards = [].fill(null, 0, 10);
     for (let i =0; i < 10; i++) {
         let playerVal = await hgetallAsync(fmtPlayerStateId(sid, gameId, i));
         if (playerVal === null) continue;
         table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false')
         table.allPlayers[i].inHand = playerVal.inHand !== 'false';
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
+        playerCards[i] = playerVal.cards.split(',');
     }
-    table.initNewRound();
+
+    if (gameId !== 'none') {
+        table.initNewRound();
+        table.game.id = gameId;
+        table.game.deck = gameVal.deck.split(',');
+        for (let p of table.players) {
+            p.cards = playerCards[p.seat];
+        }
+    }
     return table;
 }
 module.exports.getTableState = getTableState;
@@ -95,11 +105,15 @@ async function initializeGameRedis(table, sid) {
     let multi = client.multi();
     let gameId = table.game? table.game.id: 'none';
     multi.set(fmtGameId(sid), gameId);
-    multi.hmset(fmtGameStateId(sid, gameId),
+    let gameStateArgs = [fmtGameStateId(sid, gameId),
         'smallBlind', table.smallBlind,
         'bigBlind', table.bigBlind,
         'dealer', table.dealer,
-        'startTime', Date.now());
+        'startTime', Date.now()];
+    if (table.game) {
+        gameStateArgs.push('deck', table.game.deck.join(','));
+    }
+    multi.hmset(gameStateArgs);
     for (let p of table.allPlayers) {
         if (p===null) continue;
         let args = [fmtPlayerStateId(sid, gameId, p.seat),
@@ -111,10 +125,7 @@ async function initializeGameRedis(table, sid) {
             'isStraddling', p.isStraddling,
         ];
         if (p.inHand) {
-            args.push(
-                'card:0', p.cards[0],
-                'card:1', p.cards[1]
-            );
+            args.push('cards', p.cards.join(','));
         }
         multi.hmset(args);
     }
