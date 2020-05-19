@@ -46,10 +46,23 @@ class BuyInInfo extends Component {
     handleKeyDown(e) {
         e.stopPropagation();
     }
+    componentDidMount() {
+        document.getElementById('buyin-info').addEventListener('keydown', this.handleKeyDown);
+    }
+    componentWillUnmount() {
+        document.getElementById('buyin-info').removeEventListener('keydown', this.handleKeyDown);
+    }
+
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if (this.props.showBuyInInfo && !prevProps.showBuyInInfo) {
+            document.getElementById('new-playerName').focus();
+        }
+    }
+
     render() {
         let buyInInfoClassName = this.props.showBuyInInfo? "popuptext show": "popuptext";
         return (
-            <div className={buyInInfoClassName} id="buyin-info" onKeyDown={this.handleKeyDown}>
+            <div className={buyInInfoClassName} id="buyin-info">
                 <div className="row">
                     <input name="playerName" type="text" value={this.state.playerName} onChange={this.handleInputChange} placeholder="name" id="new-playerName"/>
                 </div>
