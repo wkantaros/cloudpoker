@@ -159,9 +159,7 @@ function setState(data) {
         //     displayButtons({availableActions: {'show-hand': true}, canPerformPremoves: false});
         // }
     }
-    if (data.player) {
-        tableState.player = transformPlayer(data.player);
-    }
+    tableState.player = data.player? transformPlayer(data.player): null;
     tableState.gameInProgress = data.gameInProgress;
     tableState.manager = new TableStateManager(tableState.table, tableState.gameInProgress);
     tableState.raceInProgress = data.raceInProgress;
