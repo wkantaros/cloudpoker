@@ -28,7 +28,7 @@ export function getFieldList({raceInProgress, allPlayers, tableWidth, tableHeigh
 }
 
 
-export default function Table({volumeOn, table, player, gameInProgress, raceInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
+export default function Table({volumeOn, table, raceInProgress, betWidth, betHeight, tableWidth, tableHeight}) {
     const playerBets = table.allPlayers.map(p=>p===null ?0:p.checked? 'check': p.bet);
     return (
         <div id="table">
