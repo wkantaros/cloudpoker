@@ -64,10 +64,15 @@ async function getGameActions(gameId) {
 }
 module.exports.getGameActions = getGameActions;
 
-async function deleteGameOnRedis(sid, gameId) {
+async function deleteTableOnRedis(sid, gameId) {
     let multi = client.multi();
     multi.srem('sids', sid);
     multi.del(fmtGameId(sid));
+    await deleteGameOnRedis(sid, gameId, multi);
+}
+module.exports.deleteTableOnRedis = deleteTableOnRedis;
+async function deleteGameOnRedis(sid, gameId, multi) {
+    multi = multi || client.multi();
     multi.del(fmtGameStateId(sid, gameId));
     for (let i = 0; i < 10; i++) {
         multi.del(fmtPlayerStateId(sid, gameId, i))

@@ -13,12 +13,11 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {deleteTableOnRedis} = require("../redisHelpers");
 const {handlePlayerSitsDownRedis} = require("../redisHelpers");
 const {formatActionObject} = require("../redisHelpers");
 const {handlePlayerStandsUpRedis} = require("../redisHelpers");
-const {handlePlayerStandsUp} = require("../redisHelpers");
 const {getGameActions} = require("../redisHelpers");
-const {getGameIdForTable} = require("../redisHelpers");
 const {sio} = require('../sio');
 const {getPlayerIdsForTable} = require("../redisHelpers");
 const {getTableState} = require("../redisHelpers");
@@ -112,12 +111,13 @@ const sessionManagers = new Map();
 
         const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds);
         sessionManagers.set(sid, manager);
-
         if (table.game) {
+            let prev_round = manager.getRoundName();
             let actions = await getGameActions(table.game.id);
             actions = actions.map(formatActionObject);
             for (let {action, seat, amount} of actions) {
-                console.log(action, seat, amount, manager.getPlayerBySeat(seat));
+                prev_round = manager.getRoundName();
+
                 if (action === 'standUp') {
                     manager.superStandUpPlayer(manager.getPlayerBySeat(seat))
                 } else if (action === 'standUp') {
@@ -125,14 +125,15 @@ const sessionManagers = new Map();
                 } else {
                     let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
                     if (betAmount <= 0) console.log('betAmount:', betAmount);
-                    manager.actionOnAllInPlayer();
                 }
+                manager.actionOnAllInPlayer();
             }
+            await manager.check_round(prev_round);
         }
     }
 })();
 
-const TABLE_EXPIRY_TIMEOUT = 1000; // 30 minutes
+const TABLE_EXPIRY_TIMEOUT = 1000 * 60 * 30; // 30 minutes
 class SessionManager extends TableManager {
     constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
         super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds);
@@ -159,10 +160,11 @@ class SessionManager extends TableManager {
     }
 
     async expireTable() {
+        console.log('expiring table');
         this.socketMap.forEach(socket => socket.disconnect(false));
         this.socketMap.clear(); // explicitly dereference sockets. probably helps with memory, why not.
         // remove self from redis
-        await deleteGameOnRedis(this.sid,this.table.game? this.table.game.id: 'none');
+        await deleteTableOnRedis(this.sid,this.table.game? this.table.game.id: 'none');
         sessionManagers.delete(this.sid); // dereference self from memory
     }
 
@@ -175,7 +177,8 @@ class SessionManager extends TableManager {
     };
 
     getSocketId (playerId) {
-        return this.getSocket(playerId).id;
+        const socket = this.getSocket(playerId);
+        return socket? socket.id: undefined;
     };
 
     canPlayerJoin(playerId, playerName, stack, isStraddling) {
@@ -219,7 +222,10 @@ class SessionManager extends TableManager {
             // this.getPlayerId(p.playerName) is falsy if handlePlayerExit called this function.
             if (!p || !this.getPlayerId(p.playerName)) continue;
             console.log('got player id for', p.playerName, this.getPlayerId(p.playerName));
-            this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
+            const socketId = this.getSocketId(this.getPlayerId(p.playerName));
+            if (socketId)
+                this.sendTableStateTo(socketId, p.playerName);
+            else console.log('could not get socket id for player id', this.getPlayerId(p.playerName));
         }
     }
 
