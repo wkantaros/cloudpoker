@@ -103,6 +103,7 @@ const sessionManagers = new Map();
 
 (async ()=>{
     let sids = await getSids();
+    console.log('restarting tables with sids:', sids);
     for (let sid of sids) {
         let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
@@ -131,6 +132,7 @@ const sessionManagers = new Map();
     }
 })();
 
+const TABLE_EXPIRY_TIMEOUT = 1000; // 30 minutes
 class SessionManager extends TableManager {
     constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
         super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds);
@@ -148,10 +150,18 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
+        this.tableExpiryTimer = setTimeout(this.expireTable, TABLE_EXPIRY_TIMEOUT);
+
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
             timeout: 15000 // 15 seconds to send the authentication message
         })).on('authenticated', makeAuthHandler(this));
+    }
+
+    async expireTable() {
+        // remove self fromm redis
+        await deleteGameOnRedis(this.table.game? this.table.game.id: 'none');
+        sessionManagers.delete(this.sid); // dereference self from memory
     }
 
     setSocket(playerId, socket) {
@@ -446,7 +456,7 @@ class SessionManager extends TableManager {
     }
 
     async startNextRoundOrWaitingForPlayers () {
-        let previousGameId = this.table.game? this.table.game.id: null;
+        let previousGameId = this.table.game? this.table.game.id: 'none';
         // start new round
         super.startRound();
         this.sendTableState();
@@ -464,6 +474,7 @@ class SessionManager extends TableManager {
         let canPerformAction = actualBetAmount >= 0;
 
         if (canPerformAction) {
+            this.tableExpiryTimer.refresh();
             this.refreshTimer();
             await this.emitAction(action, playerName, actualBetAmount, true, amount);
             // shift action to next player in hand
