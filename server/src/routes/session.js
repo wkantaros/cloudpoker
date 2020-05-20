@@ -150,7 +150,7 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
-        this.tableExpiryTimer = setTimeout(this.expireTable, TABLE_EXPIRY_TIMEOUT);
+        this.tableExpiryTimer = setTimeout(this.expireTable.bind(this), TABLE_EXPIRY_TIMEOUT);
 
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
@@ -159,8 +159,10 @@ class SessionManager extends TableManager {
     }
 
     async expireTable() {
-        // remove self fromm redis
-        await deleteGameOnRedis(this.table.game? this.table.game.id: 'none');
+        this.socketMap.forEach(socket => socket.disconnect(false));
+        this.socketMap.clear(); // explicitly dereference sockets. probably helps with memory, why not.
+        // remove self from redis
+        await deleteGameOnRedis(this.sid,this.table.game? this.table.game.id: 'none');
         sessionManagers.delete(this.sid); // dereference self from memory
     }
 

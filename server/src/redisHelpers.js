@@ -19,6 +19,7 @@ const fmtGameStreamId = (gameId) => `actionStream:${gameId}`;
 const getAsync = promisify(client.get).bind(client);
 const smembersAsync = promisify(client.smembers).bind(client);
 const saddAsync = promisify(client.sadd).bind(client);
+const sremAsync = promisify(client.srem).bind(client);
 const hgetallAsync = promisify(client.hgetall).bind(client);
 const hsetAsync = promisify(client.hset).bind(client);
 const hdelAsync = promisify(client.hdel).bind(client);
@@ -65,8 +66,9 @@ module.exports.getGameActions = getGameActions;
 
 async function deleteGameOnRedis(sid, gameId) {
     let multi = client.multi();
-    // let doExec = !multi;
-    multi.del(fmtGameStateId(sid, gameId))
+    multi.srem('sids', sid);
+    multi.del(fmtGameId(sid));
+    multi.del(fmtGameStateId(sid, gameId));
     for (let i = 0; i < 10; i++) {
         multi.del(fmtPlayerStateId(sid, gameId, i))
     }
