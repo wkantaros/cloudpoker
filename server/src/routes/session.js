@@ -259,7 +259,6 @@ class SessionManager extends TableManager {
     }
     async removePlayer(playerName) {
         super.removePlayer(playerName);
-        await deletePlayerOnRedis(this.sid, playerName);
     }
 
     handleBuyIn(playerName, playerid, stack, isStraddling) {
@@ -271,9 +270,11 @@ class SessionManager extends TableManager {
                 delete this.registeredGuests[playerid];
             }
 
-            console.log('socket id on buy in', this.getSocket(playerid).id);
-            this.getSocket(playerid).leave(`guest`);
-            this.getSocket(playerid).join(`active`);
+            const socket = this.getSocket(playerid);
+            if (socket) {
+                socket.leave(`guest`);
+                socket.join(`active`);
+            }
             this.sendTableState();
             this.io.emit('buy-in', {
                 playerName: playerName,
@@ -350,8 +351,11 @@ class SessionManager extends TableManager {
         await super.handlePlayerExit(playerName);
 
         this.registeredGuests[playerId] = playerName;
-        this.getSocket(playerId).leave(`active`);
-        this.getSocket(playerId).join(`guest`);
+        const socket = this.getSocket(playerId);
+        if (socket) {
+            socket.leave(`active`);
+            socket.join(`guest`);
+        }
         this.sendTableState();
 
         if (this.gameInProgress) {
@@ -464,17 +468,24 @@ class SessionManager extends TableManager {
         }
     }
 
+    async deleteLeavingPlayersRedis() {
+        const leavingPlayers = this.table.leavingPlayers;
+        for (const p of leavingPlayers) {
+            await deletePlayerOnRedis(this.sid, p.playerName);
+        }
+    }
     async startNextRoundOrWaitingForPlayers () {
         let previousGameId = this.table.game? this.table.game.id: 'none';
+        await deleteGameOnRedis(this.sid, previousGameId);
+        await this.deleteLeavingPlayersRedis();
         // start new round
         super.startRound();
         this.sendTableState();
         if (!this.gameInProgress) {
             console.log('waiting for more players to rejoin!');
-        } else {
-            await deleteGameOnRedis(this.sid, previousGameId);
-            await initializeGameRedis(this.table, this.sid);
         }
+        // initializes game ID to 'none' if no game is in progress
+        await initializeGameRedis(this.table, this.sid);
     }
 
     async performAction(playerName, action, amount) {

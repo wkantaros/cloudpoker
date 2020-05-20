@@ -34,7 +34,7 @@ async function getTableState(sid) {
         table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false')
         table.allPlayers[i].inHand = playerVal.inHand !== 'false';
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
-        if (playerVal.cards.length > 0)
+        if (playerVal.cards && playerVal.cards.length > 0)
             playerCards[i] = playerVal.cards.split(','); // table.allPlayers[i].cards will be overwritten in initNewRound
     }
     table.dealer = parseInt(gameVal.dealer);
@@ -167,8 +167,11 @@ async function initializeGameRedis(table, sid, multi) {
 }
 module.exports.initializeGameRedis = initializeGameRedis;
 
+const getPids = async (sid) => {
+    return await hgetallAsync(fmtPlayerIdsId(sid));
+}
 async function getPlayerIdsForTable(sid) {
-    let pids = await hgetallAsync(fmtPlayerIdsId(sid));
+    let pids = await getPids(sid);
     if (!pids) return {}; // if this table is empty because all players quit
     let playerids = {}
     for (let playerName of Object.keys(pids)) {
