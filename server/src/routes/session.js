@@ -13,6 +13,7 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {initializeTableRedis} = require("../redisHelpers");
 const {deleteTableOnRedis} = require("../redisHelpers");
 const {handlePlayerSitsDownRedis} = require("../redisHelpers");
 const {formatActionObject} = require("../redisHelpers");
@@ -88,9 +89,8 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
 
     const tableNamespace = sio.of('/' + value.tableName);
     let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit,)
-    await addSidToRedis(value.tableName);
     sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, playerId));
-    await initializeGameRedis(table, value.tableName);
+    await initializeTableRedis(table, value.tableName);
 
     await res.json(value);
     console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
@@ -107,6 +107,7 @@ const sessionManagers = new Map();
         let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
+        console.log(table.allPlayers);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
 
         const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds);
@@ -289,7 +290,7 @@ class SessionManager extends TableManager {
         // this.kickedPlayers[playerId] = super.getPlayerById(playerId);
         // MAY BE AN ERROR HERE CHECK AGAIN
         let playerName = this.getPlayerById(playerId);
-        await this.performAction(playerName, 'fold', 0);
+        // await this.performAction(playerName, 'fold', 0);
         await this.playerLeaves(playerId);
     }
 
