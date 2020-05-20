@@ -20,14 +20,9 @@ class Table extends TableState{
         super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1, null);
     }
 
-    callBlind(playerName) {
+    callBlind() {
         let currentPlayer = this.currentPlayer;
         const p = this.players[this.currentPlayer];
-        if ( playerName !== p.playerName ) {
-            console.log("wrong user has made a move");
-            return -1;
-        }
-        console.log(`${playerName} calls blind`);
 
         const maxBet = this.getMaxBet();
         const bigBlindIndex = (this.dealer + 2) % this.players.length;
@@ -47,96 +42,48 @@ class Table extends TableState{
     };
 
     // Player actions: Check(), Fold(), Bet(bet), Call(), AllIn()
-    check( playerName ){
+    check(){
         const currentPlayer = this.currentPlayer;
-        //   EDITED (primarily to deal with 'checking' to close action as bb)
-        let cancheck = true;
+        let canCheck = true;
 
         for (let v = 0; v < this.players.length; v++) {
             //essentially wrapping this check as a call
             if (this.game.roundName === 'deal' && this.players[v].bet === this.bigBlind && currentPlayer === v){
-                if (playerName === this.players[currentPlayer].playerName) {
-                    this.players[currentPlayer].Bet(0);
-                    progress(this);
-                    return true;
-                } else {
-                    console.log("wrong user has made a move 1234");
-                    return false;
-                }
-            } else if (this.players[v].bet !== 0) {
-                cancheck = false;
-            }
-        }
-        if( playerName === this.players[ currentPlayer ].playerName){
-            console.log('here!');
-            if (cancheck){
-                console.log(`${playerName} checks`);
-                this.players[currentPlayer].Check();
+                this.players[currentPlayer].Bet(0);
                 progress(this);
-                // progress(this);
                 return true;
-            } else {
-                console.log(`${playerName} unable to check`);
-                return false;
+            } else if (this.players[v].bet !== 0) {
+                canCheck = false;
             }
-        } else {
-            // todo: check if something went wrong ( not enough money or things )
-            console.log("wrong user has made a move abcd");
-            return false;
         }
-    };
-    fold( playerName ){
-        let p = this.players[this.currentPlayer];
-        if( playerName === p.playerName ){
-            this.game.pot += p.bet;
-            p.Fold();
+        if (canCheck){
+            this.players[currentPlayer].Check();
             progress(this);
-            console.log(`${playerName} folds`);
-            return true;
-        }else{
-            console.log("wrong user has made a move");
-            return false;
         }
+        return canCheck;
     };
-    call( playerName ){
+    fold(){
         let p = this.players[this.currentPlayer];
-        if( playerName === p.playerName ) {
-            const maxBet = this.getMaxBet();
-            console.log(`${playerName} calls`);
-            if (p.chips + p.bet > maxBet) {
-                console.log(`${playerName} calls`);
-                // treat call as bet
-                const betAmount = p.Bet(maxBet - p.bet);
-                progress(this);
-                return betAmount;
-            } else {
-                console.log(`${playerName} doesn't have enough to call, going all in.`);
-                const betAmount = p.AllIn();
-                progress(this);
-                return betAmount;
-            }
-        }else{
-            console.log("wrong user has made a move");
-            return -1;
-        }
+        this.game.pot += p.bet;
+        p.Fold();
+        progress(this);
+        return true;
+    };
+    call(){
+        let p = this.players[this.currentPlayer];
+        const maxBet = this.getMaxBet();
+        let betAmount = p.chips + p.bet > maxBet? p.Bet(maxBet - p.bet) : p.AllIn();
+        progress(this);
+        return betAmount;
     };
 
     /**
-     * @param playerName Player betting
      * @param amt Amount to bet (on top of current bet)
-     * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y =-1 if amt < 0 or it is not user's turn.
+     * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y =-1 if amt < 0.
      */
-    bet( playerName, amt ){
-        if (amt < 0) {
-            console.log(`${playerName} tried to bet ${amt}`);
-            return -1;
-        }
-        if( playerName !== this.players[ this.currentPlayer ].playerName ) {
-            console.log("wrong user has made a move");
-            return -1;
-        }
-        console.log(`${playerName} bet ${amt}`);
-        const betAmount = this.players[ this.currentPlayer ].Bet( amt );
+    bet(amt){
+        if (amt < 0) return -1;
+        const betAmount = this.players[this.currentPlayer].Bet( amt );
         progress(this);
         return betAmount;
     };
@@ -166,8 +113,6 @@ class Table extends TableState{
             this.game.roundBets[i] = 0;
         }
         this.initializeBlinds();
-
-        // this.eventEmitter.emit( "newRound" );
     }
     standUpPlayer(playerName) {
         const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);

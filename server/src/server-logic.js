@@ -411,7 +411,7 @@ class TableManager extends TableStateManager {
      * @return {number} Amount bet. -1 if action cannot be performed
      */
     performActionHelper(playerName, action, amount) {
-        if (amount < 0) {
+        if (amount < 0 || this.actionSeat !== this.getPlayerSeat(playerName)) {
             return -1;
         }
         let actualBetAmount = 0;
@@ -442,28 +442,28 @@ class TableManager extends TableStateManager {
     }
 
     callBlind(playerName) {
-        return this.table.callBlind(playerName);
+        return this.table.callBlind();
     };
 
     call(playerName) {
         // this.table.call(this.table.getCurrentPlayer());
         // console.log(this.table);
-        return this.table.call(playerName);
+        return this.table.call();
     }
 
     check(playerName) {
         // return this.table.check(this.table.getCurrentPlayer());
-        return this.table.check(playerName);
+        return this.table.check();
     }
 
     fold(playerName) {
         // return this.table.fold(this.table.getCurrentPlayer());
-        return this.table.fold(playerName);
+        return this.table.fold();
     }
 
     bet(playerName, betAmount) {
         // return this.table.bet(this.table.getCurrentPlayer(), betAmount);
-        return this.table.bet(playerName, betAmount);
+        return this.table.bet(betAmount);
     }
 
 
