@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import PlayerBet from "./playerbet";
+import PlayerBet from "./playerBet";
 
 export function createBetList(bets, tableWidth, tableHeight, betWidth, betHeight) {
     const step = (2 * Math.PI) / bets.length;
