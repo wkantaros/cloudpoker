@@ -121,7 +121,7 @@ const sessionManagers = new Map();
 
                 if (action === 'standUp') {
                     manager.superStandUpPlayer(manager.getPlayerBySeat(seat))
-                } else if (action === 'standUp') {
+                } else if (action === 'sitDown') {
                     manager.superSitDownPlayer(manager.getPlayerBySeat(seat));
                 } else {
                     let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
