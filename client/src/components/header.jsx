@@ -1,7 +1,7 @@
 import React, {Component} from "react";
 import '../css/stylesheet.css';
 import QuitButton from "./quitButton";
-import BuyInButton from "./buyinButton";
+import BuyInButton from "./buyInButton";
 import GetLink from "./getLink";
 import {StandUpButton, SitDownButton} from "./standupButtons";
 import VolumeIcon from "../img/volume.svg";
