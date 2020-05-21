@@ -216,11 +216,8 @@ class SessionManager extends TableManager {
         }
         let prev_round = super.getRoundName();
         super.standUpPlayer(playerName);
-        // check if round has ended
+        this.actionOnAllInPlayer();
         await this.check_round(prev_round);
-        // this.sendTableState();
-        // this.renderActionSeatAndPlayerActions();
-        // this.io.emit('render-players', this.playersInfo());
         this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
     sitDownPlayer(playerName) {
@@ -228,9 +225,7 @@ class SessionManager extends TableManager {
 
         super.sitDownPlayer(playerName);
         this.sendTableState();
-        // this.io.emit('render-players', this.playersInfo());
         this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
-        // this.renderActionSeatAndPlayerActions(); // if <= 1 player is sitting down, host can now start game.
     }
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
@@ -238,24 +233,15 @@ class SessionManager extends TableManager {
         let playerName = super.getPlayerById(playerId);
         if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
             this.handlePlayerExit(playerName);
-            // highlight cards of player in action seat and get available buttons for players
-            // this.renderActionSeatAndPlayerActions();
             console.log('waiting for more players to rejoin');
         } else {
-            let stack = super.getStack(playerName);
             let prev_round = super.getRoundName();
-            console.log(`${playerName} leaves game for ${stack}`);
-            // fold player
-            // note: dont actually fold him (just emit folding noise)
-            //super.fold(playerName);
+            console.log(`${playerName} leaves game for ${super.getStack(playerName)}`);
             this.emitAction('fold', playerName, 0);
-            // shift action to next player in hand
-            if (super.actionOnAllInPlayer()) {
-                console.log('ACTION ON ALL IN PLAYER 123');
-            }
             this.sendTableState();
 
             this.handlePlayerExit(playerName);
+            super.actionOnAllInPlayer();
             await sleep(250);
             // check if round has ended
             await this.check_round(prev_round);
@@ -319,9 +305,7 @@ class SessionManager extends TableManager {
     }
 
     async handleEveryoneFolded(prev_round, data) {
-        // TODO: ANYONE CAN REVEAL HAND HERE
         this.sendTableState();
-        // this.renderActionSeatAndPlayerActions();
         console.log(prev_round);
         // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
         let winnings = super.getWinnings(prev_round);
@@ -368,17 +352,14 @@ class SessionManager extends TableManager {
                 this.getPlayer(winnerInfo.playerName).showHand();
             }
             this.sendTableState();
-            console.log('winners');
-            console.log('LOSERS');
-            let losers = super.getLosers();
             this.io.emit('showdown', winners);
 
             await sleep(3000);
             // handle losers
+            let losers = super.getLosers();
             for (let i = 0; i < losers.length; i++){
                 this.handlePlayerExit(losers[i].playerName);
             }
-            this.sendTableState();
 
             // start new round
             this.startNextRoundOrWaitingForPlayers()
@@ -412,9 +393,7 @@ class SessionManager extends TableManager {
             this.refreshTimer();
             this.emitAction(action, playerName, actualBetAmount);
             // shift action to next player in hand
-            if (this.actionOnAllInPlayer()){
-                console.log('ACTION ON ALL IN PLAYER');
-            }
+            this.actionOnAllInPlayer();
             await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
@@ -487,9 +466,6 @@ class SessionManager extends TableManager {
         await this.performAction(playerName, action, 0);
     };
 
-    canSendMessage(playerId, message) {
-        return message.length > 0;
-    }
     getPlayerChatName(playerId) {
         let playerName = super.getPlayerById(playerId);
         if (playerName !== 'guest') return playerName;
