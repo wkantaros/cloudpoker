@@ -204,7 +204,6 @@ class SessionManager extends TableManager {
         // this.kickedPlayers[playerId] = super.getPlayerById(playerId);
         // MAY BE AN ERROR HERE CHECK AGAIN
         let playerName = this.getPlayerById(playerId);
-        await this.performAction(playerName, 'fold', 0);
         await this.playerLeaves(playerId);
     }
 
@@ -304,55 +303,12 @@ class SessionManager extends TableManager {
         this.sendTableState();
     }
 
-    async handleEveryoneFolded(prev_round, data) {
-        this.sendTableState();
-        console.log(prev_round);
-        // POTENTIALLY SEE IF prev_round can be replaced with super.getRoundName
-        let winnings = super.getWinnings(prev_round);
-        // console.log(data.winner);
-        console.log(`${data.winner.playerName} won a pot of ${winnings}`);
-        // TODO: the below is extremely hacky and a horrible solution. find a better way to send
-        //  earnings to the client when everyone folded, ideally by having Table itself (in node-poker)
-        //  edit game.winners as it does in checkForWinner in other situations.
-        this.table.game.winners.push({
-            playerName: data.winner.playerName,
-            amount: data.pot,
-            hand: data.winner.hand,
-            chips: data.winner.chips,
-            seat: data.winner.seat,
-        });
-        this.sendTableState();
-        // tell clients who won the pot
-        this.io.emit('folds-through', {
-            username: data.winner.playerName,
-            amount: winnings,
-            seat: super.getPlayerSeat(data.winner.playerName)
-        });
-
-        await sleep(3000);
-
-        // update stack on the server
-        console.log(`Player has ${super.getStack(data.winner.playerName)}`);
-        console.log('Updating player\'s stack on the server...');
-        super.updateStack(data.winner.playerName, winnings);
-        console.log(`Player now has ${super.getStack(data.winner.playerName)}`);
-
-        // next round
-        this.startNextRoundOrWaitingForPlayers();
-    }
-
     //checks if round has ended (reveals next card)
     async check_round (prev_round) {
-        let data = super.checkwin();
-
-        // SHOWDOWN CASE
-        if (super.getRoundName() === 'showdown') {
-            let winners = this.getWinners();
-            for (let winnerInfo of winners) {
-                this.getPlayer(winnerInfo.playerName).showHand();
-            }
+        // if at showdown or everyone folded
+        if (this.getWinners().length > 0) {
             this.sendTableState();
-            this.io.emit('showdown', winners);
+            this.io.emit('log-winners', this.getWinners());
 
             await sleep(3000);
             // handle losers
@@ -369,8 +325,6 @@ class SessionManager extends TableManager {
             console.log('doing all in race');
             await this.allInRace();
             await this.check_round('showdown');
-        } else if (data.everyoneFolded) {
-            await this.handleEveryoneFolded(prev_round, data);
         }
     }
 
