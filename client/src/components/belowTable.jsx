@@ -1,6 +1,6 @@
 import React, {Component} from "react";
 import BuyInLog from "./buyInLog";
-import GameLog from "./gamelog";
+import GameLog from "./gameLog";
 import ChatRoomContainer from "./chatRoomContainer";
 import Actions from "./actions";
 

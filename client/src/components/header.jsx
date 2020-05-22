@@ -1,12 +1,12 @@
 import React, {Component} from "react";
 import '../css/stylesheet.css';
-import QuitButton from "./quitbutton";
-import BuyInButton from "./buyinbutton";
-import GetLink from "./getlink";
-import {StandUpButton, SitDownButton} from "./standupbuttons";
+import QuitButton from "./quitButton";
+import BuyInButton from "./buyInButton";
+import GetLink from "./getLink";
+import {StandUpButton, SitDownButton} from "./standupButtons";
 import VolumeIcon from "../img/volume.svg";
 import MuteIcon from "../img/mute.svg";
-import HostOptions, {HostButton} from "./hostoptions";
+import HostOptions, {HostButton} from "./hostOptions";
 
 export function Blinds({smallBlind, bigBlind}) {
     return (
