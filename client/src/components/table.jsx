@@ -15,7 +15,7 @@ export function getFieldList({raceInProgress, allPlayers, tableWidth, tableHeigh
         if (allPlayers[i]) {
             // note consider changing width/455 to 2.5
             let x = Math.round(tableWidth / 2 + radius * ((tableWidth/400) * Math.cos(step * i)) - fieldWidth / 2);
-            let y = Math.round(tableHeight / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) + 10;
+            let y = Math.round(tableHeight / 2 + radius * (1.30 * Math.sin(step * i)) - fieldHeight / 2) - 50;
             fieldList.push((
                 <Field key={`field-${i}`} x={x} y={y}>
                     <Hand raceInProgress={raceInProgress} player={allPlayers[i]}/>
