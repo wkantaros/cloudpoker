@@ -164,7 +164,6 @@ class TableManager extends TableStateManager {
         this.sid = sid;
         this.trackBuyins = [];
         this.modIds = modIds || [];
-        // if (modIds.length === 0) this.checkIfModIdsEmpty();
         if (!playerids) {
             this.playerids = {};
             this.buyin(hostName, playerid, hostStack, hostIsStraddling);
@@ -177,6 +176,7 @@ class TableManager extends TableStateManager {
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
     // $2($5)
     addToPlayerIds(playerName, playerid) {
+        console.log('atpi wtf');
         this.playerids[playerName] = {playerid};
     }
 

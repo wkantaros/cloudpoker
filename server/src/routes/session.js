@@ -13,18 +13,20 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {fmtGameStreamId} = require("../redisHelpers");
+const {xlenAsync} = require("../redisHelpers");
+const {formatStreamElement} = require("../redisHelpers");
+const {getGameStream} = require("../redisHelpers");
 const {initializeTableRedis} = require("../redisHelpers");
 const {deleteTableOnRedis} = require("../redisHelpers");
 const {handlePlayerSitsDownRedis} = require("../redisHelpers");
 const {formatActionObject} = require("../redisHelpers");
 const {handlePlayerStandsUpRedis} = require("../redisHelpers");
-const {getGameActions} = require("../redisHelpers");
+const {getTableStream} = require("../redisHelpers");
 const {sio} = require('../sio');
 const {getPlayerIdsForTable} = require("../redisHelpers");
 const {getTableState} = require("../redisHelpers");
 const {getSids} = require("../redisHelpers");
-const {addSidToRedis} = require("../redisHelpers");
-const {deleteGameOnRedis} = require("../redisHelpers");
 const {deletePlayerOnRedis} = require("../redisHelpers");
 const {addPlayerToRedis} = require("../redisHelpers");
 const {initializeGameRedis, addActionToRedis} = require("../redisHelpers");
@@ -107,16 +109,16 @@ const sessionManagers = new Map();
         let table = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
-        console.log(table.allPlayers);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
-
         const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds);
         sessionManagers.set(sid, manager);
         if (table.game) {
             let prev_round = manager.getRoundName();
-            let actions = await getGameActions(table.game.id);
-            actions = actions.map(formatActionObject);
-            for (let {action, seat, amount} of actions) {
+            let stream = await getGameStream(sid, table.game.id);
+            stream = stream.map(formatStreamElement);
+            for (let el of stream) {
+                if (el.type !== 'action') continue;
+                let {action, seat, amount} = el;
                 prev_round = manager.getRoundName();
 
                 if (action === 'standUp') {
@@ -165,7 +167,7 @@ class SessionManager extends TableManager {
         this.socketMap.forEach(socket => socket.disconnect(false));
         this.socketMap.clear(); // explicitly dereference sockets. probably helps with memory, why not.
         // remove self from redis
-        await deleteTableOnRedis(this.sid,this.table.game? this.table.game.id: 'none');
+        await deleteTableOnRedis(this.sid);
         sessionManagers.delete(this.sid); // dereference self from memory
     }
 
@@ -213,7 +215,7 @@ class SessionManager extends TableManager {
             seat: this.getPlayerSeat(playerName),
             amount: betAmount
         });
-        await addActionToRedis(this.table.game.id, super.getPlayerSeat(playerName), action, ogBetAmount || betAmount);
+        await addActionToRedis(this.sid, this.table.game.id, super.getPlayerSeat(playerName), action, ogBetAmount || betAmount);
     }
 
     sendTableState() {
@@ -255,7 +257,7 @@ class SessionManager extends TableManager {
 
     async addToPlayerIds(playerName, playerid) {
         super.addToPlayerIds(playerName, playerid);
-        await addPlayerToRedis(this.sid, playerName, playerid);
+        await addPlayerToRedis(this.sid, this.table, this.getPlayer(playerName), playerid);
     }
     async removePlayer(playerName) {
         super.removePlayer(playerName);
@@ -475,8 +477,6 @@ class SessionManager extends TableManager {
         }
     }
     async startNextRoundOrWaitingForPlayers () {
-        let previousGameId = this.table.game? this.table.game.id: 'none';
-        await deleteGameOnRedis(this.sid, previousGameId);
         await this.deleteLeavingPlayersRedis();
         // start new round
         super.startRound();
