@@ -369,7 +369,6 @@ class SessionManager extends TableManager {
             console.log('doing all in race');
             await this.allInRace();
             await this.check_round('showdown');
-            this.sendTableState();
         } else if (data.everyoneFolded) {
             await this.handleEveryoneFolded(prev_round, data);
         }

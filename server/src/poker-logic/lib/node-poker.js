@@ -424,18 +424,17 @@ function progress(table) {
     var i, j, cards, hand;
     if (table.game) {
         if (checkForEndOfRound(table) === true) {
-          table.currentPlayer = (table.dealer + 1) % table.players.length;
-          let ctr = 0;
-          while(table.players[table.currentPlayer].folded && ctr < table.players.length){
-              console.log('here 123:O');
-              // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
-              table.currentPlayer = (table.currentPlayer + 1) % table.players.length;
-              ctr++;
-          }
-          if (ctr >= table.players.length){
-              console.log('giant massive error here please come back and check on logic this is a mess');
-          }
-          // ^^done with edits
+            table.currentPlayer = (table.dealer + 1) % table.players.length;
+            let ctr = 0;
+            while(table.players[table.currentPlayer].folded && ctr < table.players.length){
+                console.log('here 123:O');
+                // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
+                table.currentPlayer = (table.currentPlayer + 1) % table.players.length;
+                ctr++;
+            }
+            if (ctr >= table.players.length){
+                console.log('giant massive error here please come back and check on logic this is a mess');
+            }
             //Move all bets to the pot
             for (i = 0; i < table.players.length; i++) {
                 table.game.pot += table.players[i].bet;
