@@ -251,7 +251,6 @@ class TableState {
     checkwin() {
         let unfoldedPlayers = this.players.filter(p=>!p.folded);
         if (unfoldedPlayers.length === 1) {
-            console.log("everyone's folded!");
             return {
                 everyoneFolded: true,
                 pot: this.game.pot,

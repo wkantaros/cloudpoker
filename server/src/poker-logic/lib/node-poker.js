@@ -62,13 +62,24 @@ class Table extends TableState{
         }
         return canCheck;
     };
-    fold(){
+    foldHelper(p) {
+        if (!p.folded) {
+            this.game.pot += p.bet;
+            this.game.roundBets[this.currentPlayer] += p.bet;
+            p.Fold();
+            progress(this);
+        }
+    }
+    fold( playerName ){
         let p = this.players[this.currentPlayer];
-        this.game.pot += p.bet;
-        p.Fold();
-        progress(this);
-        return true;
-    };
+        if( playerName === p.playerName ){
+            this.foldHelper(p);
+            return true;
+        }else {
+            console.log("wrong user has made a move");
+            return false;
+        }
+    }
     call(){
         let p = this.players[this.currentPlayer];
         const maxBet = this.getMaxBet();
@@ -118,11 +129,9 @@ class Table extends TableState{
         const p = this.allPlayers.find(p => p !== null && p.playerName === playerName);
         if (!p) return false;
         p.standingUp = true;
-        if (this.game !== null) {
-            this.game.pot += p.bet;
-            p.Fold();
-            progress(this);
-        }
+        if (this.game !== null)
+            this.foldHelper(p);
+
         return true;
     }
     sitDownPlayer(playerName) {
@@ -156,15 +165,11 @@ class Table extends TableState{
     removePlayer (playerName){
         const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
         if (ind === -1) return false;
-        // this.playersToRemove.push(ind);
 
         if (this.game !== null) {
             const p = this.allPlayers[ind];
             this.allPlayers[p.seat].leavingGame = true;
-            this.game.pot += p.bet;
-            // this.allPlayers[ind] = null;
-            p.Fold();
-            progress(this);
+            this.foldHelper(p);
         } else {
             // if no game is in progress, simply remove the player
             this.allPlayers[ind] = null;
@@ -260,7 +265,21 @@ function checkForEndOfRound(table) {
     return endOfRound;
 }
 
+/**
+ *
+ * @param table
+ * @return {[]|number[]} Array of the indices (in table.players) of players
+ * in this hand who did not fold and have the highest ranking hand
+ */
 function identifyWinners(table) {
+    if (table.players.filter(p=>!p.folded).length === 1)
+        return [table.players.findIndex(p=>!p.folded)];
+    // Evaluate each hand
+    for (let j = 0; j < table.players.length; j += 1) {
+        let cards = table.players[j].cards.concat(table.game.board);
+        table.players[j].hand = rankHand(new Hand(cards));
+    }
+
     //Identify winner(s)
     let winners = [];
     let maxRank = 0.000;
@@ -274,25 +293,23 @@ function identifyWinners(table) {
             winners.push(k);
         }
     }
+    for (let k of winners) {
+        table.players[k].showHand();
+    }
     return winners;
 }
 
 // Calculates side pot value if any players went all in.
 // If no player went all in, returns the value of the main pot.
 function getSidePotBet(table, winners) {
-    let part = 0;
     let allInPlayer = winners.filter(wi => table.players[wi].allIn);
+    let part = table.game.roundBets[winners[0]];
     if (allInPlayer.length > 0) {
-        let minBets = table.game.roundBets[winners[0]];
         for (let j = 1; j < allInPlayer.length; j += 1) {
-            if (table.game.roundBets[winners[j]] !== 0 && table.game.roundBets[winners[j]] < minBets) {
-                minBets = table.game.roundBets[winners[j]];
+            if (table.game.roundBets[winners[j]] !== 0 && table.game.roundBets[winners[j]] < part) {
+                part = table.game.roundBets[winners[j]];
             }
         }
-        part = parseInt(minBets, 10);
-    } else {
-        // do not think that parseInt is necessary, but do not want to break anything by removing this line.
-        part = parseInt(table.game.roundBets[winners[0]], 10);
     }
     return part;
 }
@@ -316,7 +333,15 @@ function checkForWinner(table) {
 
     let part = getSidePotBet(table, winners);
     let prize = getSidePotPrize(table, part);
+    addGameWinners(table, prize, winners);
 
+    let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length === 0;
+    if (roundEnd === false) {
+        checkForWinner(table);
+    }
+}
+
+function addGameWinners(table, prize, winners) {
     const winnerPrize =prize / winners.length;
     // TODO: make the next pot start with extraChips, not 0.
     // const extraChips = prize - (winnerPrize * winners.length);
@@ -325,34 +350,20 @@ function checkForWinner(table) {
         winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
             winningPlayer.folded = true;
-            table.game.winners.push( {
+            table.game.winners.push({
                 playerName: winningPlayer.playerName,
                 amount: winnerPrize,
-                hand: winningPlayer.hand,
+                hand: winningPlayer.hand, // undefined if everyone folded (i.e. checkwin().everyoneFolded is true)
                 chips: winningPlayer.chips,
                 seat: winningPlayer.seat,
             });
         }
         console.log('player ' + table.players[winners[i]].playerName + ' wins !!');
     }
-
-    let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length === 0;
-    if (roundEnd === false) {
-        checkForWinner(table);
-    }
 }
 
 function checkForBankrupt(table) {
-    var i;
-    for (i = 0; i < table.players.length; i += 1) {
-        if (table.players[i].chips === 0) {
-          table.game.losers.push( table.players[i] );
-            console.log('player ' + table.players[i].playerName + ' is going bankrupt');
-            // EDIT
-            // rather than removing players here i thin it makes sense to call remove player on it
-            // table.players.splice(i, 1);
-        }
-    }
+    table.game.losers.push(...table.players.filter(p=>p.chips===0));
 }
 
 class Hand {
@@ -360,43 +371,38 @@ class Hand {
         this.cards = cards;
     }
 }
-// const Hand = function(cards) {
-//     this.cards = cards;
-// }
+
+function clearRoundState(table) {
+    table.currentPlayer = (table.dealer + 1) % table.players.length;
+    let ctr = 0;
+    while(table.players[table.currentPlayer].folded && ctr < table.players.length){
+        // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
+        table.currentPlayer = (table.currentPlayer + 1) % table.players.length;
+        ctr++;
+    }
+    if (ctr >= table.players.length){
+        console.log('giant massive error here please come back and check on logic this is a mess');
+    }
+    //Move all bets to the pot
+    for (let i = 0; i < table.players.length; i++) {
+        table.game.pot += table.players[i].bet;
+        table.game.roundBets[i] += table.players[i].bet;
+    }
+}
 
 function progress(table) {
-    // table.eventEmitter.emit( "turn" );
-    var i, j, cards, hand;
     if (table.game) {
-        if (checkForEndOfRound(table) === true) {
-          table.currentPlayer = (table.dealer + 1) % table.players.length;
-          let ctr = 0;
-          while(table.players[table.currentPlayer].folded && ctr < table.players.length){
-              console.log('here 123:O');
-              // basically we want to skip all of the folded players if they're folded when going to next round (currently sets to 0)
-              table.currentPlayer = (table.currentPlayer + 1) % table.players.length;
-              ctr++;
-          }
-          if (ctr >= table.players.length){
-              console.log('giant massive error here please come back and check on logic this is a mess');
-          }
-          // ^^done with edits
-            //Move all bets to the pot
-            for (i = 0; i < table.players.length; i++) {
-                table.game.pot += table.players[i].bet;
-                table.game.roundBets[i] += table.players[i].bet;
-            }
+        let checkWinData = table.checkwin();
+        if (checkWinData.everyoneFolded) {
+            clearRoundState(table);
+            checkForWinner(table);
+            checkForBankrupt(table);
+        } else if (checkForEndOfRound(table)) {
+            clearRoundState(table);
             if (table.game.roundName === 'River') {
                 table.game.roundName = 'Showdown';
-                //Evaluate each hand
-                for (j = 0; j < table.players.length; j += 1) {
-                    cards = table.players[j].cards.concat(table.game.board);
-                    hand = new Hand(cards);
-                    table.players[j].hand = rankHand(hand);
-                }
                 checkForWinner(table);
                 checkForBankrupt(table);
-                // table.eventEmitter.emit( "gameOver" );
             } else if (table.game.roundName === 'Turn') {
                 console.log('effective turn');
                 table.game.roundName = 'River';
