@@ -275,19 +275,13 @@ socket.on('raise', (data) => {
     }
 });
 
-//showdown
-socket.on('showdown', function (data) {
-    // renderBetsAndFields();
+socket.on('log-winners', function(data) {
     for (let i = 0; i < data.length; i++) {
-        outputMessage(`${data[i].playerName} wins a pot of ${data[i].amount}! ${data[i].hand.message}: ${data[i].hand.cards} `);
-        // showWinnings(data[i].amount, data[i].seat);
+        let message = `${data[i].playerName} wins a pot of ${data[i].amount}!`;
+        if (data[i].hand) message += ` ${data[i].hand.message}: ${data[i].hand.cards} `;
+        outputMessage(message);
     }
-});
-//folds-through
-socket.on('folds-through', function (data) {
-    outputMessage(`${data.username} wins a pot of ${data.amount}`);
-    // showWinnings(data.amount, data.seat);
-});
+})
 
 socket.on('alert', function(data) {
     alert(data.message);
