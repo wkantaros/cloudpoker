@@ -4,8 +4,8 @@ import QuitButton from "./quitButton";
 import BuyInButton from "./buyInButton";
 import GetLink from "./getLink";
 import {StandUpButton, SitDownButton} from "./standupButtons";
-import VolumeIcon from "../img/volume.png";
-import MuteIcon from "../img/mute.png";
+import VolumeIcon from "../img/volume.svg";
+import MuteIcon from "../img/mute.svg";
 import HostOptions, {HostButton} from "./hostOptions";
 
 export function Blinds({smallBlind, bigBlind}) {
