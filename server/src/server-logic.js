@@ -246,11 +246,10 @@ class TableManager extends TableStateManager {
         return this.trackBuyins;
     };
 
-    // async because subclass method is async
-    async handlePlayerExit(playerName) {
+    handlePlayerExit(playerName) {
         console.log(`${playerName} leaves game`);
         this.addBuyOut(playerName, this.getPlayerId(playerName), this.getStack(playerName));
-        await this.removePlayer(playerName);
+        this.removePlayer(playerName);
     }
 
     // adds the player to this.playerids

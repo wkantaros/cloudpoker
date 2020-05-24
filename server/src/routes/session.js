@@ -259,9 +259,6 @@ class SessionManager extends TableManager {
         super.addToPlayerIds(playerName, playerid);
         await addPlayerToRedis(this.sid, this.table, this.getPlayer(playerName), playerid);
     }
-    async removePlayer(playerName) {
-        super.removePlayer(playerName);
-    }
 
     handleBuyIn(playerName, playerid, stack, isStraddling) {
         const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling);
@@ -327,7 +324,7 @@ class SessionManager extends TableManager {
     async playerLeaves(playerId) {
         let playerName = super.getPlayerById(playerId);
         if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
-            await this.handlePlayerExit(playerName);
+            this.handlePlayerExit(playerName);
             console.log('waiting for more players to rejoin');
         } else {
             let prev_round = super.getRoundName();
@@ -335,7 +332,7 @@ class SessionManager extends TableManager {
             await this.emitAction('fold', playerName, 0);
             this.sendTableState();
 
-            await this.handlePlayerExit(playerName);
+            this.handlePlayerExit(playerName);
             super.actionOnAllInPlayer();
             await sleep(250);
             // check if round has ended
@@ -346,11 +343,11 @@ class SessionManager extends TableManager {
 
     // private method
     // removes players not in the current hand
-    async handlePlayerExit(playerName) {
+    handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const seat = super.getPlayerSeat(playerName);
         const stack = this.getStack(playerName);
-        await super.handlePlayerExit(playerName);
+        super.handlePlayerExit(playerName);
 
         this.registeredGuests[playerId] = playerName;
         const socket = this.getSocket(playerId);
@@ -453,7 +450,7 @@ class SessionManager extends TableManager {
             // handle losers
             let losers = super.getLosers();
             for (let i = 0; i < losers.length; i++){
-                await this.handlePlayerExit(losers[i].playerName);
+                this.handlePlayerExit(losers[i].playerName);
             }
 
             // start new round
