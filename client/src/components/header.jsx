@@ -4,8 +4,8 @@ import QuitButton from "./quitButton";
 import BuyInButton from "./buyInButton";
 import GetLink from "./getLink";
 import {StandUpButton, SitDownButton} from "./standupButtons";
-import VolumeIcon from "../img/volume.svg";
-import MuteIcon from "../img/mute.svg";
+import VolumeIcon from "../img/volume.png";
+import MuteIcon from "../img/mute.png";
 import HostOptions, {HostButton} from "./hostOptions";
 
 export function Blinds({smallBlind, bigBlind}) {
@@ -24,9 +24,9 @@ export class VolumeControl extends Component {
         this.setState((state, props) => ({volumeOn: !state.volumeOn}))
     }
     render() {
-        let className = this.state.volumeOn? "volume on": "volume";
-        let alt = this.state.volumeOn? "volume on": "volume off";
-        let imgSrc = this.state.volumeOn? VolumeIcon: MuteIcon;
+        let className = this.state.volumeOn ? "volume on" : "volume";
+        let alt = this.state.volumeOn ? "volume on" : "volume off";
+        let imgSrc = this.state.volumeOn ? VolumeIcon : MuteIcon;
         return (
             <div className={className} onClick={this.handleClick}>
                 <img src={imgSrc} alt={alt} id="volume-icon" height="38px" width="38px"/>
