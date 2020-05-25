@@ -32,6 +32,9 @@ class TableLogger {
     static playerState(sid, redisArgs) {
         logger.info(redisFieldsToLogInfo(sid, 'playerState', redisArgs));
     }
+    static addOp(sid, op, redisArgs) {
+        logger.info(redisFieldsToLogInfo(sid, op, redisArgs));
+    }
     static action(sid, redisArgs) {
         logger.info(redisFieldsToLogInfo(sid, 'action', redisArgs));
     }

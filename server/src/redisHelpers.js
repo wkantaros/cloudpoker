@@ -58,8 +58,13 @@ async function getTableState(sid) {
 
     let gameStream = await getGameStream(sid, gameId);
     let playerCards = [].fill(null, 0, 10);
+    let rngState;
     for (let i = 0; i < gameStream.length; i++) {
         let playerVal = formatStreamElement(gameStream[i]);
+        if (playerVal.type === 'rngState') {
+            rngState = {x: playerVal.x, y: playerVal.y, z: playerVal.z, w: playerVal.w, v: playerVal.v, d: playerVal.d};
+            continue;
+        }
         if (playerVal.type !== 'playerState') break;
 
         table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
@@ -73,6 +78,7 @@ async function getTableState(sid) {
     if (gameId !== 'none') {
         table.dealer = (table.dealer - 1) % table.players.length;
         table.initNewRound();
+        this.setRng(table.getSeed(), rngState);
         table.game.id = gameId;
         table.game.deck = gameVal.deck.split(',');
         for (let p of table.players) {
@@ -125,6 +131,22 @@ module.exports.getGameIdForTable = getGameIdForTable;
 const getGameState = async (sid, gameId) => {
     return await hgetallAsync(fmtGameStateId(sid, gameId));
 }
+const setRngState = (multi, table, sid) => {
+    if (table.game) {
+        let state = table.rng.state();
+        let args = [
+            'type', 'rngState',
+            'x', state.x,
+            'y', state.y,
+            'z', state.z,
+            'w', state.w,
+            'v', state.v,
+            'd', state.d,
+        ]
+        multi.xadd(fmtGameStreamId(sid, table.game.id), '*', ...args);
+        TableLogger.addOp(sid, 'rngState', args);
+    }
+}
 const setInitialPlayerStates = (multi, table, sid) => {
     let gameId = table.game? table.game.id: 'none';
     // sort of hacky. delete the previous stream. only has an effect if gameId === 'none'
@@ -171,6 +193,8 @@ async function initializeGameRedis(table, sid, multi) {
     let startTime = Date.now();
     await setInitialGameState(multi, table, sid, startTime);
     setInitialPlayerStates(multi, table, sid);
+    if (table.game)
+        setRngState(multi, table, sid);
 
     await trimGameList(multi, sid, 40);
 

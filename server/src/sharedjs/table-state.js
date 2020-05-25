@@ -247,9 +247,9 @@ class TableState {
         // concatenate player seeds, ordered by seat
         return this.players.map(p=>p.seed).join('');
     }
-    setRng(seed, rng) { // intended to be used when syncing from redis
+    setRng(seed, state) { // intended to be used when syncing from redis
+        this.rng = seedrandom.xorwow('', {state});
         this.previousSeed = seed;
-        this.rng = rng;
     }
     updateRng() {
         let newSeed = this.getSeed();
