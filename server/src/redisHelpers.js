@@ -62,7 +62,7 @@ async function getTableState(sid) {
         let playerVal = formatStreamElement(gameStream[i]);
         if (playerVal.type !== 'playerState') break;
 
-        table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false')
+        table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
         table.allPlayers[i].inHand = playerVal.inHand !== 'false';
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
         if (playerVal.cards && playerVal.cards.length > 0)
@@ -147,6 +147,7 @@ const addPlayerArgs = (table, sid, p) => {
         'isMod', p.isMod,
         'isStraddling', p.isStraddling,
         'seat', p.seat,
+        'seed', p.seed,
     ];
     if (p.inHand) {
         args.push('cards', p.cards.join(','));
@@ -213,22 +214,32 @@ async function deletePlayerOnRedis(sid, playerName) {
     await hdelAsync(fmtPlayerIdsId(sid), playerName);
 }
 module.exports.deletePlayerOnRedis = deletePlayerOnRedis;
-async function handlePlayerSitsDownRedis(sid, table, seat) {
-    return await addActionToRedis(table.game? table.game.id: 'none', seat, 'sitDown');
-}
-async function handlePlayerStandsUpRedis(sid, table, seat) {
-    return await addActionToRedis(table.game? table.game.id: 'none', seat, 'standUp');
-}
-async function addActionToRedis(sid, gameId, seat, action, amount) {
-    let args = [
+
+const addActionHelper = async (sid, gameId, seat, action, ...args) => {
+    let xaddArgs = [
         'type', 'action',
         'seat', seat,
         'action', action,
     ];
+    xaddArgs.push(...args);
+    await xaddAsync(fmtGameStreamId(sid, gameId), '*', ...xaddArgs)
+    TableLogger.action(sid, args);
+}
+async function handleSetSeedRedis(sid, table, seat, value) {
+    return await addActionHelper(sid,table.game? table.game.id: 'none', seat, 'setSeed', 'value', value);
+}
+async function handlePlayerSitsDownRedis(sid, table, seat) {
+    return await addActionHelper(sid, table.game? table.game.id: 'none', seat, 'sitDown');
+}
+async function handlePlayerStandsUpRedis(sid, table, seat) {
+    return await addActionHelper(sid, table.game? table.game.id: 'none', seat, 'standUp');
+}
+// for external use (in session.js)
+async function addActionToRedis(sid, gameId, seat, action, amount) {
+    let args = [sid, gameId, seat, action];
     if (amount || amount === 0)
         args.push('amount', amount);
-    await xaddAsync(fmtGameStreamId(sid, gameId), '*', ...args)
-    TableLogger.action(sid, args);
+    return await addActionHelper(...args);
 }
 
 async function addSidToRedis(sid) {
@@ -241,6 +252,7 @@ module.exports.addSidToRedis = addSidToRedis;
 module.exports.getSids = getSids;
 
 module.exports.formatStreamElement = formatStreamElement;
+module.exports.handleSetSeedRedis = handleSetSeedRedis;
 module.exports.handlePlayerStandsUpRedis = handlePlayerStandsUpRedis;
 module.exports.handlePlayerSitsDownRedis = handlePlayerSitsDownRedis;
 module.exports.addActionToRedis = addActionToRedis;

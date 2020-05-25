@@ -19,6 +19,7 @@
     "jsonwebtoken": "^8.5.1",
     "pino": "^6.2.1",
     "redis": "^3.0.2",
+    "seedrandom": "^3.0.5",
     "shortid": "^2.2.15",
     "socket.io": "^2.3.0",
     "socketio-jwt": "^4.5.0",

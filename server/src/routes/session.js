@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
 const xss = require("xss");
+const { v4 } = require('uuid');
 
 router.use('/', cookieParser(process.env.COOKIE_SECRET));
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
@@ -13,6 +14,7 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const {handleSetSeedRedis} = require("../redisHelpers");
 const {fmtGameStreamId} = require("../redisHelpers");
 const {xlenAsync} = require("../redisHelpers");
 const {formatStreamElement} = require("../redisHelpers");
@@ -90,7 +92,7 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
     value.isValid = true;
 
     const tableNamespace = sio.of('/' + value.tableName);
-    let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit,)
+    let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit)
     sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, playerId));
     await initializeTableRedis(table, value.tableName);
 
@@ -121,10 +123,13 @@ const sessionManagers = new Map();
                 let {action, seat, amount} = el;
                 prev_round = manager.getRoundName();
 
-                if (action === 'standUp') {
-                    manager.superStandUpPlayer(manager.getPlayerBySeat(seat))
+                if (action === 'setSeed') {
+                    await manager.setPlayerSeed(manager.getPlayerBySeat(seat), el.value, true);
+                    continue;
+                } else if (action === 'standUp') {
+                    await manager.standUpPlayer(manager.getPlayerBySeat(seat), true);
                 } else if (action === 'sitDown') {
-                    manager.superSitDownPlayer(manager.getPlayerBySeat(seat));
+                    await manager.sitDownPlayer(manager.getPlayerBySeat(seat), true);
                 } else {
                     let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
                     if (betAmount <= 0) console.log('betAmount:', betAmount);
@@ -260,8 +265,8 @@ class SessionManager extends TableManager {
         await addPlayerToRedis(this.sid, this.table, this.getPlayer(playerName), playerid);
     }
 
-    handleBuyIn(playerName, playerid, stack, isStraddling) {
-        const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling);
+    handleBuyIn(playerName, playerid, stack, isStraddling, seed) {
+        const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling, seed);
         if (addedPlayer) {
             if (this.registeredGuests[playerid]) {
                 // remove playerid from registeredGuests as player is no longer a guest.
@@ -292,16 +297,19 @@ class SessionManager extends TableManager {
         let playerName = this.getPlayerById(playerId);
         await this.playerLeaves(playerId);
     }
-
-    superStandUpPlayer(playerName) {
-        return super.standUpPlayer(playerName);
+    async setPlayerSeed(playerName, value, disableSideEffects) {
+        let setSeed = super.setPlayerSeed(playerName, value);
+        if (!disableSideEffects)
+            await handleSetSeedRedis(this.sid, this.table, this.getPlayerSeat(playerName), value);
+        return setSeed;
     }
-    superSitDownPlayer(playerName) {
-        return super.sitDownPlayer(playerName);
-    }
-    async standUpPlayer(playerName) {
+    async standUpPlayer(playerName, disableSideEffects) {
         if (this.isPlayerStandingUp(playerName)) return;
-        await handlePlayerStandsUpRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
+        if (disableSideEffects) {
+            super.standUpPlayer(playerName);
+            return;
+        }
+        await handlePlayerStandsUpRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
             await this.emitAction('fold', playerName, 0, false);
         }
@@ -311,9 +319,13 @@ class SessionManager extends TableManager {
         await this.check_round(prev_round);
         this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
-    async sitDownPlayer(playerName) {
+    async sitDownPlayer(playerName, disableSideEffects) {
         if (!this.isPlayerStandingUp(playerName)) return;
-        await handlePlayerSitsDownRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
+        if (disableSideEffects) {
+            super.sitDownPlayer(playerName);
+            return;
+        }
+        await handlePlayerSitsDownRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         super.sitDownPlayer(playerName);
         this.sendTableState();
         this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
@@ -589,13 +601,15 @@ async function handleOnAuth(s, socket) {
     const buyInSchema = Joi.object({
         playerName: Joi.string().trim().min(2).external(xss).required(),
         stack: Joi.number().min(0).required(),
-        isStraddling: Joi.boolean()
+        isStraddling: Joi.boolean(),
+        seed: Joi.string().trim().max(51).external(xss).optional(),
     });
     socket.on('buy-in', asyncSchemaValidator(buyInSchema, (data) => {
         if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
             return;
         }
-        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true);
+        console.log('buy in seed is undefined', data.seed === undefined);
+        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed === undefined? v4(): data.seed);
     }));
 
     const straddleSwitchSchema = Joi.object({
@@ -667,6 +681,15 @@ async function handleOnAuth(s, socket) {
         p.showHand();
         s.sendTableState();
     });
+
+    const setSeedSchema = Joi.object({
+        value: Joi.string().trim().max(51).external(xss).required()
+    }).external(isSeatedPlayerIdValidator);
+    socket.on('set-seed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
+        let seedUpdated = await s.setPlayerSeed(s.getPlayerById(playerId), value);
+        if (seedUpdated)
+            s.sendTableState();
+    }));
 
     socket.on('get-buyin-info', () => {
         io.emit('get-buyin-info', s.getBuyinBuyouts());

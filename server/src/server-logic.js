@@ -156,17 +156,18 @@ class TableManager extends TableStateManager {
      * @param {string} hostName
      * @param {number} hostStack
      * @param {boolean} hostIsStraddling
+     * @param {string} hostSeed
      * @param {string} playerid
      * @param {Object} playerids
      */
-    constructor(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
+    constructor(sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds) {
         super(table, table.game !== null);
         this.sid = sid;
         this.trackBuyins = [];
         this.modIds = modIds || [];
         if (!playerids) {
             this.playerids = {};
-            this.buyin(hostName, playerid, hostStack, hostIsStraddling);
+            this.buyin(hostName, playerid, hostStack, hostIsStraddling, hostSeed);
         } else this.playerids = playerids;
         this.bigBlindNextHand = undefined;
         this.smallBlindNextHand = undefined;
@@ -254,8 +255,8 @@ class TableManager extends TableStateManager {
 
     // adds the player to this.playerids
     // adds the player to the table
-    buyin(playerName, playerid, stack, isStraddling) {
-        const addedPlayer = this.table.AddPlayer(playerName, stack, isStraddling);
+    buyin(playerName, playerid, stack, isStraddling, seed) {
+        const addedPlayer = this.table.AddPlayer(playerName, stack, isStraddling, seed);
         if (addedPlayer) {
             this.addToPlayerIds(playerName, playerid);
             this.addToBuyins(playerName, playerid, stack);
@@ -280,6 +281,15 @@ class TableManager extends TableStateManager {
                 player.isStraddling = false;
             }
         }
+    }
+    setPlayerSeed(playerName, seed) {
+        const p = this.table.getPlayer(playerName);
+        if (p) {
+            console.log('setting seed for', p.playerName, 'to', p.seed);
+            p.seed = seed;
+            return true;
+        }
+        return false;
     }
     standUpPlayer(playerName) {
         return this.table.standUpPlayer(playerName);
