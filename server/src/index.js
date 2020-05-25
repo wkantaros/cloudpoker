@@ -3,13 +3,24 @@ require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-// const ejs = require('ejs');
+
+// // if you ever want to do the https stuff through express (rather than nginx, or whatever) uncomment this
+// var https = require('https');
+// var fs = require('fs');
+
+// var options = {
+//     cert: fs.readFileSync(__dirname + '/cert/cloudpoker_io.crt'),
+//     ca: fs.readFileSync(__dirname + '/cert/cloudpoker_io.ca-bundle'),
+//     key: fs.readFileSync(__dirname + '/cert/example_com.key')
+// };
 
 //instantiate server
 const app = express();
 const port = process.env.PORT || 8080;
 app.set('port', port);
-const server = new http.Server(app);
+
+const server = http.createServer(app);
+// const server = https.createServer(options, app);
 
 //socket setup
 const {setSio} = require("./sio");
