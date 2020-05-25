@@ -301,7 +301,7 @@ class SessionManager extends TableManager {
     }
     async standUpPlayer(playerName) {
         if (this.isPlayerStandingUp(playerName)) return;
-        await handlePlayerStandsUpRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
+        await handlePlayerStandsUpRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
             await this.emitAction('fold', playerName, 0, false);
         }
@@ -313,7 +313,7 @@ class SessionManager extends TableManager {
     }
     async sitDownPlayer(playerName) {
         if (!this.isPlayerStandingUp(playerName)) return;
-        await handlePlayerSitsDownRedis(this.table.sid, this.table, super.getPlayerSeat(playerName));
+        await handlePlayerSitsDownRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         super.sitDownPlayer(playerName);
         this.sendTableState();
         this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
