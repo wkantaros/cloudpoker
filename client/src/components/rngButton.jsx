@@ -20,13 +20,14 @@ class SeedInfo extends Component {
     handleSubmit() {
         let value = this.state.nextSeedValue.trim();
         if (value.length < 1) {
-            alert('You have set your randomization seed for next round to be empty');
+            alert('You cannot set your randomization seed to empty');
         } else if (value.length > 51) {
             // Maximum length is 2^9 === 512 (characters) // 10 (players) === 51.
             alert('Maximum seed length is 51.')
-            return;
+        } else {
+            this.props.socket.emit('set-seed', {value});
+            this.props.closeInfo();
         }
-        this.props.socket.emit('set-seed', {value});
     }
     handleKeyDown(e) {
         e.stopPropagation();
@@ -76,24 +77,24 @@ export default class RngButton extends Component {
         super(props);
         this.state = {showInfo: false};
         this.handleClick = this.handleClick.bind(this);
-        this.handleWindowMouseUp = this.handleWindowMouseUp.bind(this);
+        this.closeInfo = this.closeInfo.bind(this);
         this.handleInfoMouseUp = this.handleInfoMouseUp.bind(this);
     }
     handleClick() {
         this.setState({showInfo: true});
     }
-    handleWindowMouseUp(e) {
+    closeInfo(e) {
         this.setState({showInfo: false});
     }
     handleInfoMouseUp(e) {
         e.stopPropagation();
     }
     componentDidMount() {
-        window.addEventListener('mouseup', this.handleWindowMouseUp);
+        window.addEventListener('mouseup', this.closeInfo);
         document.getElementById('seed-info').addEventListener('mouseup', this.handleInfoMouseUp)
     }
     componentWillUnmount() {
-        window.removeEventListener('mouseup', this.handleWindowMouseUp);
+        window.removeEventListener('mouseup', this.closeInfo);
         document.getElementById('seed-info').removeEventListener('mouseup', this.handleInfoMouseUp)
     }
 
@@ -101,7 +102,7 @@ export default class RngButton extends Component {
         return (
             <div className="button popup" onClick={this.handleClick}>
                 <span>RNG Settings</span>
-                <SeedInfo currentSeed={this.props.currentSeed} socket={this.props.socket} showInfo={this.state.showInfo}/>
+                <SeedInfo currentSeed={this.props.currentSeed} socket={this.props.socket} showInfo={this.state.showInfo} closeInfo={this.closeInfo}/>
             </div>
         );
     }
