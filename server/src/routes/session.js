@@ -93,7 +93,7 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
 
     const tableNamespace = sio.of('/' + value.tableName);
     let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit)
-    sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, playerId));
+    sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, v4(), playerId));
     await initializeTableRedis(table, value.tableName);
 
     await res.json(value);
@@ -112,7 +112,7 @@ const sessionManagers = new Map();
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
-        const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, pids, modIds);
+        const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, null, pids, modIds);
         sessionManagers.set(sid, manager);
         if (table.game) {
             let prev_round = manager.getRoundName();
@@ -143,8 +143,8 @@ const sessionManagers = new Map();
 
 const TABLE_EXPIRY_TIMEOUT = 1000 * 60 * 30; // 30 minutes
 class SessionManager extends TableManager {
-    constructor(io, sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds) {
-        super(sid, table, hostName, hostStack, hostIsStraddling, playerid, playerids, modIds);
+    constructor(io, sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds) {
+        super(sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds);
         this.io = io;
         this.socketMap = new Map();
         // maps player id -> playerName when kicked
@@ -608,8 +608,9 @@ async function handleOnAuth(s, socket) {
         if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
             return;
         }
-        console.log('buy in seed is undefined', data.seed === undefined);
-        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed === undefined? v4(): data.seed);
+        data.seed = data.seed && data.seed.length > 0? data.seed: v4();
+        // console.log('buy in seed is undefined', data.seed === undefined);
+        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed);
     }));
 
     const straddleSwitchSchema = Joi.object({
@@ -683,7 +684,7 @@ async function handleOnAuth(s, socket) {
     });
 
     const setSeedSchema = Joi.object({
-        value: Joi.string().trim().max(51).external(xss).required()
+        value: Joi.string().trim().min(1).max(51).external(xss).required()
     }).external(isSeatedPlayerIdValidator);
     socket.on('set-seed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
         let seedUpdated = await s.setPlayerSeed(s.getPlayerById(playerId), value);
