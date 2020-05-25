@@ -312,7 +312,7 @@ class Player {
         this.showingCards = false;
         // private fields
         this.cards = [];
-        console.log('initialized seed for', p.playerName, 'to', p.seed);
+        console.log('initialized seed for', playerName, 'to', seed);
         this.seed = seed;
     }
 
