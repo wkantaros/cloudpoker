@@ -214,10 +214,10 @@ async function deletePlayerOnRedis(sid, playerName) {
 }
 module.exports.deletePlayerOnRedis = deletePlayerOnRedis;
 async function handlePlayerSitsDownRedis(sid, table, seat) {
-    return await addActionToRedis(table.game? table.game.id: 'none', seat, 'sitDown');
+    return await addActionToRedis(sid, table.game? table.game.id: 'none', seat, 'sitDown');
 }
 async function handlePlayerStandsUpRedis(sid, table, seat) {
-    return await addActionToRedis(table.game? table.game.id: 'none', seat, 'standUp');
+    return await addActionToRedis(sid, table.game? table.game.id: 'none', seat, 'standUp');
 }
 async function addActionToRedis(sid, gameId, seat, action, amount) {
     let args = [
