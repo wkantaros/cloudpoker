@@ -1,3 +1,4 @@
+const seedrandom = require("seedrandom");
 const {rankHandInt} = require("../poker-logic/lib/deck");
 const { v4 } = require('uuid');
 
@@ -14,9 +15,8 @@ class TableState {
      * @param {number} dealer
      * @param {Player[]} allPlayers
      * @param {number} currentPlayer
-     * @param {GameState|null} game
      */
-    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer, game) {
+    constructor(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, dealer, allPlayers, currentPlayer) {
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
         this.minPlayers = minPlayers;
@@ -28,7 +28,10 @@ class TableState {
         this.minBuyIn = minBuyIn;
         this.maxBuyIn = maxBuyIn;
         this.straddleLimit = straddleLimit;
-        this.game = game;
+        this.game = null;
+
+        this.previousSeed = null;
+        this.rng = null;
 
         //Validate acceptable value ranges.
         let err;
@@ -240,7 +243,23 @@ class TableState {
         console.log(`Invalid straddleLimit value ${this.straddleLimit}`);
         return 0;
     };
-
+    getSeed() {
+        // concatenate player seeds, ordered by seat
+        return this.players.map(p=>p.seed).join('');
+    }
+    setRng(seed, rng) { // intended to be used when syncing from redis
+        this.previousSeed = seed;
+        this.rng = rng;
+    }
+    updateRng() {
+        let newSeed = this.getSeed();
+        if (this.previousSeed !== newSeed) {
+            this.rng = new seedrandom.xorwow(newSeed, {state: true});
+            console.log('updating seed from', this.previousSeed, 'to', newSeed);
+            this.previousSeed = newSeed;
+        }
+        return this.rng;
+    }
     getAvailableSeat() {
         return this.allPlayers.findIndex(elem => elem === null || elem.leavingGame);
     };
@@ -273,7 +292,7 @@ class Player {
      * @param isStraddling If the player wants to straddle
      * @constructor
      */
-    constructor(playerName, chips, isStraddling, seat, isMod) {
+    constructor(playerName, chips, isStraddling, seat, isMod, seed) {
         this.playerName = playerName;
         this.chips = chips;
         this.checked = false;
@@ -284,7 +303,6 @@ class Player {
         this.inHand = false;
         // If the player is standing up from the table
         this.standingUp = false;
-        this.cards = [];
         this.bet = 0;
         this.isStraddling = isStraddling;
         this.seat = seat;
@@ -292,6 +310,10 @@ class Player {
         // below fields used only externally
         this.isMod = isMod;
         this.showingCards = false;
+        // private fields
+        this.cards = [];
+        console.log('initialized seed for', p.playerName, 'to', p.seed);
+        this.seed = seed;
     }
 
     showHand() {
