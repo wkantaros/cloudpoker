@@ -57,21 +57,20 @@ async function getTableState(sid) {
     let table = new poker.Table(parseInt(gameVal.smallBlind), parseInt(gameVal.bigBlind), 2, 10, 1, 500000000000, 0);
 
     let gameStream = await getGameStream(sid, gameId);
-    // let playerCards = [].fill(null, 0, 10);
     let rngState;
     for (let i = 0; i < gameStream.length; i++) {
         let playerVal = formatStreamElement(gameStream[i]);
         if (playerVal.type === 'rngState') {
-            rngState = {x: playerVal.x, y: playerVal.y, z: playerVal.z, w: playerVal.w, v: playerVal.v, d: playerVal.d};
-            continue;
+            delete playerVal.type;
+            for (const prop in playerVal) playerVal[prop] = parseInt(playerVal[prop]);
+            rngState = Object.assign({}, playerVal)
+        } else if (playerVal.type === 'playerState') {
+            table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
+            table.allPlayers[i].inHand = playerVal.inHand !== 'false';
+            table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
+        } else {
+            break; // if we have reached the action stream
         }
-        if (playerVal.type !== 'playerState') break;
-
-        table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
-        table.allPlayers[i].inHand = playerVal.inHand !== 'false';
-        table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
-        // if (playerVal.cards && playerVal.cards.length > 0)
-        //     playerCards[i] = playerVal.cards.split(','); // table.allPlayers[i].cards will be overwritten in initNewRound
     }
     table.dealer = parseInt(gameVal.dealer);
 
@@ -80,9 +79,6 @@ async function getTableState(sid) {
         table.setRng(table.getSeed(), rngState);
         table.initNewRound();
         table.game.id = gameId;
-        // for (let p of table.players) {
-        //     p.cards = playerCards[p.seat];
-        // }
     }
     return table;
 }
@@ -115,9 +111,6 @@ const setInitialGameState = async (multi, table, sid, startTime) => {
         'dealer', table.dealer,
         'startTime', startTime,
     ];
-    if (table.game) {
-        gameStateArgs.push('deck', table.game.deck.join(','));
-    }
     multi.lpush(fmtGameListId(sid), table.game? table.game.id: 'none');
     multi.hmset(fmtGameStateId(sid, table.game? table.game.id: 'none'), ...gameStateArgs);
     TableLogger.newRound(sid, gameStateArgs);
