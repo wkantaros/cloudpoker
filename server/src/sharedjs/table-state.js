@@ -249,9 +249,7 @@ class TableState {
         return this.players.map(p=>p.seed).join('');
     }
     setRng(seed, state) { // intended to be used when syncing from redis
-        console.log('setting rng', seed, state);
         this.rng = seedrandom.xorwow('', {state});
-        console.log('set state', this.rng.state());
         this.previousSeed = seed;
     }
     updateRng() {

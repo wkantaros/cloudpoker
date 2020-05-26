@@ -109,8 +109,6 @@ class Table extends TableState{
             return;
         }
         this.dealer = (this.dealer + 1) % this.players.length;
-        if (this.rng)
-            console.log(this.rng.state());
         this.game = new Game(this.smallBlind, this.bigBlind, this.updateRng());
 
         //Deal 2 cards to each player
