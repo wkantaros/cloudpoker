@@ -57,7 +57,7 @@ async function getTableState(sid) {
     let table = new poker.Table(parseInt(gameVal.smallBlind), parseInt(gameVal.bigBlind), 2, 10, 1, 500000000000, 0);
 
     let gameStream = await getGameStream(sid, gameId);
-    let playerCards = [].fill(null, 0, 10);
+    // let playerCards = [].fill(null, 0, 10);
     let rngState;
     for (let i = 0; i < gameStream.length; i++) {
         let playerVal = formatStreamElement(gameStream[i]);
@@ -70,20 +70,19 @@ async function getTableState(sid) {
         table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
         table.allPlayers[i].inHand = playerVal.inHand !== 'false';
         table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
-        if (playerVal.cards && playerVal.cards.length > 0)
-            playerCards[i] = playerVal.cards.split(','); // table.allPlayers[i].cards will be overwritten in initNewRound
+        // if (playerVal.cards && playerVal.cards.length > 0)
+        //     playerCards[i] = playerVal.cards.split(','); // table.allPlayers[i].cards will be overwritten in initNewRound
     }
     table.dealer = parseInt(gameVal.dealer);
 
     if (gameId !== 'none') {
         table.dealer = (table.dealer - 1) % table.players.length;
+        table.setRng(table.getSeed(), rngState);
         table.initNewRound();
-        this.setRng(table.getSeed(), rngState);
         table.game.id = gameId;
-        table.game.deck = gameVal.deck.split(',');
-        for (let p of table.players) {
-            p.cards = playerCards[p.seat];
-        }
+        // for (let p of table.players) {
+        //     p.cards = playerCards[p.seat];
+        // }
     }
     return table;
 }
@@ -133,15 +132,10 @@ const getGameState = async (sid, gameId) => {
 }
 const setRngState = (multi, table, sid) => {
     if (table.game) {
-        let state = table.rng.state();
+        let state = table.initialRngState;
         let args = [
             'type', 'rngState',
-            'x', state.x,
-            'y', state.y,
-            'z', state.z,
-            'w', state.w,
-            'v', state.v,
-            'd', state.d,
+            ...Object.entries(state).flat()
         ]
         multi.xadd(fmtGameStreamId(sid, table.game.id), '*', ...args);
         TableLogger.addOp(sid, 'rngState', args);
@@ -171,9 +165,6 @@ const addPlayerArgs = (table, sid, p) => {
         'seat', p.seat,
         'seed', p.seed,
     ];
-    if (p.inHand) {
-        args.push('cards', p.cards.join(','));
-    }
     return args;
 }
 
@@ -193,8 +184,7 @@ async function initializeGameRedis(table, sid, multi) {
     let startTime = Date.now();
     await setInitialGameState(multi, table, sid, startTime);
     setInitialPlayerStates(multi, table, sid);
-    if (table.game)
-        setRngState(multi, table, sid);
+    setRngState(multi, table, sid);
 
     await trimGameList(multi, sid, 40);
 

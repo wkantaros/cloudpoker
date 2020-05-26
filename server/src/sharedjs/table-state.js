@@ -32,6 +32,7 @@ class TableState {
 
         this.previousSeed = null;
         this.rng = null;
+        this.initialRngState = null;
 
         //Validate acceptable value ranges.
         let err;
@@ -248,16 +249,20 @@ class TableState {
         return this.players.map(p=>p.seed).join('');
     }
     setRng(seed, state) { // intended to be used when syncing from redis
+        console.log('setting rng', seed, state);
         this.rng = seedrandom.xorwow('', {state});
+        console.log('set state', this.rng.state());
         this.previousSeed = seed;
     }
     updateRng() {
         let newSeed = this.getSeed();
+        // console.log('previous rng state:', this.rng? this.rng.state(): null);
         if (this.previousSeed !== newSeed) {
             this.rng = new seedrandom.xorwow(newSeed, {state: true});
             console.log('updating seed from', this.previousSeed, 'to', newSeed);
             this.previousSeed = newSeed;
         }
+        this.initialRngState = this.rng.state();
         return this.rng;
     }
     getAvailableSeat() {

@@ -190,7 +190,9 @@ socket.on('set-seed', ({playerName, playerSeedHash, tableSeedHash}) => {
 
 // player buys in
 socket.on('buy-in', (data) => {
-    outputEmphasizedMessage(data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}. Table seed hash is ${data.tableSeedHash}.`);
+    let message = data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}.`;
+    if (data.tableSeedHash) message += ` Table seed hash is ${data.tableSeedHash}.`;
+    outputEmphasizedMessage(message);
 });
 
 //somebody left the game

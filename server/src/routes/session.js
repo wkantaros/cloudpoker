@@ -14,6 +14,7 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const {handleSetSeedRedis} = require("../redisHelpers");
 const {fmtGameStreamId} = require("../redisHelpers");
 const {xlenAsync} = require("../redisHelpers");
@@ -140,6 +141,8 @@ const sessionManagers = new Map();
         }
     }
 })();
+
+const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex');
 
 const TABLE_EXPIRY_TIMEOUT = 1000 * 60 * 30; // 30 minutes
 class SessionManager extends TableManager {
@@ -283,8 +286,8 @@ class SessionManager extends TableManager {
             this.io.emit('buy-in', {
                 playerName: playerName,
                 stack: stack,
-                playerSeedHash: super.getPlayerSeed(playerName),
-                tableSeedHash: this.table.getSeed(),
+                playerSeedHash: sha256Hash(super.getPlayerSeed(playerName)),
+                tableSeedHash: sha256Hash(this.table.getSeed()),
             });
         } else {
             // set or update this guest's name
@@ -685,8 +688,6 @@ async function handleOnAuth(s, socket) {
         p.showHand();
         s.sendTableState();
     });
-
-    const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex')
 
     const setSeedSchema = Joi.object({
         value: Joi.string().trim().min(1).max(51).external(xss).required()
