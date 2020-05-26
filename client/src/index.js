@@ -184,9 +184,13 @@ socket.on('typing', (data) => {
     // $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
+socket.on('set-seed', ({playerName, playerSeedHash, tableSeedHash}) => {
+    outputEmphasizedMessage('The SHA256 hash for ' + playerName + '\'s new RNG seed is ' + playerSeedHash + '. The SHA256 hash for the table seed is now ' + tableSeedHash + '.')
+});
+
 // player buys in
 socket.on('buy-in', (data) => {
-    outputEmphasizedMessage(data.playerName + ' buys in for ' + data.stack);
+    outputEmphasizedMessage(data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}. Table seed hash is ${data.tableSeedHash}.`);
 });
 
 //somebody left the game

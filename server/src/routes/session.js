@@ -283,6 +283,8 @@ class SessionManager extends TableManager {
             this.io.emit('buy-in', {
                 playerName: playerName,
                 stack: stack,
+                playerSeedHash: super.getPlayerSeed(playerName),
+                tableSeedHash: this.table.getSeed(),
             });
         } else {
             // set or update this guest's name
@@ -298,6 +300,7 @@ class SessionManager extends TableManager {
         await this.playerLeaves(playerId);
     }
     async setPlayerSeed(playerName, value, disableSideEffects) {
+        value = value.trim();
         let setSeed = super.setPlayerSeed(playerName, value);
         if (!disableSideEffects)
             await handleSetSeedRedis(this.sid, this.table, this.getPlayerSeat(playerName), value);
@@ -683,13 +686,22 @@ async function handleOnAuth(s, socket) {
         s.sendTableState();
     });
 
+    const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex')
+
     const setSeedSchema = Joi.object({
         value: Joi.string().trim().min(1).max(51).external(xss).required()
     }).external(isSeatedPlayerIdValidator);
     socket.on('set-seed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
-        let seedUpdated = await s.setPlayerSeed(s.getPlayerById(playerId), value);
-        if (seedUpdated)
+        const playerName = s.getPlayerById(playerId);
+        const seedUpdated = await s.setPlayerSeed(playerName, value);
+        if (seedUpdated) {
             s.sendTableState();
+            io.emit('set-seed', {
+                playerName: s.getPlayerById(playerId),
+                playerSeedHash: sha256Hash(s.getPlayerSeed(playerName)),
+                tableSeedHash: sha256Hash(s.table.getSeed()),
+            });
+        }
     }));
 
     socket.on('get-buyin-info', () => {

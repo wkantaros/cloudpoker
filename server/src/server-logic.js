@@ -282,10 +282,14 @@ class TableManager extends TableStateManager {
             }
         }
     }
+    getPlayerSeed(playerName) {
+        return this.getPlayer(playerName).seed;
+    }
     setPlayerSeed(playerName, seed) {
         const p = this.table.getPlayer(playerName);
         if (p) {
-            console.log('setting seed for', p.playerName, 'to', p.seed);
+            seed = seed.trim();
+            console.log('setting seed for', p.playerName, 'to', seed);
             p.seed = seed;
             return true;
         }
