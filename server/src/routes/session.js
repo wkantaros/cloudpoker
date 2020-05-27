@@ -644,20 +644,20 @@ async function handleOnAuth(s, socket) {
         await s.playerLeaves(playerId);
     });
 
-    socket.on('stand-up', () => {
+    socket.on('stand-up', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
             console.log(`playerid ${playerId} emitted stand-up but is not an active player`);
             return;
         }
-        s.standUpPlayer(s.getPlayerById(playerId));
+        await s.standUpPlayer(s.getPlayerById(playerId));
     });
 
-    socket.on('sit-down', () => {
+    socket.on('sit-down', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
             console.log(`playerid ${playerId} emitted sit-down but is not an active player`);
             return;
         }
-        s.sitDownPlayer(s.getPlayerById(playerId));
+        await s.sitDownPlayer(s.getPlayerById(playerId));
     });
 
     const setTurnTimerSchema = Joi.object({delay: Joi.number().integer().required()}).external(isModValidator);
