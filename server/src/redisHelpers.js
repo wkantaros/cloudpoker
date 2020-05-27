@@ -51,28 +51,37 @@ async function getGameStream(sid, gameId) {
 }
 module.exports.getGameStream = getGameStream;
 
+const transformRngState = (playerVal) =>  {
+    delete playerVal.type;
+    for (const prop in playerVal)
+        if (playerVal.hasOwnProperty(prop))
+            playerVal[prop] = parseInt(playerVal[prop]);
+    return Object.assign({}, playerVal);
+}
+const transformPlayerState = (playerVal) => {
+    const p = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed);
+    p.inHand = playerVal.inHand !== 'false';
+    p.standingUp = playerVal.standingUp !== 'false';
+    return p;
+}
 async function getTableState(sid) {
     let gameId = await getGameIdForTable(sid);
     let gameVal = await getGameState(sid, gameId);
     let table = new poker.Table(parseInt(gameVal.smallBlind), parseInt(gameVal.bigBlind), 2, 10, 1, 500000000000, 0);
+    table.dealer = parseInt(gameVal.dealer);
 
     let gameStream = await getGameStream(sid, gameId);
     let rngState;
     for (let i = 0; i < gameStream.length; i++) {
         let playerVal = formatStreamElement(gameStream[i]);
         if (playerVal.type === 'rngState') {
-            delete playerVal.type;
-            for (const prop in playerVal) playerVal[prop] = parseInt(playerVal[prop]);
-            rngState = Object.assign({}, playerVal)
+            rngState = transformRngState(playerVal);
         } else if (playerVal.type === 'playerState') {
-            table.allPlayers[i] = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed)
-            table.allPlayers[i].inHand = playerVal.inHand !== 'false';
-            table.allPlayers[i].standingUp = playerVal.standingUp !== 'false';
+            table.allPlayers[i] = transformPlayerState(playerVal);
         } else {
             break; // if we have reached the action stream
         }
     }
-    table.dealer = parseInt(gameVal.dealer);
 
     if (gameId !== 'none') {
         table.dealer = (table.dealer - 1) % table.players.length;
