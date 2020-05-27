@@ -17,7 +17,7 @@ class Table extends TableState{
         for (let i = 0; i < maxPlayers; i++) {
             allPlayers.push(null);
         }
-        super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1, null);
+        super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1);
     }
 
     callBlind() {
@@ -70,16 +70,11 @@ class Table extends TableState{
             progress(this);
         }
     }
-    fold( playerName ){
-        let p = this.players[this.currentPlayer];
-        if( playerName === p.playerName ){
-            this.foldHelper(p);
-            return true;
-        }else {
-            console.log("wrong user has made a move");
-            return false;
-        }
-    }
+
+    fold(){
+        this.foldHelper(this.players[this.currentPlayer]);
+        return true;
+    };
     call(){
         let p = this.players[this.currentPlayer];
         const maxBet = this.getMaxBet();
@@ -115,7 +110,7 @@ class Table extends TableState{
             return;
         }
         this.dealer = (this.dealer + 1) % this.players.length;
-        this.game = new Game(this.smallBlind, this.bigBlind);
+        this.game = new Game(this.smallBlind, this.bigBlind, this.updateRng());
 
         //Deal 2 cards to each player
         for (let i = 0; i < this.players.length; i += 1) {
@@ -140,7 +135,7 @@ class Table extends TableState{
         p.standingUp = false;
         return true;
     }
-    AddPlayer(playerName, chips, isStraddling) {
+    AddPlayer(playerName, chips, isStraddling, seed) {
         // console.log(`adding player ${playerName}`);
         // Check if playerName already exists
         const ind = this.allPlayers.findIndex(p => p !== null && p.playerName === playerName);
@@ -150,12 +145,13 @@ class Table extends TableState{
                 p.leavingGame = false;
                 p.chips = chips;
                 p.isStraddling = isStraddling;
+                p.seed = seed;
                 return true;
             }
         } else {
             const seat = this.getAvailableSeat();
             if ( chips >= this.minBuyIn && chips <= this.maxBuyIn && seat !== -1) {
-                const player = new Player(playerName, chips, isStraddling, seat, false);
+                const player = new Player(playerName, chips, isStraddling, seat, false, seed);
                 this.allPlayers[seat] = player;
                 return true;
             }
@@ -435,10 +431,9 @@ function turnCards(table, count) {
 }
 
 class Game extends GameState {
-    constructor(smallBlind, bigBlind) {
+    constructor(smallBlind, bigBlind, rng) {
         super(smallBlind, bigBlind);
-        this.deck = [];
-        fillDeck(this.deck);
+        this.deck = fillDeck([], rng);
     }
 }
 
