@@ -71,10 +71,10 @@ class BuyInInfo extends Component {
         return (
             <div className={buyInInfoClassName} id="buyin-info">
                 <div className="row">
-                    <input name="playerName" type="text" value={this.state.playerName} onChange={this.handleInputChange} placeholder="name" id="new-playerName"/>
+                    <input className="u-max-full-width" name="playerName" type="text" value={this.state.playerName} onChange={this.handleInputChange} placeholder="name" min="2" max="10" id="new-playerName"/>
                 </div>
                 <div className="row">
-                    <input name="stackSize" type="number" value={this.state.stackSize} onChange={this.handleInputChange} placeholder="stack size" min="1" id="new-stack"/>
+                    <input className="u-max-full-width" name="stackSize" type="number" value={this.state.stackSize} onChange={this.handleInputChange} placeholder="stack size" min="1" id="new-stack"/>
                 </div>
                 <div className="button-primary" id="buyin-btn" onClick={this.handleSubmit}>Submit</div>
             </div>

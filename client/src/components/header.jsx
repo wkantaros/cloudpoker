@@ -57,7 +57,7 @@ export default class Header extends Component {
                 <SitDownButton socket={this.props.socket} player={this.props.player}/>:
                 <StandUpButton socket={this.props.socket} player={this.props.player}/>;
         }
-        let hostButton = this.props.loggedIn && this.props.player.isMod?
+        let hostButton = this.props.loggedIn && this.props.player.isMod ?
             <HostButton onClick={this.openHostPage} player={this.props.player}/>:
             null;
         let hostOptions = this.state.hostPageIsOpen && this.props.loggedIn && this.props.player.isMod?

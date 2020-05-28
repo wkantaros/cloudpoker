@@ -248,16 +248,17 @@ h3 {
 .popuptext {
     visibility: hidden;
     width: 160px;
-    background-color: #555;
+    background-color: #315659f5;
     color: #fff;
     text-align: center;
     border-radius: 6px;
-    padding: 8px 0;
+    padding: 0;
     position: absolute;
     z-index: 10;
     top: 125%;
     left: 50%;
     margin-left: -80px;
+    border: 1px solid #315659f5
 }
 
 /* Popup arrow */
@@ -269,7 +270,37 @@ h3 {
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: transparent transparent #555 transparent;
+    border-color: transparent transparent #315659f0 transparent;
+}
+
+#new-playerName {
+    background-color: #467b7ef0;
+    color: white;
+    border: none;
+    margin-bottom: 2px;
+}
+
+#new-stack {
+    background-color: #467b7ef0;
+    color: white;
+    border: none;
+    margin-bottom: 2px;
+}
+
+#buyin-btn {
+    background-color: #467b7ef0;
+    color: white;
+    border-radius: 4px;
+    /* margin-bottom: 2px; */
+}
+
+#new-stack::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#new-playerName::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    /* opacity: 1; */
 }
 
 /* Toggle this class when clicking on the popup container (hide and show the popup) */
@@ -1266,6 +1297,7 @@ input::-webkit-inner-spin-button {
     top: 20px;
     right: 45px;
     font-size: 60px;
+    cursor: pointer;
 }
 
 #buyins {
@@ -1289,4 +1321,8 @@ input::-webkit-inner-spin-button {
     color: white;
     float: right;
     text-align: right;
+}
+
+.button {
+    margin-right: 5px;
 }
