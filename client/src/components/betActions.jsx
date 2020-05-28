@@ -20,7 +20,7 @@ export class RaiseButtonContainer extends Component {
         this.handleBetButtonClick=this.handleBetButtonClick.bind(this);
         this.betButtonValues = {
             'mr': () => { return getMinRaiseAmount({table: this.props.table})},
-            'rp': this.getPotSize,
+            'rp': () => { return this.getPotSize },
             'rsqp': () => { return 6 * this.getPotSize() / 4},
             'rtp': () => { return 2 * this.getPotSize()},
             'rthp': () => { return 3 * this.getPotSize()},
@@ -176,7 +176,7 @@ export default class BetActions extends Component {
             betButtons = <RaiseButtonContainer setInputValue={this.props.setInputValue} inputValue={this.props.inputValue} player={this.props.player} table={this.props.table}/>
         }
         return (
-            <div className={this.props.collapse?"slidecontainer collapse": "slidecontainer"} id={actionsId}>
+            <div className={this.props.collapse ? "slidecontainer collapse" : "slidecontainer"} id={actionsId}>
                 <input type="number" className="inputVal" id={inputId} value={this.props.inputValue} onChange={this.handleBetInputChange}/>
                 <div className="betraise" id={sliderId}>
                     {betButtons}

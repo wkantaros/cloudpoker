@@ -26,7 +26,12 @@ export default class BoardCards extends Component {
         }
         return (
             <div id="cards">
-                <div id="flop">{cards.slice(0,3)}</div>
+                {/* <div id="flop">{cards.slice(0,3)}</div> */}
+                <div id="flop">
+                    <div>{cards[0]}</div>
+                    <div>{cards[1]}</div>
+                    <div>{cards[2]}</div>
+                </div>
                 <div id="turn">{cards[3]}</div>
                 <div id="river">{cards[4]}</div>
             </div>

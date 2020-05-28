@@ -1,6 +1,6 @@
 import React from "react";
 import "../css/stylesheet.css";
-import "../img/table.png";
+import "../img/Cloudpker.png";
 
 export default function TableImage({children}) {
     return (

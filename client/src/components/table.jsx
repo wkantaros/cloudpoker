@@ -38,7 +38,7 @@ export default function Table({volumeOn, table, raceInProgress, betWidth, betHei
                 <Pot potAmount={table.game ? table.game.pot : null}/>
                 {/* render the board (cards) */}
                 <Board>
-                    <BoardCards volumeOn={volumeOn} board={table.game? table.game.board : []}/>
+                    <BoardCards volumeOn={volumeOn} board={table.game ? table.game.board : []}/>
                 </Board>
             </div>
 
