@@ -1,5 +1,3 @@
-const {Hand, rankHandInt} = require('./poker-logic');
-
 class TableStateManager {
     /**
      *
@@ -295,12 +293,6 @@ class TableManager extends TableStateManager {
         }
         return false;
     }
-    standUpPlayer(playerName) {
-        return this.table.standUpPlayer(playerName);
-    }
-    sitDownPlayer(playerName) {
-        return this.table.sitDownPlayer(playerName);
-    }
 
     removePlayer(playerName) {
         this.table.removePlayer(playerName);
@@ -376,39 +368,6 @@ class TableManager extends TableStateManager {
         return 'guest';
     }
 
-    updatePlayerId(playerName, playerid) {
-        let oldplayerid = this.playerids[playerName].playerid;
-
-        let oldModIndex = this.modIds.indexOf(oldplayerid);
-        if (oldModIndex > -1) // if oldplayerid is the player ID of a mod
-            this.modIds.splice(oldModIndex, 1, playerid);
-
-        for (let i = 0; i < this.trackBuyins.length; i++) {
-            if (this.trackBuyins[i].playerName === playerName && this.trackBuyins[i].playerid === oldplayerid){
-                this.trackBuyins[i].playerid = playerid;
-            }
-        }
-        this.playerids[playerName].playerid = playerid;
-    }
-
-    playerHandState(playerName) {
-        const p = this.table.getPlayer(playerName);
-        if (!p) return null;
-        let result = {
-            cards: this.table.getHandForPlayerName(playerName),
-            handRankMessage: '',
-        };
-        if (this.gameInProgress && p.inHand) {
-            const playableCards = p.cards.concat(this.table.game.board);
-            result.handRankMessage = rankHandInt(new Hand(playableCards)).message;
-        }
-        return result;
-    }
-
-    getAvailableSeat() {
-        return this.table.getAvailableSeat();
-    }
-
     startRound() {
         this.gameInProgress = true;
         this.updateBlinds();
@@ -418,120 +377,10 @@ class TableManager extends TableStateManager {
             this.gameInProgress = false;
     }
 
-    /**
-     * @param {string} playerName
-     * @param {string} action Player's action
-     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
-     * @return {number} Amount bet. -1 if action cannot be performed
-     */
-    performActionHelper(playerName, action, amount) {
-        if (amount < 0 || this.actionSeat !== this.getPlayerSeat(playerName)) {
-            return -1;
-        }
-        let actualBetAmount = 0;
-        if (action === 'bet') {
-            actualBetAmount = this.bet(playerName, amount);
-        } else if (action === 'raise') {
-            actualBetAmount = this.raise(playerName, amount);
-        } else if (action === 'call') {
-            if (this.getRoundName() === 'deal') {
-                actualBetAmount = this.callBlind(playerName);
-            } else {
-                actualBetAmount = this.call(playerName);
-            }
-        } else if (action === 'fold') {
-            actualBetAmount = 0;
-            this.fold(playerName);
-        } else if (action === 'check') {
-            let canPerformAction = this.check(playerName);
-            if (canPerformAction) {
-                actualBetAmount = 0;
-            }
-        }
-        return actualBetAmount;
-    }
-
-    getCardsByPlayerName(playerName) {
-        return this.table.getHandForPlayerName(playerName);
-    }
-
-    callBlind(playerName) {
-        return this.table.callBlind();
-    };
-
-    call(playerName) {
-        // this.table.call(this.table.getCurrentPlayer());
-        // console.log(this.table);
-        return this.table.call();
-    }
-
-    check(playerName) {
-        // return this.table.check(this.table.getCurrentPlayer());
-        return this.table.check();
-    }
-
-    fold(playerName) {
-        // return this.table.fold(this.table.getCurrentPlayer());
-        return this.table.fold();
-    }
-
-    bet(playerName, betAmount) {
-        // return this.table.bet(this.table.getCurrentPlayer(), betAmount);
-        return this.table.bet(betAmount);
-    }
-
-
-    // allows user to raise to a number
-    // (such that node-poker doenst have him bet that number + his previous bet)
-    raise(playerName, betAmount) {
-        let playersLastBet = this.getBet(playerName);
-        let realBetAmount = betAmount - playersLastBet;
-        // let addedBetSize = betAmount - getBet
-        // return this.table.bet(this.table.getCurrentPlayer(), betAmount);
-        console.log(`player ${playerName} is betting ${realBetAmount} on top of his last bet of ${playersLastBet}`);
-        return this.bet(playerName, realBetAmount);
-    }
-
-    getWinnings(prev_round) {
-        console.log('calculating winnings');
-        let winnings = this.table.game.pot;
-        if (prev_round === 'deal') {
-            //basically check if any bets are still on the table and add them to the pot (for big blind, etc)
-            for (const p of this.table.players) {
-                winnings += p.bet;
-            }
-        }
-        return winnings;
-    }
-
-    updateStack(playerName, winnings) {
-        this.table.getPlayer(playerName).GetChips(winnings);
-    }
-
     // different than update stack as it changes stack entirely, doesn't add on
     updateStackBuyIn(playerName, stackAmount, change) {
         this.table.getPlayer(playerName).UpdateStackAmount(stackAmount);
         this.updateBuyIn(playerName, this.getPlayerId(playerName), change);
-    }
-
-    getWinners() {
-        return this.table.getWinners();
-    }
-
-    // if thats the case, just call and move forward with game
-    actionOnAllInPlayer() {
-        let actionSeat = this.actionSeat;
-        if (this.allIn[actionSeat]){
-            console.log('action on all in player, moving game forward');
-            this.check(this.getPlayerBySeat(actionSeat));
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    isEveryoneAllIn() {
-        return this.table.isEveryoneAllIn();
     }
 
     hasPlayerFolded(playerName) {

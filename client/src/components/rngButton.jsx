@@ -25,7 +25,7 @@ class SeedInfo extends Component {
             // Maximum length is 2^9 === 512 (characters) // 10 (players) === 51.
             alert('Maximum seed length is 51.')
         } else {
-            this.props.socket.emit('set-seed', {value});
+            this.props.socket.emit('setSeed', {value});
             this.props.closeInfo();
         }
     }

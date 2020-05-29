@@ -3,8 +3,8 @@ import '../css/stylesheet.css';
 
 export default function Pot({potAmount}) {
     return (
-        <div id="pot">
-            <div id="pot-amount">{potAmount}</div>
+        <div className="pot">
+            <div className="pot-amount">{potAmount}</div>
         </div>
     );
 }

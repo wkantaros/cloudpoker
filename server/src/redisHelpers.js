@@ -29,6 +29,7 @@ const smembersAsync = promisify(client.smembers).bind(client);
 const saddAsync = promisify(client.sadd).bind(client);
 const sremAsync = promisify(client.srem).bind(client);
 const lindexAsync = promisify(client.lindex).bind(client);
+const lrangeAsync = promisify(client.lrange).bind(client);
 const lpopAsync = promisify(client.lpop).bind(client);
 const rpopAsync = promisify(client.rpop).bind(client);
 const llenAsync = promisify(client.llen).bind(client);
@@ -51,6 +52,33 @@ async function getGameStream(sid, gameId) {
 }
 module.exports.getGameStream = getGameStream;
 
+const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex');
+const transformLogStreamElement = (el) => {
+    delete el.type;
+    if (el.logEvent === 'action' && el.action === 'setSeed') {
+        el.playerSeedHash = sha256Hash(el.value);
+        delete el.value;
+    }
+    return el;
+}
+async function getGameLog(sid, cursor) {
+    // get the 5 most recent gameIds before cursor
+    let gameIds = await lrangeAsync(fmtGameListId(sid), cursor, cursor + 4);
+    let log = [];
+    for (let i = gameIds.length -1; i > -1; i--) {
+        let gameId = gameIds[i];
+        if (gameId === 'none') continue;
+        let gameStream = await getGameStream(sid, gameId);
+        let gameLog = gameStream
+            .map(formatStreamElement)
+            .filter(el=>el.type==='log')
+            .map(transformLogStreamElement);
+        log.push(...gameLog);
+    }
+    return log;
+}
+module.exports.getGameLog = getGameLog;
+
 const transformRngState = (playerVal) =>  {
     delete playerVal.type;
     for (const prop in playerVal)
@@ -59,21 +87,23 @@ const transformRngState = (playerVal) =>  {
     return Object.assign({}, playerVal);
 }
 const transformPlayerState = (playerVal) => {
-    const p = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed);
+    const p = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', playerVal.seat, playerVal.isMod !== 'false', playerVal.seed);
     p.inHand = playerVal.inHand !== 'false';
     p.standingUp = playerVal.standingUp !== 'false';
     return p;
 }
-async function getTableState(sid) {
-    let gameId = await getGameIdForTable(sid);
+async function getTableState(sid, gameId) {
+    gameId = gameId || await getGameIdForTable(sid);
     let gameVal = await getGameState(sid, gameId);
     let table = new poker.Table(parseInt(gameVal.smallBlind), parseInt(gameVal.bigBlind), 2, 10, 1, 500000000000, 0);
     table.dealer = parseInt(gameVal.dealer);
 
     let gameStream = await getGameStream(sid, gameId);
+    gameStream = gameStream.map(formatStreamElement);
+    let i;
     let rngState;
-    for (let i = 0; i < gameStream.length; i++) {
-        let playerVal = formatStreamElement(gameStream[i]);
+    for (i = 0; i < gameStream.length; i++) {
+        let playerVal = gameStream[i];
         if (playerVal.type === 'rngState') {
             rngState = transformRngState(playerVal);
         } else if (playerVal.type === 'playerState') {
@@ -83,13 +113,25 @@ async function getTableState(sid) {
         }
     }
 
+    let prev_round = null;
     if (gameId !== 'none') {
         table.dealer = (table.dealer - 1) % table.players.length;
         table.setRng(table.getSeed(), rngState);
         table.initNewRound();
         table.game.id = gameId;
+        // sync actions
+        for (; i< gameStream.length; i++) {
+            let el = gameStream[i];
+            if (!(el.type === 'log' && el.logEvent === 'action')) continue;
+            if (el.action === 'setSeed') {
+                table.allPlayers[i][el.seat].seed = el.value;
+            } else {
+                prev_round = table.game.roundName.toLowerCase();
+                table.applyAction(el.seat, el.action, el.amount || 0);
+            }
+        }
     }
-    return table;
+    return {table, prev_round};
 }
 module.exports.getTableState = getTableState;
 
@@ -231,18 +273,14 @@ async function deletePlayerOnRedis(sid, playerName) {
 }
 module.exports.deletePlayerOnRedis = deletePlayerOnRedis;
 
-const addActionHelper = async (sid, gameId, seat, action, ...args) => {
-    let xaddArgs = [
-        'type', 'action',
-        'seat', seat,
-        'action', action,
-    ];
-    xaddArgs.push(...args);
-    await xaddAsync(fmtGameStreamId(sid, gameId), '*', ...xaddArgs)
-    TableLogger.action(sid, args);
+async function addToGameLog(sid, gameId, logEvent, ...args) {
+    let xaddArgs = ['type', 'log', 'logEvent', logEvent, ...args];
+    await xaddAsync(fmtGameStreamId(sid, gameId), '*', ...xaddArgs);
+    TableLogger.log(sid, [logEvent, ...args]);
 }
-async function handleSetSeedRedis(sid, table, seat, value) {
-    return await addActionHelper(sid,table.game? table.game.id: 'none', seat, 'setSeed', 'value', value);
+module.exports.addToGameLog = addToGameLog;
+const addActionHelper = async (sid, gameId, seat, action, ...args) => {
+    return await addToGameLog(sid, gameId, 'action', 'seat', seat, 'action', action, ...args)
 }
 async function handlePlayerSitsDownRedis(sid, table, seat) {
     return await addActionHelper(sid, table.game? table.game.id: 'none', seat, 'sitDown');
@@ -268,7 +306,6 @@ module.exports.addSidToRedis = addSidToRedis;
 module.exports.getSids = getSids;
 
 module.exports.formatStreamElement = formatStreamElement;
-module.exports.handleSetSeedRedis = handleSetSeedRedis;
 module.exports.handlePlayerStandsUpRedis = handlePlayerStandsUpRedis;
 module.exports.handlePlayerSitsDownRedis = handlePlayerSitsDownRedis;
 module.exports.addActionToRedis = addActionToRedis;

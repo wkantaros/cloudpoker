@@ -38,6 +38,9 @@ class TableLogger {
     static action(sid, redisArgs) {
         logger.info(redisFieldsToLogInfo(sid, 'action', redisArgs));
     }
+    static log(sid, redisArgs) {
+        logger.info(redisFieldsToLogInfo(sid, 'log', redisArgs));
+    }
 }
 function redisFieldsToLogInfo(sid, op, redisArgs) {
     let loggedInfo = {sid: sid, op: op};

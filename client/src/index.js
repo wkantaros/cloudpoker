@@ -13,18 +13,15 @@ import Table from "./components/table";
 // File imports for webpack
 import ActionSound from './audio/action.ogg';
 import CardPlaceSound from './audio/cardPlace1.wav';
-import CheckSound from './audio/check.wav';
-import ChipsStackSound from './audio/chipsStack4.wav';
 import DealSound from './audio/deal.wav';
 import FlopSound from './audio/flop.wav';
-import FoldSound from './audio/fold1.wav';
 import TurnSound from './audio/turn.wav';
 import TableImage from "./components/tableImage";
 import BelowTable from "./components/belowTable";
 import {TableStateManager} from "./table-state-manager";
 import Header from "./components/header";
-// import './audio/fold2.wav';
-// import RiverSound from './audio/river.wav';
+import ReplaySubContainer from "./components/replay";
+import {transformTable, transformTableState} from "./funcs";
 
 let socket = io('/' + SESSION_ID);
 socket.on('connect', () => {
@@ -112,11 +109,11 @@ function isVolumeOn() {
     return volumeIcons[0].matches('.on');
 }
 
-function playSoundIfVolumeOn(soundName) {
-    if (isVolumeOn()){
-        createjs.Sound.play(soundName);
-    }
-}
+// function playSoundIfVolumeOn(soundName) {
+//     if (isVolumeOn()){
+//         createjs.Sound.play(soundName);
+//     }
+// }
 
 //Listen for events--------------------------------------------------------------------------------
 
@@ -135,27 +132,24 @@ socket.on('player-reconnect', (data) => {
     // TODO: undo the effects of the player-disconnect event listener
 });
 
-const transformTable = (t) => {
-    // Make game a GameState object
-    t.game = t.game === null ? null: Object.assign(new GameState(t.game.bigBlind, t.game.smallBlind), t.game);
-    t.allPlayers = t.allPlayers.map(p => p === null ? null: transformPlayer(p));
-    return new TableState(t.smallBlind, t.bigBlind, t.minPlayers, t.maxPlayers, t.minBuyIn, t.maxBuyIn, t.straddleLimit, t.dealer, t.allPlayers, t.currentPlayer, t.game);
-}
-
-const transformPlayer = (p) => {
-    return Object.assign(new Player(p.playerName, p.chips, p.isStraddling, p.seat, p.isMod), p);
-}
-
-let tableState = {}; // not used for rendering.
+let tableState = {};
 let messageCache = [];
 let feedbackText = '';
+// let handEndLog = [];
+// socket.emit('get-hand-end-log');
+// socket.on('get-hand-end-log', (data) => {
+//     console.log(data);
+//     handEndLog = data.handEndLog;
+//     renderBelowTable();
+// });
 function setState(data) {
-    tableState.table = transformTable(data.table);
-    tableState.player = data.player? transformPlayer(data.player): null;
-    tableState.gameInProgress = data.gameInProgress;
-    tableState.manager = new TableStateManager(tableState.table, tableState.gameInProgress);
-    tableState.raceInProgress = data.raceInProgress;
-    tableState.raceSchedule = data.raceSchedule;
+    // let newTable = transformTable(data.table);
+    // if there was a game and there is no longer a game (b/c we are waiting) or if we are now pre-flop
+    // let isEndOfHand = tableState.table && tableState.table.game && (!newTable.game || newTable.game.board.length < tableState.table.game.board.length);
+    // if (isEndOfHand) {
+    //     handEndLog.push({time: Date.now(), finalState: tableState});
+    // }
+    tableState = transformTableState(data);
 
     renderBetsAndFields();
     renderBelowTable();
@@ -184,34 +178,32 @@ socket.on('typing', (data) => {
     // $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
-socket.on('set-seed', ({playerName, playerSeedHash, tableSeedHash}) => {
-    outputEmphasizedMessage('The SHA256 hash for ' + playerName + '\'s new RNG seed is ' + playerSeedHash + '. The SHA256 hash for the table seed is now ' + tableSeedHash + '.')
-});
+// socket.on('setSeed', ({playerName, playerSeedHash, tableSeedHash}) => {
+//     outputEmphasizedMessage('The SHA256 hash for ' + playerName + '\'s new RNG seed is ' + playerSeedHash + '. The SHA256 hash for the table seed is now ' + tableSeedHash + '.')
+// });
 
 // player buys in
-socket.on('buy-in', (data) => {
-    let message = data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}.`;
-    if (data.tableSeedHash) message += ` Table seed hash is ${data.tableSeedHash}.`;
-    outputEmphasizedMessage(message);
-});
-
-//somebody left the game
-socket.on('buy-out', (data) => {
-    outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
-    // if ($('.volume').hasClass('on')) {
-    //     createjs.Sound.play('fold');
-    // }
-});
-
-socket.on('stand-up', data => {
-    // TODO: do we want to do anything here?
-    outputEmphasizedMessage(data.playerName + ' stands up.');
-});
-
-socket.on('sit-down', data => {
-    // TODO: do we want to do anything here?
-    outputEmphasizedMessage(data.playerName + 'sits down.');
-});
+// socket.on('buy-in', (data) => {
+//     outputEmphasizedMessage(data.playerName + ' buys in for ' + data.stack);
+// });
+//
+// //somebody left the game
+// socket.on('buy-out', (data) => {
+//     outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
+//     // if ($('.volume').hasClass('on')) {
+//     //     createjs.Sound.play('fold');
+//     // }
+// });
+//
+// socket.on('standUp', data => {
+//     // TODO: do we want to do anything here?
+//     outputEmphasizedMessage(data.playerName + ' stands up.');
+// });
+//
+// socket.on('sit-down', data => {
+//     // TODO: do we want to do anything here?
+//     outputEmphasizedMessage(data.playerName + 'sits down.');
+// });
 
 // data is {seat, time}
 // time is milliseconds until the player's turn expires and they are forced to fold.
@@ -232,22 +224,22 @@ socket.on('render-timer', (data) => {
 });
 
 // calls
-socket.on('call', (data) => {
-    outputEmphasizedMessage(data.username + ' calls');
-    playSoundIfVolumeOn('bet');
-});
-
-// check
-socket.on('check', (data) => {
-    outputEmphasizedMessage(data.username + ' checks');
-    playSoundIfVolumeOn('check');
-});
-
-// fold
-socket.on('fold', (data) => {
-    outputEmphasizedMessage(data.username + ' folds');
-    playSoundIfVolumeOn('fold');
-});
+// socket.on('call', (data) => {
+//     outputEmphasizedMessage(data.username + ' calls');
+//     playSoundIfVolumeOn('bet');
+// });
+//
+// // check
+// socket.on('check', (data) => {
+//     outputEmphasizedMessage(data.username + ' checks');
+//     playSoundIfVolumeOn('check');
+// });
+//
+// // fold
+// socket.on('fold', (data) => {
+//     outputEmphasizedMessage(data.username + ' folds');
+//     playSoundIfVolumeOn('fold');
+// });
 
 function outputMessage(s) {
     feedbackText = '';
@@ -255,17 +247,17 @@ function outputMessage(s) {
     renderBelowTable();
 }
 
-function outputEmphasizedMessage(s) {
-    feedbackText = '';
-    messageCache.push({text: s, em: true});
-    renderBelowTable();
-}
+// function outputEmphasizedMessage(s) {
+//     feedbackText = '';
+//     messageCache.push({text: s, em: true});
+//     renderBelowTable();
+// }
 
 // bet
-socket.on('bet', (data) => {
-    outputEmphasizedMessage(data.username + ' bets ' + data.amount);
-    playSoundIfVolumeOn('bet');
-});
+// socket.on('bet', (data) => {
+//     outputEmphasizedMessage(data.username + ' bets ' + data.amount);
+//     playSoundIfVolumeOn('bet');
+// });
 
 // socket.on('straddle', (data) => {
 //     outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
@@ -274,20 +266,20 @@ socket.on('bet', (data) => {
 // });
 
 // raise
-socket.on('raise', (data) => {
-    outputEmphasizedMessage(data.username + ' raises ' + data.amount);
-    if ($('.volume').hasClass('on')){
-        createjs.Sound.play('bet');
-    }
-});
+// socket.on('raise', (data) => {
+//     outputEmphasizedMessage(data.username + ' raises ' + data.amount);
+//     if ($('.volume').hasClass('on')){
+//         createjs.Sound.play('bet');
+//     }
+// });
 
-socket.on('log-winners', function(data) {
-    for (let i = 0; i < data.length; i++) {
-        let message = `${data[i].playerName} wins a pot of ${data[i].amount}!`;
-        if (data[i].hand) message += ` ${data[i].hand.message}: ${data[i].hand.cards} `;
-        outputMessage(message);
-    }
-})
+// socket.on('log-winners', (data) => {
+//     for (let i = 0; i < data.length; i++) {
+//         let message = `${data[i].playerName} wins a pot of ${data[i].amount}!`;
+//         if (data[i].hand) message += ` ${data[i].hand.message}: ${data[i].hand.cards} `;
+//         outputMessage(message);
+//     }
+// })
 
 socket.on('alert', function(data) {
     alert(data.message);
@@ -295,10 +287,7 @@ socket.on('alert', function(data) {
 
 //helper functions--------------------------------------------------------------------------------
 const loadSounds = () => {
-    createjs.Sound.registerSound('/client/dist/' + FoldSound, 'fold');
     createjs.Sound.registerSound('/client/dist/' + DealSound, 'deal');
-    createjs.Sound.registerSound('/client/dist/' + CheckSound, 'check');
-    createjs.Sound.registerSound('/client/dist/' + ChipsStackSound, 'bet');
     createjs.Sound.registerSound('/client/dist/' + FlopSound, 'flop');
     createjs.Sound.registerSound('/client/dist/' + TurnSound, 'turn');
     createjs.Sound.registerSound('/client/dist/' + CardPlaceSound, 'river');
@@ -313,6 +302,11 @@ const cleanInput = (input) => {
 
 ReactDOM.render((
     <React.StrictMode>
+        <ReplaySubContainer socket={socket}/>
+    </React.StrictMode>
+), document.getElementById('replay-root'));
+ReactDOM.render((
+    <React.StrictMode>
         <TableImage>
             <div id="ovalparent">
             </div>
@@ -324,11 +318,11 @@ function renderBetsAndFields() {
     // const ovalParent = $('#ovalparent');
     ReactDOM.render((
         <React.StrictMode>
-            <Table socket={socket}
-                   volumeOn={isVolumeOn()}
+            <Table volumeOn={isVolumeOn()}
+                   id="table"
                    raceInProgress={tableState.raceInProgress}
                    raceSchedule={tableState.raceSchedule}
-                   table={tableState.table}
+                   manager={tableState.manager}
                    betWidth={60}
                    betHeight={35}
                    tableWidth={$('#ovalparent').width()}
@@ -354,6 +348,7 @@ function renderBelowTable() {
                         feedbackText={feedbackText}
                         player={tableState.player}
                         manager={tableState.manager}
+                        // handEndLog={handEndLog}
                         volumeOn={isVolumeOn()}/>
         </React.StrictMode>
     ), document.getElementById('below-table-root'));
