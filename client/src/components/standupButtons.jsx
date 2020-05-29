@@ -6,13 +6,13 @@ export class StandUpButton extends Component {
         this.handleClick = this.handleClick.bind(this);
     }
     handleClick() {
-        this.props.socket.emit('stand-up');
+        this.props.socket.emit('standUp');
     }
     render() {
         let className = "button popup";
         // if (!this.props.loggedIn || this.props.player.standingUp) className += " collapse";
         return (
-            <button className={className} id="stand-up" onClick={this.handleClick}>Stand Up</button>
+            <button className={className} id="standUp" onClick={this.handleClick}>Stand Up</button>
         );
     }
 }
@@ -23,13 +23,13 @@ export class SitDownButton extends Component {
         this.handleClick = this.handleClick.bind(this);
     }
     handleClick() {
-        this.props.socket.emit('sit-down');
+        this.props.socket.emit('sitDown');
     }
     render() {
         let className = "button popup";
         // if (!this.props.loggedIn || !this.props.player.standingUp) className += " collapse";
         return (
-            <button className={className} id="sit-down" onClick={this.handleClick}>Sit Down</button>
+            <button className={className} id="sitDown" onClick={this.handleClick}>Sit Down</button>
         );
     }
 }

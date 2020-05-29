@@ -79,9 +79,6 @@ export class TableState {
     get bigBlindSeat() {
         return this.players[(this.dealer + 2) % this.players.length].seat;
     }
-    getWinners(){
-        return this.game.winners;
-    };
     getLosers(){
         return this.game.losers;
     };
@@ -309,7 +306,7 @@ export class Player {
             seat: this.seat,
             leavingGame: this.leavingGame,
             isMod: this.isMod,
-            cards: this.showingCards? this.cards : [],
+            cards: this.showingCards? Array.from(this.cards) : [],
             showingCards: this.showingCards,
         }
     }
@@ -397,9 +394,10 @@ export class GameState {
             pot: this.pot,
             roundName: this.roundName,
             roundBets: this.roundBets,
-            board: this.board,
+            board: Array.from(this.board),
             winners: this.winners,
             losers: this.losers,
+            id: this.id,
         }
     }
 }

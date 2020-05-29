@@ -138,7 +138,16 @@ h3 {
     /* background-color: #424C55; */
 }
 
-.oval-parent {
+.replay {
+    z-index:5;
+    position:absolute;
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: inherit;
+    /*border-radius: 10em 10em 80em 80em;*/
+}
+
+#ovalparent {
     margin: 2rem auto;
     margin-bottom: 3.5rem;
     height: 50rem;
@@ -176,8 +185,7 @@ h3 {
 
 }
 
-#table-img {
-    /* background-image: url("/client/src/img/table.png"); */
+.table-img {
     background-image: url("/client/src/img/CloudpokerTable.png");
     background-size: 93% 100%;
     background-position: 37.5% 8px;
@@ -380,7 +388,7 @@ h3 {
     /* background: #fff; */
 }
 
-#pot {
+.pot {
     width: 18rem;
     height: 6rem;
     background-color: rgba(50, 145, 113, 0.5);
@@ -392,7 +400,7 @@ h3 {
     margin: 0 auto;
 }
 
-#pot-amount {
+.pot-amount {
     padding-top: .6rem;
 }
 
@@ -404,7 +412,29 @@ h3 {
     /* background: red; */
 }
 
-#cards {
+.log-board-container {
+    margin: 2.5em auto 0;
+    height: 8em;
+    width: 25em;
+}
+
+.log-row {
+    /*position: relative;*/
+}
+
+.log-element {
+    z-index: 2;
+}
+
+.log-board {
+    position: absolute;
+    z-index: 2;
+    float: left;
+    /*transform: scale(1.40);*/
+    margin: 0 auto;
+}
+
+#board-cards {
     position: absolute;
     z-index: 2;
     float: left;
@@ -412,21 +442,21 @@ h3 {
     margin: 0 auto;
 }
 
-#flop {
+.flop {
     float: left;
 }
 
-#flop > div {
-    float: left;
-    margin-right: 5px;
-}
-
-#turn {
+.flop > div {
     float: left;
     margin-right: 5px;
 }
 
-#river {
+.turn {
+    float: left;
+    margin-right: 5px;
+}
+
+.river {
     float: left;
 }
 
@@ -1183,6 +1213,19 @@ input::-webkit-inner-spin-button {
     font-weight: lighter;
 }
 
+/*.overlay .gameLogPage is a copy of .players-host-page*/
+.overlay .game-log-page {
+    /* font-size: 5em; */
+    /* height: 15%; */
+    width: 90%;
+    /* color: #33C3F0; */
+    color: linen;
+    margin: 10px auto;
+    position: relative;
+    border: none;
+    /* background: red; */
+}
+
 .overlay .players-host-page {
     /* font-size: 5em; */
     /* height: 15%; */
@@ -1193,6 +1236,10 @@ input::-webkit-inner-spin-button {
     position: relative;
     border: none;
     /* background: red; */
+}
+
+.game-log-page .row{
+    margin-bottom: 2rem;
 }
 
 .players-host-page .row{

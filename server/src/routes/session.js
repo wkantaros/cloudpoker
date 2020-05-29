@@ -15,25 +15,19 @@ const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const {handleSetSeedRedis} = require("../redisHelpers");
-const {fmtGameStreamId} = require("../redisHelpers");
-const {xlenAsync} = require("../redisHelpers");
-const {formatStreamElement} = require("../redisHelpers");
-const {getGameStream} = require("../redisHelpers");
+const {getGameLog} = require("../redisHelpers");
+const {addToGameLog} = require("../redisHelpers");
 const {initializeTableRedis} = require("../redisHelpers");
 const {deleteTableOnRedis} = require("../redisHelpers");
-const {handlePlayerSitsDownRedis} = require("../redisHelpers");
-const {formatActionObject} = require("../redisHelpers");
-const {handlePlayerStandsUpRedis} = require("../redisHelpers");
-const {getTableStream} = require("../redisHelpers");
 const {sio} = require('../sio');
 const {getPlayerIdsForTable} = require("../redisHelpers");
 const {getTableState} = require("../redisHelpers");
 const {getSids} = require("../redisHelpers");
 const {deletePlayerOnRedis} = require("../redisHelpers");
 const {addPlayerToRedis} = require("../redisHelpers");
-const {initializeGameRedis, addActionToRedis} = require("../redisHelpers");
+const {initializeGameRedis} = require("../redisHelpers");
 const {getOrSetPlayerIdCookie} = require("../persistent");
+// const jsonpatch = require('fast-json-patch');
 
 const validateTableName = (val) => {
     if (!val || val.length === 0) return val;
@@ -109,39 +103,37 @@ const sessionManagers = new Map();
     let sids = await getSids();
     console.log('restarting tables with sids:', sids);
     for (let sid of sids) {
-        let table = await getTableState(sid);
+        let {table, prev_round} = await getTableState(sid);
         const pids = await getPlayerIdsForTable(sid);
         const tableNamespace = sio.of('/' + sid);
         let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
         const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, null, pids, modIds);
         sessionManagers.set(sid, manager);
         if (table.game) {
-            let prev_round = manager.getRoundName();
-            let stream = await getGameStream(sid, table.game.id);
-            stream = stream.map(formatStreamElement);
-            for (let el of stream) {
-                if (el.type !== 'action') continue;
-                let {action, seat, amount} = el;
-                prev_round = manager.getRoundName();
-
-                if (action === 'setSeed') {
-                    await manager.setPlayerSeed(manager.getPlayerBySeat(seat), el.value, true);
-                    continue;
-                } else if (action === 'standUp') {
-                    await manager.standUpPlayer(manager.getPlayerBySeat(seat), true);
-                } else if (action === 'sitDown') {
-                    await manager.sitDownPlayer(manager.getPlayerBySeat(seat), true);
-                } else {
-                    let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
-                    if (betAmount <= 0) console.log('betAmount:', betAmount);
-                }
-                manager.actionOnAllInPlayer();
-            }
             await manager.check_round(prev_round);
         }
     }
 })();
 
+// class ReplayBuilder {
+//     constructor() {
+//         this.log = [];
+//     }
+//     updateLog() {
+//         let tableState = this.getPublicInfo();
+//         if (this.previousTableState === null) {
+//             if (!tableState.table.game) return;
+//             // push a new array to gameLog for the new hand
+//             this.gameLog.push([{time: Date.now(), initialState: tableState}]);
+//         } else {
+//             let patch = jsonpatch.compare(this.previousTableState, tableState);
+//             if (patch.length === 0) return;
+//             console.log(patch);
+//             this.gameLog[this.gameLog.length - 1].push({time: Date.now(), patch: patch});
+//         }
+//         this.previousTableState = tableState;
+//     }
+// }
 const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex');
 
 const TABLE_EXPIRY_TIMEOUT = 1000 * 60 * 30; // 30 minutes
@@ -152,8 +144,6 @@ class SessionManager extends TableManager {
         this.socketMap = new Map();
         // maps player id -> playerName when kicked
         this.kickedPlayers = {};
-        this.timerDelay = -1;
-        this.timer = null;
         this.raceInProgress = false;
         this.raceSchedule = null;
         // registeredGuestCount counts how many guests have spoken in chat. It is used
@@ -162,6 +152,19 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
+        // To see how previousTableState, gameLog, and handEndLog are used, see updateLog and startNextRoundOrWaitingForPlayers
+
+        // previousTableState is null if a hand just ended. otherwise it is the value of
+        //  this.getPublicInfo() the last time sendTableState was called
+        // this.previousTableState = null;
+        // gameLog is a 2D array. top-level elements store the data for a hand, a "hand array".
+        //  the first element of each hand array stores the initial state of the table.
+        //  subsequent elements of the hand array are diffs from the preceding state (previous
+        //  state is stored in previousTableState). see
+        // this.gameLog = [];
+        // handEndLog stores the public info of the table at the end of each hand. element
+        //  at index i corresponds to the game in gameLog[i]
+        // this.handEndLog = [];
         this.tableExpiryTimer = setTimeout(this.expireTable.bind(this), TABLE_EXPIRY_TIMEOUT);
 
         this.io.on('connection', socketioJwt.authorize({
@@ -192,6 +195,14 @@ class SessionManager extends TableManager {
         return socket? socket.id: undefined;
     };
 
+    getHandLog(gameIndex) {
+        if (gameIndex >= this.gameLog.length) {
+            console.log(`gameIndex ${gameIndex} >= this.gameLog.length ${this.gameLog.length}`);
+            return null;
+        }
+        return this.gameLog[gameIndex];
+    }
+
     canPlayerJoin(playerId, playerName, stack, isStraddling) {
         if (super.isPlayerNameUsed(playerName)) {
             this.io.to(this.getSocketId(playerId)).emit('alert',
@@ -216,23 +227,32 @@ class SessionManager extends TableManager {
      */
     async emitAction(action, playerName, betAmount, addToRedis, ogBetAmount) {
         this.sendTableState();
-        this.io.emit(action, {
-            username: playerName,
-            stack: this.getStack(playerName),
-            pot: this.getPot(),
-            seat: this.getPlayerSeat(playerName),
-            amount: betAmount
-        });
-        await addActionToRedis(this.sid, this.table.game.id, super.getPlayerSeat(playerName), action, ogBetAmount || betAmount);
+        await this.addToGameLog('action', {
+            playerName: playerName,
+            seat: super.getPlayerSeat(playerName),
+            action: action,
+            amount: ogBetAmount || betAmount,
+        })
+    }
+
+    getPublicInfo() {
+        return {
+            table: this.table.getPublicInfo(),
+            gameInProgress: this.gameInProgress,
+            raceInProgress: this.raceInProgress,
+            raceSchedule: this.raceSchedule? Object.assign({}, this.raceSchedule): null,
+        };
     }
 
     sendTableState() {
-        this.sendTableStateTo('guest', 'guest');
+        // this.updateLog();
+        let publicInfo = this.getPublicInfo();
+        this.sendTableStateTo('guest', 'guest', publicInfo);
         // send each active player
         for (let p of this.table.allPlayers) {
             // this.getPlayerId(p.playerName) is falsy if handlePlayerExit called this function.
             if (!p || !this.getPlayerId(p.playerName)) continue;
-            console.log('got player id for', p.playerName, this.getPlayerId(p.playerName));
+            // console.log('got player id for', p.playerName, this.getPlayerId(p.playerName));
             const socketId = this.getSocketId(this.getPlayerId(p.playerName));
             if (socketId)
                 this.sendTableStateTo(socketId, p.playerName);
@@ -241,26 +261,26 @@ class SessionManager extends TableManager {
     }
 
     // sends playerName a snapshot that includes their private data (cards)
-    sendTableStateTo(socketId, playerName) {
-        let table = this.table.getPublicInfo();
+    sendTableStateTo(socketId, playerName, publicInfo) {
+        publicInfo = publicInfo || this.getPublicInfo();
 
         let p = this.table.getPlayer(playerName);
         if (p) {
-            table = Object.assign({}, table); // shallow copy
-            table.allPlayers = Array.from(table.allPlayers); // shallow copy
             p = Object.assign({}, p);
             delete p.hand; // hacky
             p = this.table.extraPlayerInfo(p);
-            Object.assign(table.allPlayers[p.seat], p);
+
+            let table = publicInfo.table;
+            let playersCopy = Array.from(table.allPlayers);
+            playersCopy[p.seat] = p;
+
+            table = Object.assign({}, table); // shallow copy
+            Object.assign(table, {allPlayers: playersCopy});
+            publicInfo = Object.assign({}, publicInfo);
+            Object.assign(publicInfo, {table: table, player: p});
         }
 
-        this.io.to(socketId).emit('state-snapshot', {
-            table: table,
-            gameInProgress: this.gameInProgress,
-            player: p,
-            raceInProgress: this.raceInProgress,
-            raceSchedule: this.raceSchedule,
-        });
+        this.io.to(socketId).emit('state-snapshot', publicInfo);
     }
 
     async addToPlayerIds(playerName, playerid) {
@@ -268,7 +288,11 @@ class SessionManager extends TableManager {
         await addPlayerToRedis(this.sid, this.table, this.getPlayer(playerName), playerid);
     }
 
-    handleBuyIn(playerName, playerid, stack, isStraddling, seed) {
+    async getGameLog(cursor) {
+        return await getGameLog(this.sid, cursor);
+    }
+
+    async handleBuyIn(playerName, playerid, stack, isStraddling, seed) {
         const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling, seed);
         if (addedPlayer) {
             if (this.registeredGuests[playerid]) {
@@ -283,7 +307,7 @@ class SessionManager extends TableManager {
                 socket.join(`active`);
             }
             this.sendTableState();
-            this.io.emit('buy-in', {
+            await this.addToGameLog('buy-in', {
                 playerName: playerName,
                 stack: stack,
                 playerSeedHash: sha256Hash(super.getPlayerSeed(playerName)),
@@ -302,56 +326,63 @@ class SessionManager extends TableManager {
         let playerName = this.getPlayerById(playerId);
         await this.playerLeaves(playerId);
     }
-    async setPlayerSeed(playerName, value, disableSideEffects) {
+    async setPlayerSeed(playerName, value) {
         value = value.trim();
         let setSeed = super.setPlayerSeed(playerName, value);
-        if (!disableSideEffects)
-            await handleSetSeedRedis(this.sid, this.table, this.getPlayerSeat(playerName), value);
+        if (setSeed) {
+            this.sendTableState();
+            await this.addToGameLog('action', {
+                action: 'setSeed',
+                playerName: playerName,
+                value: value,
+                tableSeedHash: sha256Hash(this.table.getSeed()),
+            },{
+                action: 'setSeed',
+                playerName: playerName,
+                playerSeedHash: sha256Hash(value),
+                tableSeedHash: sha256Hash(this.table.getSeed()),
+            });
+        }
         return setSeed;
     }
-    async standUpPlayer(playerName, disableSideEffects) {
+    async standUpPlayer(playerName) {
         if (this.isPlayerStandingUp(playerName)) return;
-        if (disableSideEffects) {
-            super.standUpPlayer(playerName);
-            return;
-        }
-        await handlePlayerStandsUpRedis(this.sid, this.table, super.getPlayerSeat(playerName));
-        if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
-            await this.emitAction('fold', playerName, 0, false);
-        }
+        await this.addToGameLog('action', {
+            action: 'standUp',
+            playerName: playerName,
+            seat: super.getPlayerSeat(playerName)
+        });
+        // if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
+        //     await this.emitAction('fold', playerName, 0, false);
+        // }
         let prev_round = super.getRoundName();
-        super.standUpPlayer(playerName);
-        this.actionOnAllInPlayer();
+        this.table.standUpPlayer(playerName);
         await this.check_round(prev_round);
-        this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
-    async sitDownPlayer(playerName, disableSideEffects) {
+    async sitDownPlayer(playerName) {
         if (!this.isPlayerStandingUp(playerName)) return;
-        if (disableSideEffects) {
-            super.sitDownPlayer(playerName);
-            return;
-        }
-        await handlePlayerSitsDownRedis(this.sid, this.table, super.getPlayerSeat(playerName));
-        super.sitDownPlayer(playerName);
+        await this.addToGameLog('action', {
+            action: 'sitDown',
+            playerName: playerName,
+            seat: super.getPlayerSeat(playerName)
+        });
+        this.table.sitDownPlayer(playerName);
         this.sendTableState();
-        this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
 
     // horrible name. call playerLeaves. handlePlayerExit is basically a private method
     async playerLeaves(playerId) {
         let playerName = super.getPlayerById(playerId);
-        if (!this.gameInProgress || !this.getPlayer(playerName).inHand){
-            this.handlePlayerExit(playerName);
-            console.log('waiting for more players to rejoin');
+        if (!this.gameInProgress || !this.getPlayer(playerName).inHand || this.hasPlayerFolded(playerName)){
+            await this.handlePlayerExit(playerName);
         } else {
             let prev_round = super.getRoundName();
-            console.log(`${playerName} leaves game for ${super.getStack(playerName)}`);
-            await this.emitAction('fold', playerName, 0);
-            this.sendTableState();
+            // console.log(`${playerName} leaves game for ${super.getStack(playerName)}`);
+            // await this.emitAction('fold', playerName, 0);
+            // this.sendTableState();
 
-            this.handlePlayerExit(playerName);
-            super.actionOnAllInPlayer();
-            await sleep(250);
+            await this.handlePlayerExit(playerName);
+            // await sleep(250);
             // check if round has ended
             await this.check_round(prev_round);
         }
@@ -360,7 +391,7 @@ class SessionManager extends TableManager {
 
     // private method
     // removes players not in the current hand
-    handlePlayerExit(playerName) {
+    async handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const seat = super.getPlayerSeat(playerName);
         const stack = this.getStack(playerName);
@@ -374,13 +405,14 @@ class SessionManager extends TableManager {
         }
         this.sendTableState();
 
-        if (this.gameInProgress) {
-            this.io.emit('buy-out', {
-                playerName: playerName,
-                stack: stack,
-                seat: seat
-            });
-        }
+        // if (this.gameInProgress) {
+        await this.addToGameLog('action', {
+            action: 'removePlayer',
+            playerName: playerName,
+            stack: stack,
+            seat: seat
+        });
+        // }
     };
 
     async allInRace() {
@@ -399,7 +431,7 @@ class SessionManager extends TableManager {
         let currentTime = Date.now();
         let sleepTime = 0;
         while (super.getRoundName() !== 'showdown'){
-            super.call(super.getNameByActionSeat());
+            this.table.call();
             if (super.getRoundName() !== prevRound && super.getRoundName() !== 'showdown') {
                 prevRound = super.getRoundName();
                 sleepTime += waitTime;
@@ -410,30 +442,37 @@ class SessionManager extends TableManager {
         }
         this.raceInProgress = false;
         this.raceSchedule = null;
-        this.sendTableState();
+        await this.check_round('showdown');
+    }
+
+    async addToGameLog(logEvent, args, emittedArgs) {
+        this.io.emit(logEvent, emittedArgs || args);
+        await addToGameLog(this.sid, this.table.game? this.table.game.id: 'none', logEvent, ...Object.entries(args || {}).flat());
     }
 
     async check_round (prev_round) {
         // if at showdown or everyone folded
-        if (this.getWinners().length > 0) {
+        if (this.table.game.winners.length > 0) {
             this.sendTableState();
-            this.io.emit('log-winners', this.getWinners());
+            for (let winnerData of this.table.game.winners) {
+                // TODO: use multi (redis) and message-batch (gameLog.jsx) to make this somewhat atomic.
+                await this.addToGameLog('log-winner', winnerData);
+            }
 
             await sleep(3000);
             // handle losers
             let losers = super.getLosers();
             for (let i = 0; i < losers.length; i++){
-                this.handlePlayerExit(losers[i].playerName);
+                await this.handlePlayerExit(losers[i].playerName);
             }
 
             // start new round
-            await this.startNextRoundOrWaitingForPlayers()
+            await this.startNextRoundOrWaitingForPlayers();
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
-        else if (super.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
+        else if (this.table.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
             console.log('doing all in race');
             await this.allInRace();
-            await this.check_round('showdown');
         }
     }
 
@@ -445,65 +484,34 @@ class SessionManager extends TableManager {
     }
     async startNextRoundOrWaitingForPlayers () {
         await this.deleteLeavingPlayersRedis();
+        // this.previousTableState = null;
+        // this.handEndLog.push({time: Date.now(), finalState: this.getPublicInfo()});
         // start new round
         super.startRound();
         this.sendTableState();
-        if (!this.gameInProgress) {
-            console.log('waiting for more players to rejoin!');
-        }
         // initializes game ID to 'none' if no game is in progress
         await initializeGameRedis(this.table, this.sid);
+        if (!this.gameInProgress) {
+            console.log('waiting for more players to rejoin!');
+        } else {
+            await this.addToGameLog('new-round');
+        }
     }
 
     async performAction(playerName, action, amount) {
+        if (amount < 0) return;
         const prev_round = this.getRoundName();
-        let actualBetAmount = this.performActionHelper(playerName, action, amount);
+        let actualBetAmount = this.table.applyAction(this.getPlayerSeat(playerName), action, amount);
         let canPerformAction = actualBetAmount >= 0;
 
         if (canPerformAction) {
             this.tableExpiryTimer.refresh();
-            this.refreshTimer();
             await this.emitAction(action, playerName, actualBetAmount, true, amount);
             // shift action to next player in hand
-            this.actionOnAllInPlayer();
             await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
     }
-
-    setTimer (delay) {
-        // If a timer is not yet set, initialize one.
-        const prevTimer = this.timer;
-        if (prevTimer) {
-            clearTimeout(prevTimer); // cancel previous timer, if it exists
-        }
-        if (delay > 0) {
-            this.initializeTimer(delay);
-        } else if (prevTimer) { // turn off the turn timer
-            this.timer = null;
-            this.timerDelay = -1;
-        }
-        this.io.emit('render-timer', {
-            seat: this.actionSeat,
-            time: delay
-        });
-    };
-
-    initializeTimer(delay) {
-        this.timer = setTimeout(delay, this.expirePlayerTurn);
-        this.timerDelay = delay;
-    }
-
-    refreshTimer() {
-        if (this.timer) this.timer.refresh();
-    }
-
-    async expirePlayerTurn () {
-        const playerName = super.getPlayerBySeat(super.actionSeat);
-        const availableActions = super.getAvailableActions(playerName).availableActions;
-        const action = availableActions['check'] ? 'check' : 'fold';
-        await this.performAction(playerName, action, 0);
-    };
 
     getPlayerChatName(playerId) {
         let playerName = super.getPlayerById(playerId);
@@ -586,6 +594,14 @@ async function handleOnAuth(s, socket) {
         socket.broadcast.emit('typing', s.getPlayerById(playerId));
     });
 
+    socket.on('get-game-log', async ({cursor}) => {
+        io.to(socket.id).emit('get-game-log', {cursor, log: await s.getGameLog(cursor)});
+    })
+    socket.on('get-hand-replay', ({gameIndex, display}) => {
+        let handLog = s.getHandLog(gameIndex);
+        io.to(socket.id).emit('get-hand-replay', {handLog, gameIndex, display, validatePatch: process.env.NODE_ENV !== 'production'})
+    });
+
     s.sendTableStateTo(socket.id, s.getPlayerById(playerId));
 
     const isSeatedPlayerIdValidator = function(value) {
@@ -609,13 +625,13 @@ async function handleOnAuth(s, socket) {
         isStraddling: Joi.boolean(),
         seed: Joi.string().trim().max(51).external(xss).optional(),
     });
-    socket.on('buy-in', asyncSchemaValidator(buyInSchema, (data) => {
+    socket.on('buy-in', asyncSchemaValidator(buyInSchema, async (data) => {
         if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
             return;
         }
         data.seed = data.seed && data.seed.length > 0? data.seed: v4();
         // console.log('buy in seed is undefined', data.seed === undefined);
-        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed);
+        await s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed);
     }));
 
     const straddleSwitchSchema = Joi.object({
@@ -643,26 +659,21 @@ async function handleOnAuth(s, socket) {
         await s.playerLeaves(playerId);
     });
 
-    socket.on('stand-up', async () => {
+    socket.on('standUp', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
-            console.log(`playerid ${playerId} emitted stand-up but is not an active player`);
+            console.log(`playerid ${playerId} emitted standUp but is not an active player`);
             return;
         }
         await s.standUpPlayer(s.getPlayerById(playerId));
     });
 
-    socket.on('sit-down', async () => {
+    socket.on('sitDown', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
-            console.log(`playerid ${playerId} emitted sit-down but is not an active player`);
+            console.log(`playerid ${playerId} emitted sitDown but is not an active player`);
             return;
         }
         await s.sitDownPlayer(s.getPlayerById(playerId));
     });
-
-    const setTurnTimerSchema = Joi.object({delay: Joi.number().integer().required()}).external(isModValidator);
-    socket.on('set-turn-timer', asyncSchemaValidator(setTurnTimerSchema, (data) => { // delay
-        s.setTimer(data.delay);
-    }));
 
     socket.on('start-game', () => {
         if (!s.isModPlayerId(playerId)) {
@@ -691,22 +702,17 @@ async function handleOnAuth(s, socket) {
     const setSeedSchema = Joi.object({
         value: Joi.string().trim().min(1).max(51).external(xss).required()
     }).external(isSeatedPlayerIdValidator);
-    socket.on('set-seed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
+    socket.on('setSeed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
         const playerName = s.getPlayerById(playerId);
-        const seedUpdated = await s.setPlayerSeed(playerName, value);
-        if (seedUpdated) {
-            s.sendTableState();
-            io.emit('set-seed', {
-                playerName: s.getPlayerById(playerId),
-                playerSeedHash: sha256Hash(s.getPlayerSeed(playerName)),
-                tableSeedHash: sha256Hash(s.table.getSeed()),
-            });
-        }
+        await s.setPlayerSeed(playerName, value);
     }));
 
     socket.on('get-buyin-info', () => {
-        io.emit('get-buyin-info', s.getBuyinBuyouts());
+        io.to(socket.id).emit('get-buyin-info', s.getBuyinBuyouts());
     });
+    // socket.on('get-hand-end-log', () => {
+    //     io.to(socket.id).emit('get-hand-end-log', {handEndLog: s.handEndLog});
+    // })
 
     const actionSchema = Joi.object({
         action: Joi.string().min(1).required(),
