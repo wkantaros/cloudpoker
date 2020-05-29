@@ -59,7 +59,7 @@ const transformRngState = (playerVal) =>  {
     return Object.assign({}, playerVal);
 }
 const transformPlayerState = (playerVal) => {
-    const p = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', i, playerVal.isMod !== 'false', playerVal.seed);
+    const p = new Player(playerVal.playerName, playerVal.chips, playerVal.isStraddling !== 'false', playerVal.seat, playerVal.isMod !== 'false', playerVal.seed);
     p.inHand = playerVal.inHand !== 'false';
     p.standingUp = playerVal.standingUp !== 'false';
     return p;
