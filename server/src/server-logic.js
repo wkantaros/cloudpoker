@@ -156,14 +156,19 @@ class TableManager extends TableStateManager {
      * @param {string} hostName
      * @param {number} hostStack
      * @param {boolean} hostIsStraddling
-     * @param {*} playerid
+     * @param {string} hostSeed
+     * @param {string} playerid
+     * @param {Object} playerids
      */
-    constructor(table, hostName, hostStack, hostIsStraddling, playerid) {
-        super(table, false);
+    constructor(sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds) {
+        super(table, table.game !== null);
+        this.sid = sid;
         this.trackBuyins = [];
-        this.playerids = {};
-        this.modIds = [];
-        this.buyin(hostName, playerid, hostStack, hostIsStraddling);
+        this.modIds = modIds || [];
+        if (!playerids) {
+            this.playerids = {};
+            this.buyin(hostName, playerid, hostStack, hostIsStraddling, hostSeed);
+        } else this.playerids = playerids;
         this.bigBlindNextHand = undefined;
         this.smallBlindNextHand = undefined;
         this.playerStacksNextHand = [];
@@ -172,6 +177,7 @@ class TableManager extends TableStateManager {
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
     // $2($5)
     addToPlayerIds(playerName, playerid) {
+        console.log('atpi wtf');
         this.playerids[playerName] = {playerid};
     }
 
@@ -241,10 +247,16 @@ class TableManager extends TableStateManager {
         return this.trackBuyins;
     };
 
+    handlePlayerExit(playerName) {
+        console.log(`${playerName} leaves game`);
+        this.addBuyOut(playerName, this.getPlayerId(playerName), this.getStack(playerName));
+        this.removePlayer(playerName);
+    }
+
     // adds the player to this.playerids
     // adds the player to the table
-    buyin(playerName, playerid, stack, isStraddling) {
-        const addedPlayer = this.table.AddPlayer(playerName, stack, isStraddling);
+    buyin(playerName, playerid, stack, isStraddling, seed) {
+        const addedPlayer = this.table.AddPlayer(playerName, stack, isStraddling, seed);
         if (addedPlayer) {
             this.addToPlayerIds(playerName, playerid);
             this.addToBuyins(playerName, playerid, stack);
@@ -269,6 +281,19 @@ class TableManager extends TableStateManager {
                 player.isStraddling = false;
             }
         }
+    }
+    getPlayerSeed(playerName) {
+        return this.getPlayer(playerName).seed;
+    }
+    setPlayerSeed(playerName, seed) {
+        const p = this.table.getPlayer(playerName);
+        if (p) {
+            seed = seed.trim();
+            console.log('setting seed for', p.playerName, 'to', seed);
+            p.seed = seed;
+            return true;
+        }
+        return false;
     }
     standUpPlayer(playerName) {
         return this.table.standUpPlayer(playerName);
@@ -393,33 +418,66 @@ class TableManager extends TableStateManager {
             this.gameInProgress = false;
     }
 
+    /**
+     * @param {string} playerName
+     * @param {string} action Player's action
+     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
+     * @return {number} Amount bet. -1 if action cannot be performed
+     */
+    performActionHelper(playerName, action, amount) {
+        if (amount < 0 || this.actionSeat !== this.getPlayerSeat(playerName)) {
+            return -1;
+        }
+        let actualBetAmount = 0;
+        if (action === 'bet') {
+            actualBetAmount = this.bet(playerName, amount);
+        } else if (action === 'raise') {
+            actualBetAmount = this.raise(playerName, amount);
+        } else if (action === 'call') {
+            if (this.getRoundName() === 'deal') {
+                actualBetAmount = this.callBlind(playerName);
+            } else {
+                actualBetAmount = this.call(playerName);
+            }
+        } else if (action === 'fold') {
+            actualBetAmount = 0;
+            this.fold(playerName);
+        } else if (action === 'check') {
+            let canPerformAction = this.check(playerName);
+            if (canPerformAction) {
+                actualBetAmount = 0;
+            }
+        }
+        return actualBetAmount;
+    }
+
     getCardsByPlayerName(playerName) {
         return this.table.getHandForPlayerName(playerName);
     }
 
     callBlind(playerName) {
-        return this.table.callBlind(playerName);
+        return this.table.callBlind();
     };
 
     call(playerName) {
         // this.table.call(this.table.getCurrentPlayer());
         // console.log(this.table);
-        return this.table.call(playerName);
+        return this.table.call();
     }
 
     check(playerName) {
         // return this.table.check(this.table.getCurrentPlayer());
-        return this.table.check(playerName);
+        return this.table.check();
     }
 
     fold(playerName) {
         // return this.table.fold(this.table.getCurrentPlayer());
-        return this.table.fold(playerName);
+        return this.table.fold();
     }
 
     bet(playerName, betAmount) {
         // return this.table.bet(this.table.getCurrentPlayer(), betAmount);
-        return this.table.bet(playerName, betAmount);
+        return this.table.bet(betAmount);
     }
 
 

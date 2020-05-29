@@ -15,4 +15,6 @@ ngrok
 client/dist
 server/dist
 
+*.log
+
 cert/

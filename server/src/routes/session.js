@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
 const xss = require("xss");
+const { v4 } = require('uuid');
 
 router.use('/', cookieParser(process.env.COOKIE_SECRET));
 router.use('/:id', cookieParser(process.env.COOKIE_SECRET));
@@ -13,6 +14,25 @@ const {asyncErrorHandler, sleep, asyncSchemaValidator, formatJoiError} = require
 const poker = require('../poker-logic/lib/node-poker');
 const socketioJwt   = require('socketio-jwt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const {handleSetSeedRedis} = require("../redisHelpers");
+const {fmtGameStreamId} = require("../redisHelpers");
+const {xlenAsync} = require("../redisHelpers");
+const {formatStreamElement} = require("../redisHelpers");
+const {getGameStream} = require("../redisHelpers");
+const {initializeTableRedis} = require("../redisHelpers");
+const {deleteTableOnRedis} = require("../redisHelpers");
+const {handlePlayerSitsDownRedis} = require("../redisHelpers");
+const {formatActionObject} = require("../redisHelpers");
+const {handlePlayerStandsUpRedis} = require("../redisHelpers");
+const {getTableStream} = require("../redisHelpers");
+const {sio} = require('../sio');
+const {getPlayerIdsForTable} = require("../redisHelpers");
+const {getTableState} = require("../redisHelpers");
+const {getSids} = require("../redisHelpers");
+const {deletePlayerOnRedis} = require("../redisHelpers");
+const {addPlayerToRedis} = require("../redisHelpers");
+const {initializeGameRedis, addActionToRedis} = require("../redisHelpers");
 const {getOrSetPlayerIdCookie} = require("../persistent");
 
 const validateTableName = (val) => {
@@ -71,22 +91,64 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
     const playerId = getOrSetPlayerIdCookie(req, res);
 
     value.isValid = true;
+
+    const tableNamespace = sio.of('/' + value.tableName);
+    let table = new poker.Table(req.body.smallBlind, req.body.bigBlind, 2, 10, 1, 500000000000, req.body.straddleLimit)
+    sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, table, req.body.name, req.body.stack, false, v4(), playerId));
+    await initializeTableRedis(table, value.tableName);
+
     await res.json(value);
     console.log(`starting new table with id: ${value.tableName} with mod player id ${playerId}`);
-    const tableNamespace = req.app.get('socketio').of('/' + value.tableName);
-    sessionManagers.set(value.tableName, new SessionManager(tableNamespace, value.tableName, req.body.smallBlind, req.body.bigBlind, req.body.name, req.body.stack, false, req.body.straddleLimit, playerId));
 }));
 
 // maps sid -> SessionManager
 // TODO: delete sid from sessionManagers when table finishes
 const sessionManagers = new Map();
 
+(async ()=>{
+    let sids = await getSids();
+    console.log('restarting tables with sids:', sids);
+    for (let sid of sids) {
+        let table = await getTableState(sid);
+        const pids = await getPlayerIdsForTable(sid);
+        const tableNamespace = sio.of('/' + sid);
+        let modIds = table.allPlayers.filter(p=>p!==null&&p.isMod).map(p=>pids[p.playerName].playerid);
+        const manager = new SessionManager(tableNamespace, sid, table, null, null, null, null, null, pids, modIds);
+        sessionManagers.set(sid, manager);
+        if (table.game) {
+            let prev_round = manager.getRoundName();
+            let stream = await getGameStream(sid, table.game.id);
+            stream = stream.map(formatStreamElement);
+            for (let el of stream) {
+                if (el.type !== 'action') continue;
+                let {action, seat, amount} = el;
+                prev_round = manager.getRoundName();
+
+                if (action === 'setSeed') {
+                    await manager.setPlayerSeed(manager.getPlayerBySeat(seat), el.value, true);
+                    continue;
+                } else if (action === 'standUp') {
+                    await manager.standUpPlayer(manager.getPlayerBySeat(seat), true);
+                } else if (action === 'sitDown') {
+                    await manager.sitDownPlayer(manager.getPlayerBySeat(seat), true);
+                } else {
+                    let betAmount = manager.performActionHelper(manager.getPlayerBySeat(seat), action, amount || 0);
+                    if (betAmount <= 0) console.log('betAmount:', betAmount);
+                }
+                manager.actionOnAllInPlayer();
+            }
+            await manager.check_round(prev_round);
+        }
+    }
+})();
+
+const sha256Hash = (str) => crypto.createHash('sha256').update(str).digest('hex');
+
+const TABLE_EXPIRY_TIMEOUT = 1000 * 60 * 30; // 30 minutes
 class SessionManager extends TableManager {
-    constructor(io, sid, smallBlind, bigBlind, hostName, hostStack, hostIsStraddling, straddleLimit, playerid) {
-        let table = new poker.Table(smallBlind, bigBlind, 2, 10, 1, 500000000000, straddleLimit);
-        super(table, hostName, hostStack, hostIsStraddling, playerid);
+    constructor(io, sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds) {
+        super(sid, table, hostName, hostStack, hostIsStraddling, hostSeed, playerid, playerids, modIds);
         this.io = io;
-        this.sid = sid;
         this.socketMap = new Map();
         // maps player id -> playerName when kicked
         this.kickedPlayers = {};
@@ -100,10 +162,21 @@ class SessionManager extends TableManager {
         // stores chat names for users who have not joined the game and have sent a chat message
         this.registeredGuests = {};
 
+        this.tableExpiryTimer = setTimeout(this.expireTable.bind(this), TABLE_EXPIRY_TIMEOUT);
+
         this.io.on('connection', socketioJwt.authorize({
             secret: process.env.PKR_JWT_SECRET,
             timeout: 15000 // 15 seconds to send the authentication message
         })).on('authenticated', makeAuthHandler(this));
+    }
+
+    async expireTable() {
+        console.log('expiring table');
+        this.socketMap.forEach(socket => socket.disconnect(false));
+        this.socketMap.clear(); // explicitly dereference sockets. probably helps with memory, why not.
+        // remove self from redis
+        await deleteTableOnRedis(this.sid);
+        sessionManagers.delete(this.sid); // dereference self from memory
     }
 
     setSocket(playerId, socket) {
@@ -115,7 +188,8 @@ class SessionManager extends TableManager {
     };
 
     getSocketId (playerId) {
-        return this.getSocket(playerId).id;
+        const socket = this.getSocket(playerId);
+        return socket? socket.id: undefined;
     };
 
     canPlayerJoin(playerId, playerName, stack, isStraddling) {
@@ -131,7 +205,16 @@ class SessionManager extends TableManager {
         return true;
     }
 
-    emitAction(action, playerName, betAmount) {
+    /**
+     *
+     * @param action
+     * @param playerName
+     * @param betAmount
+     * @param addToRedis should be false only when standing up or player leaves game
+     * @param {number} ogBetAmount original amount passed to/ to pass to performActionHelper.
+     * @return {Promise<void>}
+     */
+    async emitAction(action, playerName, betAmount, addToRedis, ogBetAmount) {
         this.sendTableState();
         this.io.emit(action, {
             username: playerName,
@@ -140,6 +223,7 @@ class SessionManager extends TableManager {
             seat: this.getPlayerSeat(playerName),
             amount: betAmount
         });
+        await addActionToRedis(this.sid, this.table.game.id, super.getPlayerSeat(playerName), action, ogBetAmount || betAmount);
     }
 
     sendTableState() {
@@ -149,7 +233,10 @@ class SessionManager extends TableManager {
             // this.getPlayerId(p.playerName) is falsy if handlePlayerExit called this function.
             if (!p || !this.getPlayerId(p.playerName)) continue;
             console.log('got player id for', p.playerName, this.getPlayerId(p.playerName));
-            this.sendTableStateTo(this.getSocketId(this.getPlayerId(p.playerName)), p.playerName)
+            const socketId = this.getSocketId(this.getPlayerId(p.playerName));
+            if (socketId)
+                this.sendTableStateTo(socketId, p.playerName);
+            else console.log('could not get socket id for player id', this.getPlayerId(p.playerName));
         }
     }
 
@@ -176,8 +263,13 @@ class SessionManager extends TableManager {
         });
     }
 
-    handleBuyIn(playerName, playerid, stack, isStraddling) {
-        const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling);
+    async addToPlayerIds(playerName, playerid) {
+        super.addToPlayerIds(playerName, playerid);
+        await addPlayerToRedis(this.sid, this.table, this.getPlayer(playerName), playerid);
+    }
+
+    handleBuyIn(playerName, playerid, stack, isStraddling, seed) {
+        const addedPlayer = super.buyin(playerName, playerid, stack, isStraddling, seed);
         if (addedPlayer) {
             if (this.registeredGuests[playerid]) {
                 // remove playerid from registeredGuests as player is no longer a guest.
@@ -185,13 +277,17 @@ class SessionManager extends TableManager {
                 delete this.registeredGuests[playerid];
             }
 
-            console.log('socket id on buy in', this.getSocket(playerid).id);
-            this.getSocket(playerid).leave(`guest`);
-            this.getSocket(playerid).join(`active`);
+            const socket = this.getSocket(playerid);
+            if (socket) {
+                socket.leave(`guest`);
+                socket.join(`active`);
+            }
             this.sendTableState();
             this.io.emit('buy-in', {
                 playerName: playerName,
                 stack: stack,
+                playerSeedHash: sha256Hash(super.getPlayerSeed(playerName)),
+                tableSeedHash: sha256Hash(this.table.getSeed()),
             });
         } else {
             // set or update this guest's name
@@ -206,12 +302,22 @@ class SessionManager extends TableManager {
         let playerName = this.getPlayerById(playerId);
         await this.playerLeaves(playerId);
     }
-
-    async standUpPlayer(playerName) {
+    async setPlayerSeed(playerName, value, disableSideEffects) {
+        value = value.trim();
+        let setSeed = super.setPlayerSeed(playerName, value);
+        if (!disableSideEffects)
+            await handleSetSeedRedis(this.sid, this.table, this.getPlayerSeat(playerName), value);
+        return setSeed;
+    }
+    async standUpPlayer(playerName, disableSideEffects) {
         if (this.isPlayerStandingUp(playerName)) return;
-
+        if (disableSideEffects) {
+            super.standUpPlayer(playerName);
+            return;
+        }
+        await handlePlayerStandsUpRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         if (this.gameInProgress && this.getPlayer(playerName).inHand && !this.hasPlayerFolded(playerName)) {
-            this.emitAction('fold', playerName, 0);
+            await this.emitAction('fold', playerName, 0, false);
         }
         let prev_round = super.getRoundName();
         super.standUpPlayer(playerName);
@@ -219,9 +325,13 @@ class SessionManager extends TableManager {
         await this.check_round(prev_round);
         this.io.emit('stand-up', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
     }
-    sitDownPlayer(playerName) {
+    async sitDownPlayer(playerName, disableSideEffects) {
         if (!this.isPlayerStandingUp(playerName)) return;
-
+        if (disableSideEffects) {
+            super.sitDownPlayer(playerName);
+            return;
+        }
+        await handlePlayerSitsDownRedis(this.sid, this.table, super.getPlayerSeat(playerName));
         super.sitDownPlayer(playerName);
         this.sendTableState();
         this.io.emit('sit-down', {playerName: playerName, seat: this.getPlayerSeat(playerName)});
@@ -236,7 +346,7 @@ class SessionManager extends TableManager {
         } else {
             let prev_round = super.getRoundName();
             console.log(`${playerName} leaves game for ${super.getStack(playerName)}`);
-            this.emitAction('fold', playerName, 0);
+            await this.emitAction('fold', playerName, 0);
             this.sendTableState();
 
             this.handlePlayerExit(playerName);
@@ -253,15 +363,15 @@ class SessionManager extends TableManager {
     handlePlayerExit(playerName) {
         const playerId = super.getPlayerId(playerName);
         const seat = super.getPlayerSeat(playerName);
-        console.log(`${playerName} leaves game`);
-
         const stack = this.getStack(playerName);
-        super.addBuyOut(playerName, playerId, stack);
-        super.removePlayer(playerName);
+        super.handlePlayerExit(playerName);
 
         this.registeredGuests[playerId] = playerName;
-        this.getSocket(playerId).leave(`active`);
-        this.getSocket(playerId).join(`guest`);
+        const socket = this.getSocket(playerId);
+        if (socket) {
+            socket.leave(`active`);
+            socket.join(`guest`);
+        }
         this.sendTableState();
 
         if (this.gameInProgress) {
@@ -303,7 +413,6 @@ class SessionManager extends TableManager {
         this.sendTableState();
     }
 
-    //checks if round has ended (reveals next card)
     async check_round (prev_round) {
         // if at showdown or everyone folded
         if (this.getWinners().length > 0) {
@@ -318,7 +427,7 @@ class SessionManager extends TableManager {
             }
 
             // start new round
-            this.startNextRoundOrWaitingForPlayers()
+            await this.startNextRoundOrWaitingForPlayers()
         }
         // if everyone is all in before the hand is over and its the end of the round, turn over their cards and let them race
         else if (super.isEveryoneAllIn() && prev_round !== super.getRoundName()) {
@@ -328,13 +437,22 @@ class SessionManager extends TableManager {
         }
     }
 
-    startNextRoundOrWaitingForPlayers () {
+    async deleteLeavingPlayersRedis() {
+        const leavingPlayers = this.table.leavingPlayers;
+        for (const p of leavingPlayers) {
+            await deletePlayerOnRedis(this.sid, p.playerName);
+        }
+    }
+    async startNextRoundOrWaitingForPlayers () {
+        await this.deleteLeavingPlayersRedis();
         // start new round
         super.startRound();
         this.sendTableState();
         if (!this.gameInProgress) {
             console.log('waiting for more players to rejoin!');
         }
+        // initializes game ID to 'none' if no game is in progress
+        await initializeGameRedis(this.table, this.sid);
     }
 
     async performAction(playerName, action, amount) {
@@ -343,46 +461,14 @@ class SessionManager extends TableManager {
         let canPerformAction = actualBetAmount >= 0;
 
         if (canPerformAction) {
+            this.tableExpiryTimer.refresh();
             this.refreshTimer();
-            this.emitAction(action, playerName, actualBetAmount);
+            await this.emitAction(action, playerName, actualBetAmount, true, amount);
             // shift action to next player in hand
             this.actionOnAllInPlayer();
             await sleep(500); // sleep so that if this is the last action before next street, people can see it
             await this.check_round(prev_round);
         }
-    }
-
-    /**
-     * @param {string} playerName
-     * @param {string} action Player's action
-     * @param {number} amount Player's action amount. Ignored if action === 'call', 'check', or 'fold'
-     * @return {number} Amount bet. -1 if action cannot be performed
-     */
-    performActionHelper(playerName, action, amount) {
-        if (amount < 0) {
-            return -1;
-        }
-        let actualBetAmount = 0;
-        if (action === 'bet') {
-            actualBetAmount = super.bet(playerName, amount);
-        } else if (action === 'raise') {
-            actualBetAmount = super.raise(playerName, amount);
-        } else if (action === 'call') {
-            if (super.getRoundName() === 'deal') {
-                actualBetAmount = super.callBlind(playerName);
-            } else {
-                actualBetAmount = super.call(playerName);
-            }
-        } else if (action === 'fold') {
-            actualBetAmount = 0;
-            super.fold(playerName);
-        } else if (action === 'check') {
-            let canPerformAction = super.check(playerName);
-            if (canPerformAction) {
-                actualBetAmount = 0;
-            }
-        }
-        return actualBetAmount;
     }
 
     setTimer (delay) {
@@ -520,13 +606,16 @@ async function handleOnAuth(s, socket) {
     const buyInSchema = Joi.object({
         playerName: Joi.string().trim().min(2).external(xss).required(),
         stack: Joi.number().min(0).required(),
-        isStraddling: Joi.boolean()
+        isStraddling: Joi.boolean(),
+        seed: Joi.string().trim().max(51).external(xss).optional(),
     });
     socket.on('buy-in', asyncSchemaValidator(buyInSchema, (data) => {
         if (!s.canPlayerJoin(playerId, data.playerName, data.stack, data.isStraddling === true)) {
             return;
         }
-        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true);
+        data.seed = data.seed && data.seed.length > 0? data.seed: v4();
+        // console.log('buy in seed is undefined', data.seed === undefined);
+        s.handleBuyIn(data.playerName, playerId, data.stack, data.isStraddling === true, data.seed);
     }));
 
     const straddleSwitchSchema = Joi.object({
@@ -554,20 +643,20 @@ async function handleOnAuth(s, socket) {
         await s.playerLeaves(playerId);
     });
 
-    socket.on('stand-up', () => {
+    socket.on('stand-up', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
             console.log(`playerid ${playerId} emitted stand-up but is not an active player`);
             return;
         }
-        s.standUpPlayer(s.getPlayerById(playerId));
+        await s.standUpPlayer(s.getPlayerById(playerId));
     });
 
-    socket.on('sit-down', () => {
+    socket.on('sit-down', async () => {
         if (!s.isSeatedPlayerId(playerId)) {
             console.log(`playerid ${playerId} emitted sit-down but is not an active player`);
             return;
         }
-        s.sitDownPlayer(s.getPlayerById(playerId));
+        await s.sitDownPlayer(s.getPlayerById(playerId));
     });
 
     const setTurnTimerSchema = Joi.object({delay: Joi.number().integer().required()}).external(isModValidator);
@@ -582,12 +671,7 @@ async function handleOnAuth(s, socket) {
         }
         const playersInNextHand = s.playersInNextHand().length;
         console.log(`players in next hand: ${playersInNextHand}`);
-        if (playersInNextHand >= 2 && playersInNextHand <= 10) {
-            s.startRound();
-            s.sendTableState();
-        } else {
-            console.log("waiting on players");
-        }
+        s.startNextRoundOrWaitingForPlayers();
     });
 
     socket.on('show-hand', () => {
@@ -603,6 +687,22 @@ async function handleOnAuth(s, socket) {
         p.showHand();
         s.sendTableState();
     });
+
+    const setSeedSchema = Joi.object({
+        value: Joi.string().trim().min(1).max(51).external(xss).required()
+    }).external(isSeatedPlayerIdValidator);
+    socket.on('set-seed', asyncSchemaValidator(setSeedSchema, async ({value}) => {
+        const playerName = s.getPlayerById(playerId);
+        const seedUpdated = await s.setPlayerSeed(playerName, value);
+        if (seedUpdated) {
+            s.sendTableState();
+            io.emit('set-seed', {
+                playerName: s.getPlayerById(playerId),
+                playerSeedHash: sha256Hash(s.getPlayerSeed(playerName)),
+                tableSeedHash: sha256Hash(s.table.getSeed()),
+            });
+        }
+    }));
 
     socket.on('get-buyin-info', () => {
         io.emit('get-buyin-info', s.getBuyinBuyouts());
