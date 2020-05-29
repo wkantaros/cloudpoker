@@ -67,7 +67,6 @@ async function getGameLog(sid, cursor) {
     let log = [];
     for (let i = gameIds.length -1; i > -1; i--) {
         let gameId = gameIds[i];
-        if (gameId === 'none') continue;
         let gameStream = await getGameStream(sid, gameId);
         let gameLog = gameStream
             .map(formatStreamElement)
