@@ -3,7 +3,6 @@ require('dotenv').config({path: path.join(__dirname, '../../.env')});
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const socketIO = require('socket.io');
 
 // // if you ever want to do the https stuff through express (rather than nginx, or whatever) uncomment this
 // var https = require('https');
@@ -24,23 +23,24 @@ const server = http.createServer(app);
 // const server = https.createServer(options, app);
 
 //socket setup
-let io = socketIO(server);
-app.set('socketio', io);
+const {setSio} = require("./sio");
+setSio(require('socket.io')(server));
 
+// initializeSocket(server);
 //ejs
 app.set('views', path.join(__dirname, '../views'));
-app.set('view engine', 'ejs');
 
+app.set('view engine', 'ejs');
 //middleware
 app.use(cors());
 app.use(express.json());
 app.use('/client', express.static(__dirname + '/../../client'));
-app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
 
+app.use('/sharedjs', express.static(__dirname + '/sharedjs'));
 //handling login
 const loginRouter = require('./routes/login');
-app.use(loginRouter); 
 
+app.use(loginRouter);
 //handling sessions
 const sessionRouter = require('./routes/session');
 app.use('/session', sessionRouter);

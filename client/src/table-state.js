@@ -386,6 +386,7 @@ export class GameState {
         this.board = [];
         this.winners = [];
         this.losers = [];
+        this.id = '';
     }
 
     getPublicInfo() {
