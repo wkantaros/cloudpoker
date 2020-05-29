@@ -178,33 +178,6 @@ socket.on('typing', (data) => {
     // $("#chat-window").scrollTop($("#chat-window")[0].scrollHeight);
 });
 
-// socket.on('setSeed', ({playerName, playerSeedHash, tableSeedHash}) => {
-//     outputEmphasizedMessage('The SHA256 hash for ' + playerName + '\'s new RNG seed is ' + playerSeedHash + '. The SHA256 hash for the table seed is now ' + tableSeedHash + '.')
-// });
-
-// player buys in
-// socket.on('buy-in', (data) => {
-//     outputEmphasizedMessage(data.playerName + ' buys in for ' + data.stack);
-// });
-//
-// //somebody left the game
-// socket.on('buy-out', (data) => {
-//     outputEmphasizedMessage(` ${data.playerName} has left the game (finishing stack: ${data.stack})`);
-//     // if ($('.volume').hasClass('on')) {
-//     //     createjs.Sound.play('fold');
-//     // }
-// });
-//
-// socket.on('standUp', data => {
-//     // TODO: do we want to do anything here?
-//     outputEmphasizedMessage(data.playerName + ' stands up.');
-// });
-//
-// socket.on('sit-down', data => {
-//     // TODO: do we want to do anything here?
-//     outputEmphasizedMessage(data.playerName + 'sits down.');
-// });
-
 // data is {seat, time}
 // time is milliseconds until the player's turn expires and they are forced to fold.
 // seat is not necessarily the next action seat, as the timer could have been refreshed.
@@ -223,63 +196,11 @@ socket.on('render-timer', (data) => {
     }
 });
 
-// calls
-// socket.on('call', (data) => {
-//     outputEmphasizedMessage(data.username + ' calls');
-//     playSoundIfVolumeOn('bet');
-// });
-//
-// // check
-// socket.on('check', (data) => {
-//     outputEmphasizedMessage(data.username + ' checks');
-//     playSoundIfVolumeOn('check');
-// });
-//
-// // fold
-// socket.on('fold', (data) => {
-//     outputEmphasizedMessage(data.username + ' folds');
-//     playSoundIfVolumeOn('fold');
-// });
-
 function outputMessage(s) {
     feedbackText = '';
     messageCache.push({text:s, em: false});
     renderBelowTable();
 }
-
-// function outputEmphasizedMessage(s) {
-//     feedbackText = '';
-//     messageCache.push({text: s, em: true});
-//     renderBelowTable();
-// }
-
-// bet
-// socket.on('bet', (data) => {
-//     outputEmphasizedMessage(data.username + ' bets ' + data.amount);
-//     playSoundIfVolumeOn('bet');
-// });
-
-// socket.on('straddle', (data) => {
-//     outputEmphasizedMessage(data.username + ' straddles ' + data.amount);
-//     // TODO: do we want a different sound effect for straddle?
-//     playSoundIfVolumeOn('bet');
-// });
-
-// raise
-// socket.on('raise', (data) => {
-//     outputEmphasizedMessage(data.username + ' raises ' + data.amount);
-//     if ($('.volume').hasClass('on')){
-//         createjs.Sound.play('bet');
-//     }
-// });
-
-// socket.on('log-winners', (data) => {
-//     for (let i = 0; i < data.length; i++) {
-//         let message = `${data[i].playerName} wins a pot of ${data[i].amount}!`;
-//         if (data[i].hand) message += ` ${data[i].hand.message}: ${data[i].hand.cards} `;
-//         outputMessage(message);
-//     }
-// })
 
 socket.on('alert', function(data) {
     alert(data.message);
