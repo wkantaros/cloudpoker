@@ -19,6 +19,35 @@ class Table extends TableState{
         }
         super(smallBlind, bigBlind, minPlayers, maxPlayers, minBuyIn, maxBuyIn, straddleLimit, 0, allPlayers, -1);
     }
+    applyAction(seat, action, amount) {
+        let actualBetAmount = 0;
+        if (action === 'standUp') {
+            this.standUpPlayer(this.allPlayers[seat].playerName)
+        } else if (action === 'sitDown') {
+            this.sitDownPlayer(this.allPlayers[seat].playerName);
+        } else if (action === 'removePlayer') {
+            this.removePlayer(this.allPlayers[seat].playerName)
+        } else if (action === 'bet') {
+            actualBetAmount = this.bet(amount);
+        } else if (action === 'raise') {
+            actualBetAmount = this.raise(amount);
+        } else if (action === 'call') {
+            if (this.game.roundName.toLowerCase() === 'deal') {
+                actualBetAmount = this.callBlind();
+            } else {
+                actualBetAmount = this.call();
+            }
+        } else if (action === 'fold') {
+            actualBetAmount = 0;
+            this.fold();
+        } else if (action === 'check') {
+            let canPerformAction = this.check();
+            if (canPerformAction) {
+                actualBetAmount = 0;
+            }
+        }
+        return actualBetAmount;
+    }
 
     callBlind() {
         let currentPlayer = this.currentPlayer;
@@ -70,7 +99,6 @@ class Table extends TableState{
             progress(this);
         }
     }
-
     fold(){
         this.foldHelper(this.players[this.currentPlayer]);
         return true;
@@ -83,6 +111,9 @@ class Table extends TableState{
         return betAmount;
     };
 
+    raise(betAmount) {
+        return this.bet(betAmount - this.players[this.currentPlayer].bet);
+    }
     /**
      * @param amt Amount to bet (on top of current bet)
      * @return {number|*} Actual amount bet. 0 < y <= amt if player goes all in. y =-1 if amt < 0.
@@ -263,28 +294,24 @@ function checkForEndOfRound(table) {
 
 /**
  *
- * @param table
+ * @param {Table} table
+ * @param {Array<Hand> | undefined} handRankings undefined if all but one player folded
  * @return {[]|number[]} Array of the indices (in table.players) of players
  * in this hand who did not fold and have the highest ranking hand
  */
-function identifyWinners(table) {
+function identifyWinners(table, handRankings) {
     if (table.players.filter(p=>!p.folded).length === 1)
         return [table.players.findIndex(p=>!p.folded)];
-    // Evaluate each hand
-    for (let j = 0; j < table.players.length; j += 1) {
-        let cards = table.players[j].cards.concat(table.game.board);
-        table.players[j].hand = rankHand(new Hand(cards));
-    }
 
     //Identify winner(s)
     let winners = [];
     let maxRank = 0.000;
     for (let k = 0; k < table.players.length; k += 1) {
-        if (table.players[k].hand.rank === maxRank && table.players[k].folded === false) {
+        if (handRankings[k].rank === maxRank && table.players[k].folded === false) {
             winners.push(k);
         }
-        if (table.players[k].hand.rank > maxRank && table.players[k].folded === false) {
-            maxRank = table.players[k].hand.rank;
+        if (handRankings[k].rank > maxRank && table.players[k].folded === false) {
+            maxRank = handRankings[k].rank;
             winners.splice(0, winners.length);
             winners.push(k);
         }
@@ -324,12 +351,17 @@ function getSidePotPrize(table, part) {
     return prize;
 }
 
-function checkForWinner(table) {
-    let winners = identifyWinners(table);
+/**
+ *
+ * @param table
+ * @param {Array<Hand> | undefined} handRankings undefined if all but one player folded
+ */
+function checkForWinner(table, handRankings) {
+    let winners = identifyWinners(table, handRankings || []);
 
     let part = getSidePotBet(table, winners);
     let prize = getSidePotPrize(table, part);
-    addGameWinners(table, prize, winners);
+    table.game.winners.push(...formatWinners(table, prize, winners, handRankings || []));
 
     let roundEnd = table.game.roundBets.filter(rb => rb !== 0).length === 0;
     if (roundEnd === false) {
@@ -337,7 +369,16 @@ function checkForWinner(table) {
     }
 }
 
-function addGameWinners(table, prize, winners) {
+/**
+ *
+ * @param table
+ * @param prize
+ * @param winners
+ * @param {Array<Hand> | undefined} handRankings undefined if all but one player folded
+ * @return {[]}
+ */
+function formatWinners(table, prize, winners, handRankings) {
+    let formattedWinners = [];
     const winnerPrize =prize / winners.length;
     // TODO: make the next pot start with extraChips, not 0.
     // const extraChips = prize - (winnerPrize * winners.length);
@@ -346,16 +387,21 @@ function addGameWinners(table, prize, winners) {
         winningPlayer.chips += winnerPrize;
         if (table.game.roundBets[winners[i]] === 0) {
             winningPlayer.folded = true;
-            table.game.winners.push({
+            let winnerData = {
                 playerName: winningPlayer.playerName,
                 amount: winnerPrize,
-                hand: winningPlayer.hand, // undefined if everyone folded (i.e. checkwin().everyoneFolded is true)
                 chips: winningPlayer.chips,
                 seat: winningPlayer.seat,
-            });
+            };
+            if (handRankings.length > winners[i]) {
+                let hand = handRankings[winners[i]];
+                winnerData.cards = hand.cards.join(', ');
+                winnerData.handRankMessage = hand.message;
+            }
+            formattedWinners.push(winnerData);
         }
-        console.log('player ' + table.players[winners[i]].playerName + ' wins !!');
     }
+    return formattedWinners;
 }
 
 function checkForBankrupt(table) {
@@ -397,7 +443,8 @@ function progress(table) {
             clearRoundState(table);
             if (table.game.roundName === 'River') {
                 table.game.roundName = 'Showdown';
-                checkForWinner(table);
+                let handRankings = table.players.map(p=>rankHand(new Hand(p.cards.concat(table.game.board))));
+                checkForWinner(table, handRankings);
                 checkForBankrupt(table);
             } else if (table.game.roundName === 'Turn') {
                 console.log('effective turn');

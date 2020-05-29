@@ -8,7 +8,7 @@ const streets = {
     4: 'turn',
     5: 'river',
 }
-function getStreet(board) {
+export function getStreet(board) {
     return streets[board.length];
 }
 
@@ -25,15 +25,14 @@ export default class BoardCards extends Component {
             cards.push(<Card key={i} card={null} folded={true} className="hidden"/>)
         }
         return (
-            <div id="cards">
-                {/* <div id="flop">{cards.slice(0,3)}</div> */}
-                <div id="flop">
+            <div id={this.props.id} className={this.props.className? "board " + this.props.className : "board"}>
+                <div className="flop">
                     <div>{cards[0]}</div>
                     <div>{cards[1]}</div>
                     <div>{cards[2]}</div>
                 </div>
-                <div id="turn">{cards[3]}</div>
-                <div id="river">{cards[4]}</div>
+                <div className="turn">{cards[3]}</div>
+                <div className="river">{cards[4]}</div>
             </div>
         );
     }
