@@ -59,11 +59,11 @@ class SeedInfo extends Component {
             <div className={seedInfoClassName} id="seed-info">
                 <div className="row">
                     <span>Current Seed<br/></span>
-                    <input type="text" value={this.props.currentSeed} disabled/>
+                    <input className="u-max-full-width" type="text" value={this.props.currentSeed} disabled/>
                 </div>
                 <div className="row">
                     <span>Seed Next Hand<br/></span>
-                    <input name="nextSeedValue" type="text" value={this.state.nextSeedValue} onChange={this.handleInputChange} placeholder={this.props.currentSeed} id="new-seed"/>
+                    <input className="u-max-full-width" name="nextSeedValue" type="text" value={this.state.nextSeedValue} onChange={this.handleInputChange} placeholder={this.props.currentSeed} id="new-seed"/>
                 </div>
                 <div className="button-primary" onClick={this.handleSubmit}>Submit</div>
             </div>

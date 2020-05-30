@@ -8,6 +8,7 @@ import VolumeIcon from "../img/volume.svg";
 import MuteIcon from "../img/mute.svg";
 import HostOptions, {HostButton} from "./hostOptions";
 import RngButton from "./rngButton";
+import straddleAbilities from "./straddleAbilities";
 
 export function Blinds({smallBlind, bigBlind}) {
     return (
@@ -65,19 +66,22 @@ export default class Header extends Component {
             <HostOptions socket={this.props.socket} closeHostPage={this.closeHostPage} table={this.props.table}/>:
             null;
         return (
-            <div className="header u-full-width">
-                <div className="row">
-                    <GetLink/>
-                    {this.props.loggedIn && <QuitButton socket={this.props.socket} loggedIn={this.props.loggedIn}/>}
-                    {!this.props.loggedIn && <BuyInButton socket={this.props.socket} loggedIn={this.props.loggedIn}/>}
+            <div>
+                <div className="header u-full-width">
+                    <div className="row">
+                        <GetLink/>
+                        {this.props.loggedIn && <QuitButton socket={this.props.socket} loggedIn={this.props.loggedIn}/>}
+                        {!this.props.loggedIn && <BuyInButton socket={this.props.socket} loggedIn={this.props.loggedIn}/>}
 
-                    {this.props.loggedIn && this.props.player && <RngButton currentSeed={this.props.player.seed} socket={this.props.socket}/>}
-                    {standUpStateButton}
-                    {hostButton}
-                    {hostOptions}
+                        {/* {this.props.loggedIn && this.props.player && <RngButton currentSeed={this.props.player.seed} socket={this.props.socket}/>} */}
+                        {standUpStateButton}
+                        
+                        {hostButton}
+                        {hostOptions}
 
-                    <Blinds bigBlind={this.props.table.bigBlind} smallBlind={this.props.table.smallBlind}/>
-                    <VolumeControl/>
+                        <Blinds bigBlind={this.props.table.bigBlind} smallBlind={this.props.table.smallBlind}/>
+                        <VolumeControl/>
+                    </div>
                 </div>
             </div>
         );
