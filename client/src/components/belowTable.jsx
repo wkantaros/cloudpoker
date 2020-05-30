@@ -72,7 +72,7 @@ export default class BelowTable extends Component {
         return (
             <div className="below-table u-full-width">
                 <BuyInLog buyInData={this.state.buyInData} onClose={this.closeLog} width={this.state.openLogId === 'buyin-log-opn'? "100%": "0%"}/>
-                <GameLog onClose={this.closeLog} width={this.state.openLogId === 'game-log-opn'? "100%": "0%"} volumeOn={this.props.volumeOn} socket={this.props.socket}/>
+                <GameLog onClose={this.closeLog} width={this.state.openLogId === 'game-log-opn' ? "100%": "0%"} volumeOn={this.props.volumeOn} socket={this.props.socket}/>
                 {/*<HandHistory handEndLog={this.props.handEndLog} onClose={this.closeLog} width={this.state.openLogId === 'game-log-opn'? "100%": "0%"}/>*/}
                 <ChatRoomContainer socket={this.props.socket}
                                    messages={this.props.messages}

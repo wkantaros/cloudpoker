@@ -28,8 +28,9 @@ export default class GameLog extends Component {
             'action': data => this.messageFormatters[data.action](data),
 
             'buy-in': data => {
-                let message = data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}.`;
-                if (data.tableSeedHash) message += ` Table seed hash is ${data.tableSeedHash}.`;
+                // let message = data.playerName + ' buys in for ' + data.stack + `. SHA256 hash for ${data.playerName}'s seed is ${data.playerSeedHash}.`;
+                // if (data.tableSeedHash) message += ` Table seed hash is ${data.tableSeedHash}.`;
+                let message = data.playerName + ' buys in for ' + data.stack;
                 message += '\n';
                 return message;
             },
@@ -116,10 +117,12 @@ export default class GameLog extends Component {
     render() {
         return (
             <div id="game-log" className="overlay" style={{width: this.props.width}}>
-                <div id="game-log-text" className="game-log-page overlay-content">
-                    <a onClick={this.props.onClose} className="closebtn" id="closeLog">&times;</a>
-                    <a href="#">Game Log</a>
-                    {this.state.messageCache.map((val, ind) => <LogLine key={ind}>{val}</LogLine>)}
+                <a onClick={this.props.onClose} className="closebtn" id="closeLog">&times;</a>
+                <div className="game-log-page overlay-content">
+                    <div className="h"><h2>Game Log</h2></div>
+                    <div id="game-log-text">
+                        {this.state.messageCache.map((val, ind) => <LogLine key={ind}>{val}</LogLine>)}
+                    </div>
                 </div>
             </div>
         );
