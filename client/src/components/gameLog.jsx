@@ -1,8 +1,4 @@
 import React, {Component} from "react";
-import createjs from 'createjs';
-import FoldSound from "../audio/fold1.wav";
-import CheckSound from "../audio/check.wav";
-import ChipsStackSound from "../audio/chipsStack4.wav";
 
 export default class GameLog extends Component {
     constructor(props) {
@@ -13,7 +9,6 @@ export default class GameLog extends Component {
         };
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.printToGameLog = this.printToGameLog.bind(this);
-        this.playSoundIfVolumeOn = this.playSoundIfVolumeOn.bind(this);
 
         this.messageFormatters = {
             'bet': data => data.playerName + ' bets ' + data.amount + '.\n',
@@ -52,23 +47,10 @@ export default class GameLog extends Component {
                 this.setState({cursor: parseInt(cursor)});
             }
         }
-        let soundEvents = {bet: 'bet', raise: 'bet', call: 'bet', check: 'check', fold: 'fold'};
         for (let event of Object.keys(this.messageFormatters)) {
-            if (soundEvents.hasOwnProperty(event)) {
-                this.messageListeners[event] = (data) => {
-                    this.printToGameLog(this.messageFormatters[event](data));
-                    this.playSoundIfVolumeOn(soundEvents[event]);
-                }
-            } else {
-                this.messageListeners[event] = (data) => {
-                    this.printToGameLog(this.messageFormatters[event](data));
-                }
+            this.messageListeners[event] = (data) => {
+                this.printToGameLog(this.messageFormatters[event](data));
             }
-        }
-    }
-    playSoundIfVolumeOn(soundName) {
-        if (this.props.volumeOn) {
-            createjs.Sound.play(soundName);
         }
     }
     printToGameLog(...messages) {
@@ -77,10 +59,6 @@ export default class GameLog extends Component {
         });
     }
     componentDidMount() {
-        createjs.Sound.registerSound('/client/dist/' + FoldSound, 'fold');
-        createjs.Sound.registerSound('/client/dist/' + CheckSound, 'check');
-        createjs.Sound.registerSound('/client/dist/' + ChipsStackSound, 'bet');
-
         for (const event in this.messageListeners) {
             this.props.socket.on(event, this.messageListeners[event]);
         }
@@ -93,9 +71,6 @@ export default class GameLog extends Component {
         for (const event in this.messageListeners) {
             this.props.socket.off(event, this.messageListeners[event]);
         }
-        createjs.Sound.removeSound('fold');
-        createjs.Sound.removeSound('check');
-        createjs.Sound.removeSound('bet');
     }
     handleKeyDown(e) {
         // esc key

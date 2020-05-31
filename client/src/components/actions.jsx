@@ -2,6 +2,8 @@ import React, {Component} from "react";
 import YourAction from "./yourAction";
 import BetActions, {getMinRaiseAmount} from "./betActions";
 import '../css/stylesheet.css';
+
+
 import createjs from 'createjs';
 
 const actionButtonSettings = [
@@ -84,11 +86,21 @@ export default class Actions extends Component {
         this.placeRaise = this.placeRaise.bind(this);
         this.setBetInputValue = this.setBetInputValue.bind(this);
         this.setRaiseInputValue = this.setRaiseInputValue.bind(this);
+        this.playSoundToUsersWithVolumeOn = this.playSoundToUsersWithVolumeOn.bind(this);
         this.actionButtonClickHandlers = {
             'start': () => {this.props.socket.emit('start-game', {});},
-            'call': () => {this.props.socket.emit('action', {amount: 0, action: 'call'});},
-            'check': () => {this.props.socket.emit('action', {amount: 0, action: 'check'});},
-            'fold': () => {this.props.socket.emit('action', {amount: 0, action: 'fold'});},
+            'call': () => {
+                this.props.socket.emit('action', {amount: 0, action: 'call'});
+                this.playSoundToUsersWithVolumeOn('bet');
+            },
+            'check': () => {
+                this.props.socket.emit('action', {amount: 0, action: 'check'});
+                this.playSoundToUsersWithVolumeOn('check');
+            },
+            'fold': () => {
+                this.props.socket.emit('action', {amount: 0, action: 'fold'});
+                this.playSoundToUsersWithVolumeOn('fold');
+            },
             'show-hand': () => {
                 this.props.actionHandlers['show-hand']();
                 // this.props.socket.emit('show-hand', {});
@@ -96,16 +108,23 @@ export default class Actions extends Component {
                 // re-render because show-hand should be hidden. hacky
                 // this.setState(this.props.manager.getAvailableActions(this.props.player.playerName).availableActions)
             },
-            'min-bet': () => {this.props.socket.emit('action', {amount: this.props.manager.table.bigBlind, action: 'bet'});},
+            'min-bet': () => {
+                this.props.socket.emit('action', {amount: this.props.manager.table.bigBlind, action: 'bet'});
+                this.playSoundToUsersWithVolumeOn('bet');
+            },
             'bet': () => {
                 if (this.props.betActionsOpen) {
-                    this.placeBet();
+                    if (this.placeBet()){
+                        this.playSoundToUsersWithVolumeOn('bet');
+                    }
                 }
                 this.props.toggleBetSlider()
             },
             'raise': () => {
                 if (this.props.betActionsOpen) {
-                    this.placeRaise();
+                    if (this.placeRaise()) {
+                        this.playSoundToUsersWithVolumeOn('bet');
+                    }
                 }
                 this.props.toggleBetSlider()
             },
@@ -291,6 +310,11 @@ export default class Actions extends Component {
     }
     setRaiseInputValue(amount) {
         this.setState({raiseInputValue: amount || amount === 0? amount : ''});
+    }
+    playSoundToUsersWithVolumeOn(soundName) {
+        if (this.props.volumeOn) {
+            createjs.Sound.play(soundName);
+        }
     }
     render() {
         let showBetActions = this.props.availableActions['bet'] && !this.props.canPerformPremoves;

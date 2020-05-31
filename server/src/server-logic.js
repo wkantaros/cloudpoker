@@ -175,7 +175,6 @@ class TableManager extends TableStateManager {
     // let(\s*)(\S*)(\s*)=(\s*)\((.*)\)(\s*)=>
     // $2($5)
     addToPlayerIds(playerName, playerid) {
-        console.log('atpi wtf');
         this.playerids[playerName] = {playerid};
     }
 

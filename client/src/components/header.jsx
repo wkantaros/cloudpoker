@@ -74,10 +74,10 @@ export default class Header extends Component {
                         {!this.props.loggedIn && <BuyInButton socket={this.props.socket} loggedIn={this.props.loggedIn}/>}
 
                         {/* {this.props.loggedIn && this.props.player && <RngButton currentSeed={this.props.player.seed} socket={this.props.socket}/>} */}
-                        {standUpStateButton}
-                        
                         {hostButton}
                         {hostOptions}
+                        {standUpStateButton}
+                        
 
                         <Blinds bigBlind={this.props.table.bigBlind} smallBlind={this.props.table.smallBlind}/>
                         <VolumeControl/>

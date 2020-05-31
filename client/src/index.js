@@ -16,6 +16,10 @@ import CardPlaceSound from './audio/cardPlace1.wav';
 import DealSound from './audio/deal.wav';
 import FlopSound from './audio/flop.wav';
 import TurnSound from './audio/turn.wav';
+// Action sounds
+import FoldSound from "./audio/fold1.wav";
+import CheckSound from "./audio/check.wav";
+import ChipsStackSound from "./audio/chipsStack4.wav";
 import TableImage from "./components/tableImage";
 import BelowTable from "./components/belowTable";
 import {TableStateManager} from "./table-state-manager";
@@ -213,6 +217,10 @@ const loadSounds = () => {
     createjs.Sound.registerSound('/client/dist/' + TurnSound, 'turn');
     createjs.Sound.registerSound('/client/dist/' + CardPlaceSound, 'river');
     createjs.Sound.registerSound('/client/dist/' + ActionSound, 'action');
+    // action sounds 
+    createjs.Sound.registerSound('/client/dist/' + FoldSound, 'fold');
+    createjs.Sound.registerSound('/client/dist/' + CheckSound, 'check');
+    createjs.Sound.registerSound('/client/dist/' + ChipsStackSound, 'bet');
     createjs.Sound.volume = 0.25;
 };
 loadSounds();
