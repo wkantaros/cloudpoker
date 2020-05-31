@@ -32,8 +32,22 @@ const {getOrSetPlayerIdCookie} = require("../persistent");
 const validateTableName = (val) => {
     if (!val || val.length === 0) return val;
     val = val.replace(/\s/g, '-'); // replace spaces with hyphens
-    if (!sessionManagers.has(val)) return val;
-    throw new Error(`table name ${val} is already taken`);
+    val = val.replace(/\'/g, ''); // removes quote
+    let counter = 0;
+    while (sessionManagers.has(val) && counter < 1000){
+        console.log(val);
+        counter++;
+        if (counter > 1){
+            val = val.replace(/\d+$/, counter);
+        } else {
+            val += '-' + counter;
+        }
+    }
+    // this isn't really necessary, moreso to prevent attackers from inputting same name forever
+    if (counter !== 1000)
+        return val;
+    else
+        throw new Error(`table name ${val} is already taken`);
 }
 
 // Information host submits for game (name, stack, bb, sb)
@@ -43,7 +57,8 @@ router.route('/').post(asyncErrorHandler(async (req, res) => {
         // username: Joi.string().alphanum().min(2).max(10)
         tableName: Joi.string().trim().min(2).max(15)
             // matches only letters, numbers, - (hyphen), _ (underscore), and " " (space)
-            .regex(/[a-zA-Z0-9-_\s]+$/, 'no-punctuation')
+            // .regex(/[a-zA-Z0-9-_\s]+$/, 'no-punctuation') - this led to some weird bugs with semi colons, etc
+            .regex(/^[A-Za-z0-9_\-\'\s]*$/, 'no-punctuation')
             .external(validateTableName),
         username: Joi.string().regex(/^\w+(?:\s+\w+)*$/, 'no-punctuation').min(2).max(10),
         smallBlind: Joi.number().integer().min(0),
